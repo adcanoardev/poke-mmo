@@ -20,8 +20,8 @@ router.post("/auth/register", async (req, res) => {
 
 router.post("/auth/login", async (req, res) => {
     try {
-        const { username, password } = validate(LoginBody, req.body);
-        const result = await loginUser(username, password);
+        const { email, password } = validate(LoginBody, req.body);
+        const result = await loginUser(email, password);
         res.json(result);
     } catch (e) {
         const msg = e instanceof Error ? e.message : "Internal error";
