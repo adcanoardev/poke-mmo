@@ -4,6 +4,7 @@ import { addXp } from "./trainerService.js";
 import { addItem, hasItem, removeItem } from "./inventoryService.js";
 import { fetchPokemon } from "./pokeapi.js";
 import type { ItemType } from "@prisma/client";
+import { checkLevelEvolution } from "./evolutionService.js";
 
 // ── Tablas de encuentro por nivel del entrenador ───────────────
 
@@ -287,6 +288,9 @@ export async function runNpcBattle(userId: string) {
         },
     });
 
+    // Comprobar evolución por nivel tras ganar XP
+    const evoResult = await checkLevelEvolution(playerPokemon.id);
+
     return {
         result: won ? "WIN" : "LOSE",
         xpGained,
@@ -301,5 +305,6 @@ export async function runNpcBattle(userId: string) {
         },
         captured,
         turns,
+        evolution: evoResult, // null si no evolucionó
     };
 }
