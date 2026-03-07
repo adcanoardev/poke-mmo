@@ -1,124 +1,124 @@
 import { prisma } from "./prisma.js";
 import { addXp } from "./trainerService.js";
 import { useNpcToken } from "./tokenService.js";
-import { fetchPokemon } from "./pokeapi.js";
+import { getCreature } from "./creatureService.js";
 
-// ── Configuración de los 8 gimnasios ──────────────────────────
+// ── 8 Guardianes de Mythara ───────────────────────────────────
 
-export const GYMS = [
+export const SANCTUMS = [
     {
         id: 0,
-        name: "Gimnasio Gris",
-        leader: "Brock",
-        badge: "Medalla Roca",
+        name: "Sanctum de Piedra",
+        guardian: "Kael",
+        emblem: "Emblema de Roca",
         requiredLevel: 10,
-        pokemon: [
-            { pokedexId: 74, level: 12 },
-            { pokedexId: 95, level: 14 },
+        myths: [
+            { speciesId: "011", level: 12 },
+            { speciesId: "011", level: 14 },
         ],
         xpReward: 500,
         coinsReward: 300,
     },
     {
         id: 1,
-        name: "Gimnasio Celeste",
-        leader: "Misty",
-        badge: "Medalla Cascada",
+        name: "Sanctum de Marea",
+        guardian: "Lyra",
+        emblem: "Emblema de Marea",
         requiredLevel: 15,
-        pokemon: [
-            { pokedexId: 120, level: 18 },
-            { pokedexId: 121, level: 21 },
+        myths: [
+            { speciesId: "004", level: 18 },
+            { speciesId: "005", level: 21 },
         ],
         xpReward: 800,
         coinsReward: 500,
     },
     {
         id: 2,
-        name: "Gimnasio Carmín",
-        leader: "Lt. Surge",
-        badge: "Medalla Trueno",
+        name: "Sanctum de Tormenta",
+        guardian: "Zeph",
+        emblem: "Emblema de Volt",
         requiredLevel: 20,
-        pokemon: [
-            { pokedexId: 100, level: 21 },
-            { pokedexId: 25, level: 18 },
-            { pokedexId: 26, level: 24 },
+        myths: [
+            { speciesId: "010", level: 21 },
+            { speciesId: "010", level: 24 },
+            { speciesId: "010", level: 26 },
         ],
         xpReward: 1200,
         coinsReward: 700,
     },
     {
         id: 3,
-        name: "Gimnasio Azafrán",
-        leader: "Erika",
-        badge: "Medalla Arcoíris",
+        name: "Sanctum del Bosque",
+        guardian: "Mira",
+        emblem: "Emblema de Vida",
         requiredLevel: 25,
-        pokemon: [
-            { pokedexId: 71, level: 29 },
-            { pokedexId: 44, level: 24 },
-            { pokedexId: 45, level: 29 },
+        myths: [
+            { speciesId: "007", level: 24 },
+            { speciesId: "008", level: 27 },
+            { speciesId: "008", level: 29 },
         ],
         xpReward: 1800,
         coinsReward: 1000,
     },
     {
         id: 4,
-        name: "Gimnasio Fucsia",
-        leader: "Koga",
-        badge: "Medalla Alma",
+        name: "Sanctum de Veneno",
+        guardian: "Voss",
+        emblem: "Emblema de Corrupción",
         requiredLevel: 30,
-        pokemon: [
-            { pokedexId: 109, level: 37 },
-            { pokedexId: 89, level: 39 },
-            { pokedexId: 49, level: 37 },
+        myths: [
+            { speciesId: "012", level: 32 },
+            { speciesId: "012", level: 35 },
+            { speciesId: "012", level: 37 },
         ],
         xpReward: 2500,
         coinsReward: 1400,
     },
     {
         id: 5,
-        name: "Gimnasio Plateado",
-        leader: "Sabrina",
-        badge: "Medalla Marsh",
+        name: "Sanctum Astral",
+        guardian: "Sable",
+        emblem: "Emblema Cósmico",
         requiredLevel: 35,
-        pokemon: [
-            { pokedexId: 64, level: 38 },
-            { pokedexId: 122, level: 37 },
-            { pokedexId: 65, level: 43 },
+        myths: [
+            { speciesId: "030", level: 38 },
+            { speciesId: "030", level: 40 },
+            { speciesId: "030", level: 43 },
         ],
         xpReward: 3500,
         coinsReward: 2000,
     },
     {
         id: 6,
-        name: "Gimnasio Canela",
-        leader: "Blaine",
-        badge: "Medalla Volcán",
+        name: "Sanctum de Brasas",
+        guardian: "Ryn",
+        emblem: "Emblema de Llama",
         requiredLevel: 40,
-        pokemon: [
-            { pokedexId: 58, level: 42 },
-            { pokedexId: 77, level: 40 },
-            { pokedexId: 59, level: 47 },
+        myths: [
+            { speciesId: "001", level: 42 },
+            { speciesId: "002", level: 44 },
+            { speciesId: "002", level: 47 },
         ],
         xpReward: 5000,
         coinsReward: 3000,
     },
     {
         id: 7,
-        name: "Gimnasio Viridian",
-        leader: "Giovanni",
-        badge: "Medalla Tierra",
+        name: "Sanctum de Sombra",
+        guardian: "Nox",
+        emblem: "Emblema Oscuro",
         requiredLevel: 50,
-        pokemon: [
-            { pokedexId: 111, level: 45 },
-            { pokedexId: 112, level: 55 },
-            { pokedexId: 112, level: 60 },
+        myths: [
+            { speciesId: "030", level: 50 },
+            { speciesId: "030", level: 55 },
+            { speciesId: "003", level: 60 },
         ],
         xpReward: 8000,
         coinsReward: 5000,
     },
 ];
 
-// ── Lógica de combate simplificada para gimnasio ──────────────
+// ── Motor de combate de Sanctum ───────────────────────────────
 
 function randInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -136,13 +136,7 @@ interface SimStats {
     level: number;
 }
 
-function simulateGymBattle(
-    player: SimStats,
-    enemies: SimStats[],
-): {
-    won: boolean;
-    turnsTotal: number;
-} {
+function simulateSanctumBattle(player: SimStats, enemies: SimStats[]) {
     let playerHp = player.hp;
     let turnsTotal = 0;
 
@@ -154,12 +148,10 @@ function simulateGymBattle(
         while (playerHp > 0 && enemyHp > 0 && turn < 50) {
             turn++;
             turnsTotal++;
-
             const order = playerFirst ? ["player", "enemy"] : ["enemy", "player"];
 
             for (const attacker of order) {
                 if (playerHp <= 0 || enemyHp <= 0) break;
-
                 const crit = Math.random() < 0.0625 ? 1.5 : 1;
                 if (attacker === "player") {
                     const dmg = Math.max(
@@ -179,10 +171,8 @@ function simulateGymBattle(
             }
         }
 
-        if (playerHp <= 0) {
-            return { won: false, turnsTotal };
-        }
-        // Recupera 30% HP entre combates del mismo gimnasio
+        if (playerHp <= 0) return { won: false, turnsTotal };
+        // Recupera 30% HP entre combates
         playerHp = Math.min(player.hp, playerHp + Math.floor(player.hp * 0.3));
     }
 
@@ -191,122 +181,108 @@ function simulateGymBattle(
 
 // ── Función principal ─────────────────────────────────────────
 
-export async function challengeGym(userId: string, gymId: number) {
-    const gym = GYMS[gymId];
-    if (!gym) return { error: "Invalid gym ID" };
+export async function challengeSanctum(userId: string, sanctumId: number) {
+    const sanctum = SANCTUMS[sanctumId];
+    if (!sanctum) return { error: "Sanctum no válido" };
 
-    // 1. Verificar ficha NPC
     const hasToken = await useNpcToken(userId);
     if (!hasToken) return { error: "No NPC tokens available" };
 
-    // 2. Obtener perfil del entrenador
     const trainer = await prisma.trainerProfile.findUniqueOrThrow({ where: { userId } });
 
-    // 3. Verificar nivel mínimo
-    if (trainer.level < gym.requiredLevel) {
-        return {
-            error: `Nivel insuficiente. Necesitas nivel ${gym.requiredLevel} (tienes ${trainer.level})`,
-        };
+    if (trainer.level < sanctum.requiredLevel) {
+        return { error: `Nivel insuficiente. Necesitas nivel ${sanctum.requiredLevel} (tienes ${trainer.level})` };
     }
 
-    // 4. Verificar que no tiene ya la medalla
-    if (trainer.medals.includes(gymId)) {
-        return { error: "Ya tienes esta medalla" };
+    if (trainer.medals.includes(sanctumId)) {
+        return { error: "Ya tienes este emblema" };
     }
 
-    // 5. Verificar orden (no puedes saltar gimnasios)
-    if (gymId > 0 && !trainer.medals.includes(gymId - 1)) {
-        return { error: `Debes conseguir la medalla ${GYMS[gymId - 1].name} primero` };
+    if (sanctumId > 0 && !trainer.medals.includes(sanctumId - 1)) {
+        return { error: `Debes conseguir el emblema de ${SANCTUMS[sanctumId - 1].name} primero` };
     }
 
-    // 6. Obtener Pokémon del jugador
-    const playerPokemon = await prisma.pokemonInstance.findFirst({
+    const playerMyth = await prisma.creatureInstance.findFirst({
         where: { userId, isInParty: true },
         orderBy: { slot: "asc" },
     });
-    if (!playerPokemon) return { error: "No Pokémon in party" };
+    if (!playerMyth) return { error: "No tienes ningún Myth en el equipo" };
 
-    // 7. Construir stats del jugador
     const playerStats: SimStats = {
-        hp: playerPokemon.maxHp,
-        attack: playerPokemon.attack,
-        defense: playerPokemon.defense,
-        speed: playerPokemon.speed,
-        level: playerPokemon.level,
+        hp: playerMyth.maxHp,
+        attack: playerMyth.attack,
+        defense: playerMyth.defense,
+        speed: playerMyth.speed,
+        level: playerMyth.level,
     };
 
-    // 8. Construir stats de los Pokémon del gimnasio
-    const BASE = { hp: 50, attack: 55, defense: 50, speed: 45 };
-    const enemyStats: SimStats[] = gym.pokemon.map((p) => ({
-        hp: calcStat(BASE.hp, p.level),
-        attack: calcStat(BASE.attack, p.level),
-        defense: calcStat(BASE.defense, p.level),
-        speed: calcStat(BASE.speed, p.level),
-        level: p.level,
-    }));
+    const enemyStats: SimStats[] = sanctum.myths.map((m) => {
+        const species = getCreature(m.speciesId);
+        return {
+            hp: calcStat(species.baseStats.hp, m.level),
+            attack: calcStat(species.baseStats.atk, m.level),
+            defense: calcStat(species.baseStats.def, m.level),
+            speed: calcStat(species.baseStats.spd, m.level),
+            level: m.level,
+        };
+    });
 
-    // 9. Simular combate
-    const { won, turnsTotal } = simulateGymBattle(playerStats, enemyStats);
+    const { won, turnsTotal } = simulateSanctumBattle(playerStats, enemyStats);
 
-    // 10. Si ganó, dar medalla + XP + monedas
-    let updatedTrainer = trainer;
     if (won) {
-        const newMedals = [...trainer.medals, gymId];
+        const newMedals = [...trainer.medals, sanctumId];
         await Promise.all([
             prisma.trainerProfile.update({
                 where: { userId },
-                data: {
-                    medals: newMedals,
-                    coins: { increment: gym.coinsReward },
-                },
+                data: { medals: newMedals, coins: { increment: sanctum.coinsReward } },
             }),
-            addXp(userId, gym.xpReward),
+            addXp(userId, sanctum.xpReward),
         ]);
-        updatedTrainer = await prisma.trainerProfile.findUniqueOrThrow({ where: { userId } });
     }
 
-    // 11. Guardar BattleLog
+    const updatedTrainer = await prisma.trainerProfile.findUniqueOrThrow({ where: { userId } });
+
     await prisma.battleLog.create({
         data: {
             userId,
             type: "NPC",
             result: won ? "WIN" : "LOSE",
-            xpGained: won ? gym.xpReward : Math.floor(gym.xpReward * 0.1),
-            coinsGained: won ? gym.coinsReward : 0,
-            playerPokemonId: playerPokemon.pokedexId,
-            playerPokemonLvl: playerPokemon.level,
-            enemyPokemonId: gym.pokemon[0].pokedexId,
-            enemyPokemonLvl: gym.pokemon[gym.pokemon.length - 1].level,
+            xpGained: won ? sanctum.xpReward : Math.floor(sanctum.xpReward * 0.1),
+            coinsGained: won ? sanctum.coinsReward : 0,
+            playerSpeciesId: playerMyth.speciesId,
+            playerLevel: playerMyth.level,
+            enemySpeciesId: sanctum.myths[0].speciesId,
+            enemyLevel: sanctum.myths[sanctum.myths.length - 1].level,
         },
     });
 
     return {
         result: won ? "WIN" : "LOSE",
-        gym: {
-            id: gym.id,
-            name: gym.name,
-            leader: gym.leader,
-            badge: gym.badge,
+        sanctum: {
+            id: sanctum.id,
+            name: sanctum.name,
+            guardian: sanctum.guardian,
+            emblem: sanctum.emblem,
         },
-        xpGained: won ? gym.xpReward : Math.floor(gym.xpReward * 0.1),
-        coinsGained: won ? gym.coinsReward : 0,
+        xpGained: won ? sanctum.xpReward : Math.floor(sanctum.xpReward * 0.1),
+        coinsGained: won ? sanctum.coinsReward : 0,
         turnsTotal,
         medals: updatedTrainer.medals,
         trainerLevel: updatedTrainer.level,
-        badgeEarned: won,
+        emblemEarned: won,
     };
 }
 
-export async function getGymsStatus(userId: string) {
+export async function getSanctumsStatus(userId: string) {
     const trainer = await prisma.trainerProfile.findUniqueOrThrow({ where: { userId } });
 
-    return GYMS.map((gym) => ({
-        id: gym.id,
-        name: gym.name,
-        leader: gym.leader,
-        badge: gym.badge,
-        requiredLevel: gym.requiredLevel,
-        earned: trainer.medals.includes(gym.id),
-        unlocked: trainer.level >= gym.requiredLevel && (gym.id === 0 || trainer.medals.includes(gym.id - 1)),
+    return SANCTUMS.map((s) => ({
+        id: s.id,
+        name: s.name,
+        guardian: s.guardian,
+        emblem: s.emblem,
+        requiredLevel: s.requiredLevel,
+        earned: trainer.medals.includes(s.id),
+        unlocked: trainer.level >= s.requiredLevel && (s.id === 0 || trainer.medals.includes(s.id - 1)),
     }));
 }

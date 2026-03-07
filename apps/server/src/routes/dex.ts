@@ -1,30 +1,25 @@
-// apps/server/src/routes/dex.ts
-
 import { Router } from "express";
-import { fetchPokemon, fetchRandomEligibleStarter } from "../services/pokeapi.js";
-import { PokemonIdParam, validate } from "../validators/game.validators.js";
+import { getAllCreatures, getCreature } from "../services/creatureService.js";
 
 const router = Router();
 
-router.get("/dex/pokemon/:id", async (req, res) => {
+// GET /dex/:id — obtiene un Myth por id o slug
+router.get("/dex/:id", async (req, res) => {
     try {
-        const { id } = validate(PokemonIdParam, req.params);
-        const pokemon = await fetchPokemon(id);
-        res.json(pokemon);
+        const myth = getCreature(req.params.id);
+        res.json(myth);
     } catch (e) {
-        const msg = e instanceof Error ? e.message : "Internal error";
-        const status = msg.includes("not found") || msg.includes("404") ? 404 : 400;
-        res.status(status).json({ error: msg });
+        res.status(404).json({ error: `Myth not found: ${req.params.id}` });
     }
 });
 
-router.get("/random/starter", async (_req, res) => {
+// GET /dex — lista todos los Myths
+router.get("/dex", async (_req, res) => {
     try {
-        const starter = await fetchRandomEligibleStarter();
-        res.json(starter);
+        const all = getAllCreatures();
+        res.json(all);
     } catch (e) {
-        const msg = e instanceof Error ? e.message : "Internal error";
-        res.status(503).json({ error: msg });
+        res.status(500).json({ error: "Error cargando bestiario" });
     }
 });
 

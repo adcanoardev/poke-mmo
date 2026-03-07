@@ -21,8 +21,8 @@ model User {
   combatTokens   CombatToken?
   inventory      Inventory[]
   structures     Structure[]
-  pokemon        PokemonInstance[]
-  battleLogs BattleLog[]
+  creatures      CreatureInstance[]
+  battleLogs     BattleLog[]
 }
 
 model Game {
@@ -36,19 +36,21 @@ model Game {
 }
 
 // ─── Perfil del entrenador ─────────────────────────────────────
-
 model TrainerProfile {
   id     String @id @default(cuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  level    Int @default(1) // 1-100
-  xp       Int @default(0)
-  prestige Int @default(0) // PvP only
-  coins    Int @default(0)
+  level    Int   @default(1)
+  xp       Int   @default(0)
+  prestige Int   @default(0)
+  coins    Int   @default(0)
+  medals   Int[] @default([])
 
-  // Medallas desbloqueadas (array de índices 0-7)
-  medals Int[] @default([])
+  // Onboarding
+  avatar             String?
+  gender             String?
+  onboardingComplete Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -129,25 +131,25 @@ enum ItemType {
   UPGRADE
 }
 
-// ─── Pokémon del jugador ───────────────────────────────────────
+// ─── Myths del jugador ───────────────────────────────────────
 
-model PokemonInstance {
+model CreatureInstance {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  pokedexId Int // ID de PokéAPI
+  speciesId String
   nickname  String?
   level     Int     @default(1)
   xp        Int     @default(0)
-  hp        Int // HP actual
-  maxHp     Int // HP máximo
+  hp        Int
+  maxHp     Int
   attack    Int
   defense   Int
   speed     Int
 
-  isInParty Boolean @default(false) // en equipo activo
-  slot      Int? // posición en el equipo (0-5)
+  isInParty Boolean @default(false)
+  slot      Int?
 
   caughtAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -155,27 +157,22 @@ model PokemonInstance {
 
 // ─── Battletag ───────────────────────────────────────
 model BattleLog {
-  id         String      @id @default(cuid())
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  type       BattleType
-  result     BattleResult
-  xpGained   Int         @default(0)
-  coinsGained Int        @default(0)
+  type              BattleType
+  result            BattleResult
+  xpGained          Int          @default(0)
+  coinsGained       Int          @default(0)
+  
+  playerSpeciesId   String
+  playerLevel       Int
+  enemySpeciesId    String
+  enemyLevel        Int
+  capturedSpeciesId String?
 
-  // Pokémon del jugador usado
-  playerPokemonId  Int   // pokedexId
-  playerPokemonLvl Int
-
-  // Pokémon rival
-  enemyPokemonId   Int
-  enemyPokemonLvl  Int
-
-  // Si capturó un Pokémon
-  capturedPokemonId Int?
-
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 enum BattleType {

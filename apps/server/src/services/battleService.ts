@@ -2,33 +2,37 @@ import { prisma } from "./prisma.js";
 import { useNpcToken } from "./tokenService.js";
 import { addXp } from "./trainerService.js";
 import { addItem, hasItem, removeItem } from "./inventoryService.js";
-import { fetchPokemon } from "./pokeapi.js";
+import { getCreature, getAllCreatures } from "./creatureService.js";
 import type { ItemType } from "@prisma/client";
 import { checkLevelEvolution } from "./evolutionService.js";
 
-// ── Tablas de encuentro por nivel del entrenador ───────────────
+// ── Tabla de encuentros por nivel del Binder ──────────────────
 
-const ENCOUNTER_TABLE: Record<string, { minId: number; maxId: number; minLvl: number; maxLvl: number }> = {
-    "1-10": { minId: 1, maxId: 151, minLvl: 2, maxLvl: 12 },
-    "11-25": { minId: 1, maxId: 251, minLvl: 8, maxLvl: 25 },
-    "26-50": { minId: 1, maxId: 386, minLvl: 20, maxLvl: 45 },
-    "51-75": { minId: 1, maxId: 493, minLvl: 35, maxLvl: 65 },
-    "76-100": { minId: 1, maxId: 649, minLvl: 50, maxLvl: 90 },
-};
+function getEncounterPool(trainerLevel: number): string[] {
+    const all = getAllCreatures();
+    if (trainerLevel <= 10) return all.filter((c) => c.rarity === "COMMON").map((c) => c.id);
+    if (trainerLevel <= 25) return all.filter((c) => ["COMMON", "RARE"].includes(c.rarity)).map((c) => c.id);
+    if (trainerLevel <= 50) return all.filter((c) => ["COMMON", "RARE", "ELITE"].includes(c.rarity)).map((c) => c.id);
+    return all.map((c) => c.id);
+}
 
-function getEncounterRange(trainerLevel: number) {
-    if (trainerLevel <= 10) return ENCOUNTER_TABLE["1-10"];
-    if (trainerLevel <= 25) return ENCOUNTER_TABLE["11-25"];
-    if (trainerLevel <= 50) return ENCOUNTER_TABLE["26-50"];
-    if (trainerLevel <= 75) return ENCOUNTER_TABLE["51-75"];
-    return ENCOUNTER_TABLE["76-100"];
+function getEncounterLevelRange(trainerLevel: number): { min: number; max: number } {
+    if (trainerLevel <= 10) return { min: 2, max: 12 };
+    if (trainerLevel <= 25) return { min: 8, max: 25 };
+    if (trainerLevel <= 50) return { min: 20, max: 45 };
+    if (trainerLevel <= 75) return { min: 35, max: 65 };
+    return { min: 50, max: 90 };
 }
 
 function randInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// ── Stats de un Pokémon según nivel ───────────────────────────
+function randPick<T>(arr: T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ── Stats escalados por nivel ─────────────────────────────────
 
 function calcStat(base: number, level: number): number {
     return Math.floor((2 * base * level) / 100) + level + 10;
@@ -38,7 +42,7 @@ function calcHp(base: number, level: number): number {
     return Math.floor((2 * base * level) / 100) + level + 10;
 }
 
-// ── Motor de combate por turnos ────────────────────────────────
+// ── Motor de combate ──────────────────────────────────────────
 
 interface CombatantStats {
     hp: number;
@@ -47,7 +51,7 @@ interface CombatantStats {
     defense: number;
     speed: number;
     level: number;
-    pokedexId: number;
+    speciesId: string;
     name: string;
 }
 
@@ -60,57 +64,48 @@ interface TurnLog {
     enemyHpAfter: number;
 }
 
-function simulateBattle(
-    player: CombatantStats,
-    enemy: CombatantStats,
-): {
-    winner: "player" | "enemy";
-    turns: TurnLog[];
-} {
+function simulateBattle(player: CombatantStats, enemy: CombatantStats) {
     let playerHp = player.hp;
     let enemyHp = enemy.hp;
     const turns: TurnLog[] = [];
     let turn = 0;
-
-    // Decide quién ataca primero por velocidad
-    let playerFirst = player.speed >= enemy.speed;
+    const playerFirst = player.speed >= enemy.speed;
 
     while (playerHp > 0 && enemyHp > 0 && turn < 50) {
         turn++;
-        const attackers: ("player" | "enemy")[] = playerFirst ? ["player", "enemy"] : ["enemy", "player"];
+        const order: ("player" | "enemy")[] = playerFirst ? ["player", "enemy"] : ["enemy", "player"];
 
-        for (const attacker of attackers) {
+        for (const attacker of order) {
             if (playerHp <= 0 || enemyHp <= 0) break;
-
-            const isCritical = Math.random() < 0.0625; // 1/16 chance
-            const multiplier = isCritical ? 1.5 : 1;
+            const isCritical = Math.random() < 0.0625;
+            const mult = isCritical ? 1.5 : 1;
 
             if (attacker === "player") {
-                const rawDmg = Math.max(
-                    1,
-                    Math.floor(((((2 * player.level) / 5 + 2) * player.attack) / enemy.defense / 50 + 2) * multiplier),
-                );
-                const damage = rawDmg + randInt(-2, 2); // variación aleatoria
-                enemyHp = Math.max(0, enemyHp - damage);
+                const dmg =
+                    Math.max(
+                        1,
+                        Math.floor(((((2 * player.level) / 5 + 2) * player.attack) / enemy.defense / 50 + 2) * mult),
+                    ) + randInt(-2, 2);
+                enemyHp = Math.max(0, enemyHp - dmg);
                 turns.push({
                     turn,
                     attacker,
-                    damage,
+                    damage: dmg,
                     critical: isCritical,
                     playerHpAfter: playerHp,
                     enemyHpAfter: enemyHp,
                 });
             } else {
-                const rawDmg = Math.max(
-                    1,
-                    Math.floor(((((2 * enemy.level) / 5 + 2) * enemy.attack) / player.defense / 50 + 2) * multiplier),
-                );
-                const damage = rawDmg + randInt(-2, 2);
-                playerHp = Math.max(0, playerHp - damage);
+                const dmg =
+                    Math.max(
+                        1,
+                        Math.floor(((((2 * enemy.level) / 5 + 2) * enemy.attack) / player.defense / 50 + 2) * mult),
+                    ) + randInt(-2, 2);
+                playerHp = Math.max(0, playerHp - dmg);
                 turns.push({
                     turn,
                     attacker,
-                    damage,
+                    damage: dmg,
                     critical: isCritical,
                     playerHpAfter: playerHp,
                     enemyHpAfter: enemyHp,
@@ -119,13 +114,10 @@ function simulateBattle(
         }
     }
 
-    return {
-        winner: playerHp > 0 ? "player" : "enemy",
-        turns,
-    };
+    return { winner: playerHp > 0 ? "player" : ("enemy" as "player" | "enemy"), turns };
 }
 
-// ── Captura ────────────────────────────────────────────────────
+// ── Captura ───────────────────────────────────────────────────
 
 const CATCH_RATES: Record<string, number> = {
     POKEBALL: 0.3,
@@ -133,17 +125,9 @@ const CATCH_RATES: Record<string, number> = {
     ULTRABALL: 0.8,
     MASTERBALL: 1.0,
 };
-
 const BALL_PRIORITY: ItemType[] = ["MASTERBALL", "ULTRABALL", "SUPERBALL", "POKEBALL"];
 
-async function attemptCapture(
-    userId: string,
-    enemyHpPercent: number,
-): Promise<{
-    caught: boolean;
-    ballUsed: ItemType | null;
-}> {
-    // Busca la mejor bola disponible
+async function attemptCapture(userId: string, enemyHpPercent: number, speciesCatchRate: number) {
     let ballUsed: ItemType | null = null;
     for (const ball of BALL_PRIORITY) {
         if (await hasItem(userId, ball)) {
@@ -153,23 +137,19 @@ async function attemptCapture(
     }
     if (!ballUsed) return { caught: false, ballUsed: null };
 
-    const baseRate = CATCH_RATES[ballUsed];
-    // HP baja = más fácil capturar
+    const ballRate = CATCH_RATES[ballUsed];
     const hpBonus = (1 - enemyHpPercent) * 0.3;
-    const caught = Math.random() < baseRate + hpBonus;
+    const caught = Math.random() < (ballRate + hpBonus) * speciesCatchRate * 2;
 
-    if (caught) {
-        await removeItem(userId, ballUsed, 1);
-    }
-
+    if (caught) await removeItem(userId, ballUsed, 1);
     return { caught, ballUsed };
 }
 
-// ── XP ganada ─────────────────────────────────────────────────
+// ── XP y monedas ─────────────────────────────────────────────
 
 function calcXpGained(enemyLevel: number, won: boolean): number {
     const base = Math.floor(enemyLevel * 1.5);
-    return won ? base : Math.floor(base * 0.2); // 20% XP si pierde
+    return won ? base : Math.floor(base * 0.2);
 }
 
 function calcCoinsGained(enemyLevel: number, won: boolean): number {
@@ -177,60 +157,55 @@ function calcCoinsGained(enemyLevel: number, won: boolean): number {
     return randInt(enemyLevel * 2, enemyLevel * 5);
 }
 
-// ── Función principal ──────────────────────────────────────────
+// ── Función principal ─────────────────────────────────────────
 
 export async function runNpcBattle(userId: string) {
-    // 1. Verificar ficha
+    // 1. Ficha NPC
     const hasToken = await useNpcToken(userId);
-    if (!hasToken) {
-        return { error: "No NPC tokens available" };
-    }
+    if (!hasToken) return { error: "No NPC tokens available" };
 
-    // 2. Obtener perfil del entrenador
+    // 2. Perfil del Binder
     const trainer = await prisma.trainerProfile.findUniqueOrThrow({ where: { userId } });
 
-    // 3. Obtener Pokémon del jugador (primero del equipo)
-    const playerPokemon = await prisma.pokemonInstance.findFirst({
+    // 3. Myth del jugador (primero del equipo)
+    const playerMyth = await prisma.creatureInstance.findFirst({
         where: { userId, isInParty: true },
         orderBy: { slot: "asc" },
     });
+    if (!playerMyth) return { error: "No Myth in party" };
 
-    if (!playerPokemon) {
-        return { error: "No Pokémon in party" };
-    }
+    const playerSpecies = getCreature(playerMyth.speciesId);
 
-    // 4. Generar Pokémon enemigo
-    const range = getEncounterRange(trainer.level);
-    const enemyPokedexId = randInt(range.minId, range.maxId);
-    const enemyLevel = randInt(range.minLvl, range.maxLvl);
-    const enemyDex = await fetchPokemon(enemyPokedexId);
-
-    // Stats base aproximados (usamos stats de PokéAPI en el futuro)
-    const BASE_STATS = { hp: 45, attack: 50, defense: 45, speed: 45 };
+    // 4. Generar Myth enemigo aleatorio según nivel del Binder
+    const pool = getEncounterPool(trainer.level);
+    const enemyId = randPick(pool);
+    const enemySpecies = getCreature(enemyId);
+    const { min, max } = getEncounterLevelRange(trainer.level);
+    const enemyLevel = randInt(min, max);
 
     const playerStats: CombatantStats = {
-        hp: playerPokemon.hp,
-        maxHp: playerPokemon.maxHp,
-        attack: playerPokemon.attack,
-        defense: playerPokemon.defense,
-        speed: playerPokemon.speed,
-        level: playerPokemon.level,
-        pokedexId: playerPokemon.pokedexId,
-        name: "Tu Pokémon",
+        hp: playerMyth.hp,
+        maxHp: playerMyth.maxHp,
+        attack: playerMyth.attack,
+        defense: playerMyth.defense,
+        speed: playerMyth.speed,
+        level: playerMyth.level,
+        speciesId: playerMyth.speciesId,
+        name: playerSpecies.name,
     };
 
     const enemyStats: CombatantStats = {
-        hp: calcHp(BASE_STATS.hp, enemyLevel),
-        maxHp: calcHp(BASE_STATS.hp, enemyLevel),
-        attack: calcStat(BASE_STATS.attack, enemyLevel),
-        defense: calcStat(BASE_STATS.defense, enemyLevel),
-        speed: calcStat(BASE_STATS.speed, enemyLevel),
+        hp: calcHp(enemySpecies.baseStats.hp, enemyLevel),
+        maxHp: calcHp(enemySpecies.baseStats.hp, enemyLevel),
+        attack: calcStat(enemySpecies.baseStats.atk, enemyLevel),
+        defense: calcStat(enemySpecies.baseStats.def, enemyLevel),
+        speed: calcStat(enemySpecies.baseStats.spd, enemyLevel),
         level: enemyLevel,
-        pokedexId: enemyPokedexId,
-        name: enemyDex.name,
+        speciesId: enemySpecies.id,
+        name: enemySpecies.name,
     };
 
-    // 5. Simular combate
+    // 5. Combate
     const { winner, turns } = simulateBattle(playerStats, enemyStats);
     const won = winner === "player";
 
@@ -248,31 +223,31 @@ export async function runNpcBattle(userId: string) {
             : Promise.resolve(),
     ]);
 
-    // 7. Intentar captura si ganó
+    // 7. Captura si ganó
     let captured = null;
     if (won) {
         const enemyHpPercent = turns[turns.length - 1].enemyHpAfter / enemyStats.maxHp;
-        const { caught, ballUsed } = await attemptCapture(userId, enemyHpPercent);
+        const { caught, ballUsed } = await attemptCapture(userId, enemyHpPercent, enemySpecies.catchRate);
 
         if (caught) {
-            const newPokemon = await prisma.pokemonInstance.create({
+            await prisma.creatureInstance.create({
                 data: {
                     userId,
-                    pokedexId: enemyPokedexId,
+                    speciesId: enemySpecies.id,
                     level: enemyLevel,
-                    hp: calcHp(BASE_STATS.hp, enemyLevel),
-                    maxHp: calcHp(BASE_STATS.hp, enemyLevel),
-                    attack: calcStat(BASE_STATS.attack, enemyLevel),
-                    defense: calcStat(BASE_STATS.defense, enemyLevel),
-                    speed: calcStat(BASE_STATS.speed, enemyLevel),
+                    hp: enemyStats.hp,
+                    maxHp: enemyStats.maxHp,
+                    attack: enemyStats.attack,
+                    defense: enemyStats.defense,
+                    speed: enemyStats.speed,
                     isInParty: false,
                 },
             });
-            captured = { pokedexId: enemyPokedexId, name: enemyDex.name, level: enemyLevel, ballUsed };
+            captured = { speciesId: enemySpecies.id, name: enemySpecies.name, level: enemyLevel, ballUsed };
         }
     }
 
-    // 8. Guardar BattleLog
+    // 8. BattleLog
     await prisma.battleLog.create({
         data: {
             userId,
@@ -280,16 +255,16 @@ export async function runNpcBattle(userId: string) {
             result: won ? "WIN" : "LOSE",
             xpGained,
             coinsGained,
-            playerPokemonId: playerPokemon.pokedexId,
-            playerPokemonLvl: playerPokemon.level,
-            enemyPokemonId: enemyPokedexId,
-            enemyPokemonLvl: enemyLevel,
-            capturedPokemonId: captured?.pokedexId ?? null,
+            playerSpeciesId: playerMyth.speciesId,
+            playerLevel: playerMyth.level,
+            enemySpeciesId: enemySpecies.id,
+            enemyLevel,
+            capturedSpeciesId: captured?.speciesId ?? null,
         },
     });
 
-    // Comprobar evolución por nivel tras ganar XP
-    const evoResult = await checkLevelEvolution(playerPokemon.id);
+    // 9. Evolución por nivel
+    const evoResult = await checkLevelEvolution(playerMyth.id);
 
     return {
         result: won ? "WIN" : "LOSE",
@@ -298,13 +273,14 @@ export async function runNpcBattle(userId: string) {
         trainerLevel: updatedTrainer.level,
         trainerXp: updatedTrainer.xp,
         enemy: {
-            pokedexId: enemyPokedexId,
-            name: enemyDex.name,
+            speciesId: enemySpecies.id,
+            name: enemySpecies.name,
             level: enemyLevel,
-            sprite: enemyDex.sprite,
+            art: enemySpecies.art,
+            affinities: enemySpecies.affinities,
         },
         captured,
         turns,
-        evolution: evoResult, // null si no evolucionó
+        evolution: evoResult,
     };
 }

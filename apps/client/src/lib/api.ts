@@ -48,4 +48,10 @@ export const api = {
     gyms: () => request<any[]>("/gyms"),
     challengeGym: (id: number) => request<any>(`/gyms/${id}/challenge`, { method: "POST" }),
     ranking: () => request<any>("/ranking"),
+    onboardingData: () => request<any>("/onboarding/data"),
+    onboardingComplete: (avatarId: string, gender: string, starterPokedexId: number) =>
+        request<any>("/onboarding/complete", {
+            method: "POST",
+            body: JSON.stringify({ avatarId, gender, starterPokedexId }),
+        }),
 };

@@ -36,10 +36,16 @@ export async function loginUser(email: string, password: string) {
 }
 
 export async function getUserById(userId: string) {
-    return prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, username: true, email: true, createdAt: true },
     });
+    if (!user) return null;
+    const trainer = await prisma.trainerProfile.findUnique({
+        where: { userId },
+        select: { onboardingComplete: true, avatar: true, gender: true },
+    });
+    return { ...user, onboardingComplete: trainer?.onboardingComplete ?? false };
 }
 
 function signToken(userId: string, username: string): string {

@@ -1,0 +1,107 @@
+[
+    {
+        "id": "001",
+        "slug": "cindor",
+        "name": "Cindor",
+        "affinities": ["EMBER"],
+        "rarity": "COMMON",
+        "description": "Pequeña bestia ígnea cuyo corazón arde como una brasa eterna nacida de las forjas volcánicas de Mythara.",
+        "baseStats": { "hp": 60, "atk": 70, "def": 40, "spd": 40 },
+        "catchRate": 0.6,
+        "evolution": { "evolvesTo": "002", "method": "LEVEL", "value": 16 },
+        "art": { "portrait": "🔥", "front": "🔥", "back": "🔥" }
+    },
+    {
+        "id": "002",
+        "slug": "blazra",
+        "name": "Blazra",
+        "affinities": ["EMBER"],
+        "rarity": "RARE",
+        "description": "Sus placas ardientes canalizan fuego vivo que ruge cada vez que entra en combate.",
+        "baseStats": { "hp": 80, "atk": 100, "def": 55, "spd": 55 },
+        "catchRate": 0.2,
+        "evolution": { "evolvesTo": "003", "method": "LEVEL", "value": 36 },
+        "art": { "portrait": "🔥", "front": "🔥", "back": "🔥" }
+    },
+    {
+        "id": "003",
+        "slug": "volkrad",
+        "name": "Volkrad",
+        "affinities": ["EMBER"],
+        "rarity": "ELITE",
+        "description": "Un titán de magma viviente cuya furia incendia el campo de batalla con cada embestida.",
+        "baseStats": { "hp": 105, "atk": 135, "def": 65, "spd": 65 },
+        "catchRate": 0.05,
+        "art": { "portrait": "🔥", "front": "🔥", "back": "🔥" }
+    },
+    {
+        "id": "004",
+        "slug": "neril",
+        "name": "Neril",
+        "affinities": ["TIDE"],
+        "rarity": "COMMON",
+        "description": "Criatura nacida en corrientes profundas capaz de moldear el agua a su alrededor.",
+        "baseStats": { "hp": 70, "atk": 50, "def": 60, "spd": 30 },
+        "catchRate": 0.6,
+        "evolution": { "evolvesTo": "005", "method": "LEVEL", "value": 16 },
+        "art": { "portrait": "💧", "front": "💧", "back": "💧" }
+    },
+    {
+        "id": "005",
+        "slug": "maruvo",
+        "name": "Maruvo",
+        "affinities": ["TIDE"],
+        "rarity": "RARE",
+        "description": "Sus placas acuáticas generan corrientes de presión que ralentizan a cualquier enemigo.",
+        "baseStats": { "hp": 90, "atk": 70, "def": 80, "spd": 50 },
+        "catchRate": 0.2,
+        "evolution": { "evolvesTo": "006", "method": "LEVEL", "value": 36 },
+        "art": { "portrait": "💧", "front": "💧", "back": "💧" }
+    },
+    {
+        "id": "006",
+        "slug": "tyrvane",
+        "name": "Tyrvane",
+        "affinities": ["TIDE"],
+        "rarity": "ELITE",
+        "description": "Un leviatán de presión oceánica que domina las mareas del campo de batalla.",
+        "baseStats": { "hp": 120, "atk": 90, "def": 100, "spd": 60 },
+        "catchRate": 0.05,
+        "art": { "portrait": "💧", "front": "💧", "back": "💧" }
+    },
+    {
+        "id": "007",
+        "slug": "luro",
+        "name": "Luro",
+        "affinities": ["GROVE"],
+        "rarity": "COMMON",
+        "description": "Una criatura joven que brota de semillas antiguas impregnadas con la vida de Mythara.",
+        "baseStats": { "hp": 65, "atk": 45, "def": 60, "spd": 40 },
+        "catchRate": 0.6,
+        "evolution": { "evolvesTo": "008", "method": "LEVEL", "value": 16 },
+        "art": { "portrait": "🌿", "front": "🌿", "back": "🌿" }
+    },
+    {
+        "id": "008",
+        "slug": "verdan",
+        "name": "Verdan",
+        "affinities": ["GROVE"],
+        "rarity": "RARE",
+        "description": "Su cuerpo se cubre de corteza viva que regenera lentamente sus heridas.",
+        "baseStats": { "hp": 85, "atk": 65, "def": 85, "spd": 55 },
+        "catchRate": 0.2,
+        "evolution": { "evolvesTo": "009", "method": "LEVEL", "value": 36 },
+        "art": { "portrait": "🌿", "front": "🌿", "back": "🌿" }
+    },
+    {
+        "id": "009",
+        "slug": "sylthora",
+        "name": "Sylthora",
+        "affinities": ["GROVE"],
+        "rarity": "ELITE",
+        "description": "Un guardián ancestral del bosque cuyo aliento despierta la vida dormida de la tierra.",
+        "baseStats": { "hp": 110, "atk": 85, "def": 110, "spd": 65 },
+        "catchRate": 0.05,
+        "art": { "portrait": "🌿", "front": "🌿", "back": "🌿" }
+    }
+]
