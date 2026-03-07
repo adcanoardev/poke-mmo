@@ -104,11 +104,9 @@ export default function CombatPage() {
                 </div>
             </div>
 
-            {/* Contenido — dos columnas fijas */}
             <div className="flex-1 flex gap-0 overflow-hidden">
-                {/* Columna izquierda: arena + controles */}
+                {/* Columna izquierda */}
                 <div className="flex-1 flex flex-col p-4 gap-3 overflow-hidden">
-                    {/* Input PvP */}
                     {mode === "pvp" && !result && (
                         <input
                             className="flex-shrink-0 bg-white/5 border border-border rounded-lg px-4 py-2 text-sm outline-none focus:border-blue transition-colors"
@@ -136,7 +134,6 @@ export default function CombatPage() {
                         className="flex-1 bg-card border border-border rounded-2xl flex flex-col overflow-hidden"
                         style={{ background: "linear-gradient(135deg, #0d1525, #0f1923)" }}
                     >
-                        {/* Resultado */}
                         {result && (
                             <div
                                 className={`flex-shrink-0 text-center py-2 font-display font-bold text-2xl tracking-widest border-b
@@ -150,18 +147,15 @@ export default function CombatPage() {
                             </div>
                         )}
 
-                        {/* Sprites */}
+                        {/* Sprites — emoji placeholder */}
                         <div className="flex-1 flex items-center justify-around px-8">
                             <div className="text-center">
-                                <img
-                                    src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/25.png`}
-                                    className="w-20 h-20 mx-auto"
-                                    style={{
-                                        imageRendering: "pixelated",
-                                        filter: "drop-shadow(0 0 8px rgba(76,201,240,0.5))",
-                                    }}
-                                    alt="player"
-                                />
+                                <div
+                                    className="w-20 h-20 mx-auto flex items-center justify-center text-5xl"
+                                    style={{ filter: "drop-shadow(0 0 8px rgba(76,201,240,0.5))" }}
+                                >
+                                    {result?.playerMyth?.art?.front ?? "🔵"}
+                                </div>
                                 <div className="font-display font-bold text-xs mb-1 text-blue">TÚ</div>
                                 <HpBar current={playerHp} max={maxHp} color="#4cc9f0" />
                                 <div className="text-xs text-muted mt-0.5">
@@ -172,21 +166,12 @@ export default function CombatPage() {
                             <div className="font-display font-bold text-2xl text-muted">VS</div>
 
                             <div className="text-center">
-                                {result?.enemy?.sprite ? (
-                                    <img
-                                        src={result.enemy.sprite}
-                                        className="w-20 h-20 mx-auto"
-                                        style={{
-                                            imageRendering: "pixelated",
-                                            filter: "drop-shadow(0 0 8px rgba(230,57,70,0.5))",
-                                        }}
-                                        alt="enemy"
-                                    />
-                                ) : (
-                                    <div className="w-20 h-20 mx-auto flex items-center justify-center text-4xl">
-                                        ❓
-                                    </div>
-                                )}
+                                <div
+                                    className="w-20 h-20 mx-auto flex items-center justify-center text-5xl"
+                                    style={{ filter: "drop-shadow(0 0 8px rgba(230,57,70,0.5))" }}
+                                >
+                                    {result?.enemy?.art?.front ?? "❓"}
+                                </div>
                                 <div className="font-display font-bold text-xs mb-1 text-red uppercase">
                                     {result?.enemy?.name ?? "RIVAL"}
                                 </div>
@@ -218,20 +203,15 @@ export default function CombatPage() {
                                 </div>
                                 {result.captured && (
                                     <div className="flex-1 bg-green/10 border border-green/30 rounded-xl p-2 text-center">
-                                        <img
-                                            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${result.captured.pokedexId}.png`}
-                                            className="w-8 h-8 mx-auto"
-                                            style={{ imageRendering: "pixelated" }}
-                                            alt="captured"
-                                        />
+                                        <div className="text-3xl">{result.captured.art?.portrait ?? "✨"}</div>
                                         <div className="text-green text-xs font-display">¡Capturado!</div>
+                                        <div className="text-muted text-xs">{result.captured.name}</div>
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
 
-                    {/* Botones */}
                     {!result ? (
                         <button
                             onClick={handleBattle}
@@ -259,7 +239,7 @@ export default function CombatPage() {
                     )}
                 </div>
 
-                {/* Columna derecha: log de turnos */}
+                {/* Log de turnos */}
                 <div className="w-52 flex-shrink-0 border-l border-border flex flex-col overflow-hidden">
                     <div className="flex-shrink-0 px-4 py-3 border-b border-border font-display font-semibold text-xs text-muted tracking-widest uppercase">
                         Log de batalla

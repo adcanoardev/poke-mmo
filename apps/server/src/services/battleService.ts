@@ -120,12 +120,9 @@ function simulateBattle(player: CombatantStats, enemy: CombatantStats) {
 // ── Captura ───────────────────────────────────────────────────
 
 const CATCH_RATES: Record<string, number> = {
-    POKEBALL: 0.3,
-    SUPERBALL: 0.55,
-    ULTRABALL: 0.8,
-    MASTERBALL: 1.0,
+    FRAGMENT: 0.3, SHARD: 0.55, CRYSTAL: 0.8, RUNE: 1.0,
 };
-const BALL_PRIORITY: ItemType[] = ["MASTERBALL", "ULTRABALL", "SUPERBALL", "POKEBALL"];
+const BALL_PRIORITY: ItemType[] = ["RUNE","CRYSTAL","SHARD","FRAGMENT"];
 
 async function attemptCapture(userId: string, enemyHpPercent: number, speciesCatchRate: number) {
     let ballUsed: ItemType | null = null;

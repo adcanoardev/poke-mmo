@@ -4,48 +4,76 @@ import TrainerSidebar from "../components/TrainerSidebar";
 import { api } from "../lib/api";
 
 const ITEM_ICONS: Record<string, string> = {
-    POKEBALL: "🔴",
-    SUPERBALL: "🔵",
-    ULTRABALL: "⚫",
-    MASTERBALL: "🟣",
-    POTION: "🧪",
-    SUPER_POTION: "🧪",
-    HYPER_POTION: "🧪",
-    MAX_POTION: "🧪",
-    FULL_RESTORE: "💊",
-    FIRE_STONE: "🔥",
-    WATER_STONE: "💧",
-    THUNDER_STONE: "⚡",
-    LEAF_STONE: "🍃",
-    ICE_STONE: "❄️",
-    LINK_CABLE: "🔗",
-    DRAGON_SCALE: "🐉",
-    METAL_COAT: "⚙️",
-    KINGS_ROCK: "👑",
-    UPGRADE: "⬆️",
-    PROTECTOR: "🛡️",
+    FRAGMENT: "🔴",
+    SHARD: "🔵",
+    CRYSTAL: "⚫",
+    RUNE: "🟣",
+    ELIXIR: "🧪",
+    MEGA_ELIXIR: "🧪",
+    GRAND_ELIXIR: "🧪",
+    SPARK: "💊",
+    GRAND_SPARK: "✨",
+    EMBER_SHARD: "🔥",
+    TIDE_SHARD: "💧",
+    VOLT_SHARD: "⚡",
+    GROVE_SHARD: "🌿",
+    FROST_SHARD: "❄️",
+    BOND_CRYSTAL: "🔗",
+    ASTRAL_SCALE: "🐉",
+    IRON_COAT: "⚙️",
+    SOVEREIGN_STONE: "👑",
+    CIPHER_CORE: "⬆️",
 };
+
 const ITEM_COLORS: Record<string, string> = {
-    POKEBALL: "#e63946",
-    SUPERBALL: "#4cc9f0",
-    ULTRABALL: "#adb5bd",
-    MASTERBALL: "#7b2fff",
-    POTION: "#06d6a0",
-    FIRE_STONE: "#ff6b35",
-    WATER_STONE: "#4cc9f0",
-    THUNDER_STONE: "#ffd60a",
-    LEAF_STONE: "#06d6a0",
-    ICE_STONE: "#a8dadc",
-    LINK_CABLE: "#adb5bd",
-    DRAGON_SCALE: "#7b2fff",
-    METAL_COAT: "#adb5bd",
-    KINGS_ROCK: "#ffd60a",
+    FRAGMENT: "#e63946",
+    SHARD: "#4cc9f0",
+    CRYSTAL: "#adb5bd",
+    RUNE: "#7b2fff",
+    ELIXIR: "#06d6a0",
+    MEGA_ELIXIR: "#06d6a0",
+    GRAND_ELIXIR: "#06d6a0",
+    SPARK: "#ffd60a",
+    GRAND_SPARK: "#ffd60a",
+    EMBER_SHARD: "#ff6b35",
+    TIDE_SHARD: "#4cc9f0",
+    VOLT_SHARD: "#ffd60a",
+    GROVE_SHARD: "#06d6a0",
+    FROST_SHARD: "#a8dadc",
+    BOND_CRYSTAL: "#adb5bd",
+    ASTRAL_SCALE: "#7b2fff",
+    IRON_COAT: "#adb5bd",
+    SOVEREIGN_STONE: "#ffd60a",
+    CIPHER_CORE: "#e040fb",
 };
+
+const ITEM_NAMES: Record<string, string> = {
+    FRAGMENT: "Fragmento",
+    SHARD: "Astilla",
+    CRYSTAL: "Cristal",
+    RUNE: "Runa",
+    ELIXIR: "Elixir",
+    MEGA_ELIXIR: "Mega Elixir",
+    GRAND_ELIXIR: "Gran Elixir",
+    SPARK: "Chispa",
+    GRAND_SPARK: "Gran Chispa",
+    EMBER_SHARD: "Shard Ember",
+    TIDE_SHARD: "Shard Tide",
+    VOLT_SHARD: "Shard Volt",
+    GROVE_SHARD: "Shard Grove",
+    FROST_SHARD: "Shard Frost",
+    BOND_CRYSTAL: "Cristal Vínculo",
+    ASTRAL_SCALE: "Escama Astral",
+    IRON_COAT: "Capa de Hierro",
+    SOVEREIGN_STONE: "Piedra Soberana",
+    CIPHER_CORE: "Núcleo Cifrado",
+};
+
 const CATEGORIES: Record<string, string[]> = {
-    Pokéballs: ["POKEBALL", "SUPERBALL", "ULTRABALL", "MASTERBALL"],
-    Pociones: ["POTION", "SUPER_POTION", "HYPER_POTION", "MAX_POTION", "FULL_RESTORE"],
-    Piedras: ["FIRE_STONE", "WATER_STONE", "THUNDER_STONE", "LEAF_STONE", "ICE_STONE"],
-    Objetos: ["LINK_CABLE", "DRAGON_SCALE", "METAL_COAT", "KINGS_ROCK", "UPGRADE", "PROTECTOR"],
+    Fragmentos: ["FRAGMENT", "SHARD", "CRYSTAL", "RUNE"],
+    Elixires: ["ELIXIR", "MEGA_ELIXIR", "GRAND_ELIXIR", "SPARK", "GRAND_SPARK"],
+    Shards: ["EMBER_SHARD", "TIDE_SHARD", "VOLT_SHARD", "GROVE_SHARD", "FROST_SHARD"],
+    Objetos: ["BOND_CRYSTAL", "ASTRAL_SCALE", "IRON_COAT", "SOVEREIGN_STONE", "CIPHER_CORE"],
 };
 
 export default function InventarioPage() {
@@ -60,7 +88,6 @@ export default function InventarioPage() {
 
     return (
         <Layout sidebar={<TrainerSidebar />}>
-            {/* Header */}
             <div className="flex-shrink-0 px-6 py-4 border-b border-border flex items-center justify-between">
                 <h1 className="font-display font-bold text-2xl tracking-widest">
                     🎒 <span className="text-blue">Inventario</span>
@@ -80,7 +107,6 @@ export default function InventarioPage() {
                 </div>
             </div>
 
-            {/* Grid */}
             <div className="flex-1 p-6 overflow-hidden">
                 {filtered.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-muted">
@@ -95,6 +121,7 @@ export default function InventarioPage() {
                         {filtered.map((item: any) => {
                             const icon = ITEM_ICONS[item.item] ?? "📦";
                             const color = ITEM_COLORS[item.item] ?? "#5a6a85";
+                            const name = ITEM_NAMES[item.item] ?? item.item.replace(/_/g, " ");
                             return (
                                 <div
                                     key={item.item}
@@ -111,9 +138,7 @@ export default function InventarioPage() {
                                         <div className="font-display font-bold text-lg" style={{ color }}>
                                             {item.quantity}
                                         </div>
-                                        <div className="font-display text-xs text-muted truncate">
-                                            {item.item.replace(/_/g, " ")}
-                                        </div>
+                                        <div className="font-display text-xs text-muted truncate">{name}</div>
                                     </div>
                                 </div>
                             );

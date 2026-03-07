@@ -23,13 +23,13 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen bg-bg flex items-center justify-center relative overflow-hidden">
-            {/* Fondo animado */}
+            {/* Fondo */}
             <div className="absolute inset-0 pointer-events-none">
                 <div
                     className="absolute inset-0"
                     style={{
                         background:
-                            "radial-gradient(ellipse 80% 60% at 20% 50%, rgba(230,57,70,0.1) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 30%, rgba(76,201,240,0.07) 0%, transparent 60%)",
+                            "radial-gradient(ellipse 80% 60% at 20% 50%, rgba(123,47,255,0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 30%, rgba(76,201,240,0.08) 0%, transparent 60%)",
                     }}
                 />
                 <div
@@ -47,31 +47,71 @@ export default function LoginPage() {
                 {/* Logo */}
                 <div className="text-center mb-10">
                     <svg className="w-16 h-16 mx-auto mb-4" viewBox="0 0 60 60" fill="none">
-                        <circle cx="30" cy="30" r="28" stroke="#ffd60a" strokeWidth="2" />
-                        <line x1="2" y1="30" x2="58" y2="30" stroke="#ffd60a" strokeWidth="2" />
-                        <circle cx="30" cy="30" r="8" fill="#ffd60a" stroke="#070b14" strokeWidth="3" />
-                        <circle cx="30" cy="30" r="4" fill="#070b14" />
+                        {/* Hexágono exterior */}
+                        <polygon
+                            points="30,3 54,16 54,44 30,57 6,44 6,16"
+                            stroke="url(#logoGrad)"
+                            strokeWidth="2"
+                            fill="none"
+                        />
+                        {/* Runa interior */}
+                        <line
+                            x1="30"
+                            y1="12"
+                            x2="30"
+                            y2="48"
+                            stroke="url(#logoGrad)"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                        />
+                        <line
+                            x1="14"
+                            y1="22"
+                            x2="46"
+                            y2="38"
+                            stroke="url(#logoGrad)"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                        />
+                        <line
+                            x1="46"
+                            y1="22"
+                            x2="14"
+                            y2="38"
+                            stroke="url(#logoGrad)"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                        />
+                        {/* Núcleo */}
+                        <circle cx="30" cy="30" r="5" fill="url(#logoGrad)" opacity="0.9" />
+                        <circle cx="30" cy="30" r="2.5" fill="#070b14" />
+                        <defs>
+                            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#7b2fff" />
+                                <stop offset="100%" stopColor="#4cc9f0" />
+                            </linearGradient>
+                        </defs>
                     </svg>
                     <h1
-                        className="font-display font-bold text-5xl tracking-widest"
+                        className="font-display font-bold text-4xl tracking-[6px] uppercase"
                         style={{
-                            background: "linear-gradient(135deg, #ffd60a, #e63946)",
+                            background: "linear-gradient(135deg, #7b2fff, #4cc9f0)",
                             WebkitBackgroundClip: "text",
                             WebkitTextFillColor: "transparent",
                         }}
                     >
-                        POKÉMMO
+                        MYTHARA
                     </h1>
-                    <p className="text-muted text-xs tracking-[6px] uppercase mt-1">Online Idle MMO</p>
+                    <p className="text-muted text-xs tracking-[8px] uppercase mt-1">Online</p>
                 </div>
 
                 {/* Campos */}
                 {mode === "register" && (
                     <div className="mb-4">
-                        <label className="block text-xs text-muted tracking-widest uppercase mb-2">Entrenador</label>
+                        <label className="block text-xs text-muted tracking-widest uppercase mb-2">Binder</label>
                         <input
                             className="w-full bg-white/5 border border-border rounded-lg px-4 py-3 text-sm outline-none focus:border-blue transition-colors"
-                            placeholder="AshKetchum"
+                            placeholder="Tu nombre de Binder"
                             value={form.username}
                             onChange={(e) => setForm({ ...form, username: e.target.value })}
                         />
@@ -81,7 +121,7 @@ export default function LoginPage() {
                     <label className="block text-xs text-muted tracking-widest uppercase mb-2">Email</label>
                     <input
                         className="w-full bg-white/5 border border-border rounded-lg px-4 py-3 text-sm outline-none focus:border-blue transition-colors"
-                        placeholder="ash@pokemon.com"
+                        placeholder="binder@mythara.world"
                         type="email"
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -106,11 +146,11 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full py-4 rounded-xl font-display font-bold text-lg tracking-widest uppercase transition-all disabled:opacity-50"
                     style={{
-                        background: "linear-gradient(135deg, #e63946, #c1121f)",
-                        boxShadow: "0 0 20px rgba(230,57,70,0.4)",
+                        background: "linear-gradient(135deg, #7b2fff, #4cc9f0)",
+                        boxShadow: "0 0 24px rgba(123,47,255,0.4)",
                     }}
                 >
-                    {loading ? "..." : mode === "login" ? "Entrar al mundo" : "Crear entrenador"}
+                    {loading ? "..." : mode === "login" ? "Entrar a Mythara" : "Crear Binder"}
                 </button>
 
                 <div className="relative my-5 text-center">

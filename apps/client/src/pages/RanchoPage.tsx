@@ -12,7 +12,7 @@ function msToTime(ms: number) {
 }
 
 const STRUCTURES = [
-    { type: "POKEBALL_FACTORY", icon: "🏭", name: "Fábrica", desc: "Produce Pokéballs" },
+    { type: "POKEBALL_FACTORY", icon: "🏭", name: "Fábrica", desc: "Produce Fragmentos de captura" },
     { type: "LAB", icon: "🏥", name: "Laboratorio", desc: "Produce pociones" },
     { type: "NURSERY", icon: "🥚", name: "Guardería", desc: "Cría huevos" },
 ];

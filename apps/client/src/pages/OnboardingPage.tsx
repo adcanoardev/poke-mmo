@@ -23,8 +23,7 @@ export default function OnboardingPage() {
     const [data, setData] = useState<any>(null);
     const [gender, setGender] = useState<"male" | "female" | null>(null);
     const [avatar, setAvatar] = useState<string | null>(null);
-    const [starter, setStarter] = useState<number | null>(null);
-    const [region, setRegion] = useState("Kanto");
+    const [starter, setStarter] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -33,8 +32,6 @@ export default function OnboardingPage() {
     }, []);
 
     const avatarsFiltered = data?.avatars?.filter((a: any) => a.gender === gender) ?? [];
-    const regions = [...new Set(data?.starters?.map((s: any) => s.region) ?? [])];
-    const startersFiltered = data?.starters?.filter((s: any) => s.region === region) ?? [];
 
     async function handleFinish() {
         if (!avatar || !gender || !starter) return;
@@ -90,7 +87,7 @@ export default function OnboardingPage() {
                         </svg>
                         <div>
                             <h1 className="font-display font-bold text-2xl tracking-widest text-yellow">
-                                ¡Bienvenido, Entrenador!
+                                ¡Bienvenido, Binder!
                             </h1>
                             <p className="text-muted text-xs tracking-wider">Configura tu perfil antes de comenzar</p>
                         </div>
@@ -176,42 +173,32 @@ export default function OnboardingPage() {
                     {step === "starter" && (
                         <div>
                             <h2 className="font-display font-bold text-xl tracking-widest mb-4 text-center">
-                                Elige tu Pokémon inicial
+                                Elige tu Myth inicial
                             </h2>
-
-                            {/* Selector de región */}
-                            <div className="flex gap-2 justify-center mb-5 flex-wrap">
-                                {regions.map((r: any) => (
-                                    <button
-                                        key={r}
-                                        onClick={() => {
-                                            setRegion(r);
-                                            setStarter(null);
-                                        }}
-                                        className={`px-3 py-1 rounded-lg font-display font-bold text-xs tracking-widest uppercase transition-all
-                                            ${region === r ? "text-bg" : "border border-border text-muted hover:border-blue hover:text-blue"}`}
-                                        style={
-                                            region === r
-                                                ? { background: "linear-gradient(135deg, #4cc9f0, #7b2fff)" }
-                                                : {}
-                                        }
-                                    >
-                                        {r}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Grid de starters */}
                             <div className="grid grid-cols-3 gap-3">
-                                {startersFiltered.map((s: any) => {
-                                    const color = TYPE_COLORS[s.type] ?? "#5a6a85";
-                                    const icon = TYPE_ICONS[s.type] ?? "❓";
+                                {(data?.starters ?? []).map((s: any) => {
+                                    const color = s.affinities?.[0]
+                                        ? ((
+                                              {
+                                                  EMBER: "#ff6b35",
+                                                  TIDE: "#4cc9f0",
+                                                  GROVE: "#06d6a0",
+                                                  VOLT: "#ffd60a",
+                                                  STONE: "#adb5bd",
+                                                  FROST: "#a8dadc",
+                                                  VENOM: "#7b2fff",
+                                                  ASTRAL: "#e040fb",
+                                                  IRON: "#90a4ae",
+                                                  SHADE: "#e63946",
+                                              } as any
+                                          )[s.affinities[0]] ?? "#5a6a85")
+                                        : "#5a6a85";
                                     return (
                                         <div
                                             key={s.id}
                                             onClick={() => setStarter(s.id)}
                                             className={`cursor-pointer rounded-2xl p-4 border-2 text-center transition-all relative overflow-hidden
-                                                ${starter === s.id ? "border-2" : "border-border hover:border-white/20 bg-white/3"}`}
+                            ${starter === s.id ? "border-2" : "border-border hover:border-white/20 bg-white/3"}`}
                                             style={
                                                 starter === s.id
                                                     ? {
@@ -222,21 +209,20 @@ export default function OnboardingPage() {
                                                     : {}
                                             }
                                         >
-                                            <img
-                                                src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${s.id}.png`}
-                                                className="w-16 h-16 mx-auto"
+                                            <div
+                                                className="text-5xl mb-2 mx-auto"
                                                 style={{
-                                                    imageRendering: "pixelated",
                                                     filter: starter === s.id ? `drop-shadow(0 0 8px ${color})` : "none",
                                                 }}
-                                                alt={s.name}
-                                            />
+                                            >
+                                                {s.art?.portrait ?? "❓"}
+                                            </div>
                                             <div className="font-display font-bold text-sm mt-1">{s.name}</div>
                                             <div
                                                 className="text-xs mt-0.5 font-display font-semibold"
                                                 style={{ color }}
                                             >
-                                                {icon} {s.type}
+                                                {s.affinities?.[0] ?? ""}
                                             </div>
                                         </div>
                                     );

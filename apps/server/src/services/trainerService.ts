@@ -25,7 +25,7 @@ export async function getOrCreateTrainer(userId: string) {
         prisma.structure.createMany({
             data: [
                 { userId, type: "MINE" },
-                { userId, type: "POKEBALL_FACTORY" },
+                { userId, type: "FRAGMENT_FORGE" },
                 { userId, type: "LAB" },
                 { userId, type: "NURSERY" },
             ],
