@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import TrainerSidebar from "../components/TrainerSidebar";
 import { api } from "../lib/api";
@@ -29,12 +29,16 @@ interface TurnResult {
     turn: number;
     playerMove: string;
     playerMoveName: string;
+    playerMoveAffinity: string;
     enemyMove: string;
     enemyMoveName: string;
+    enemyMoveAffinity: string;
     playerDamage: number;
     enemyDamage: number;
     playerCritical: boolean;
     enemyCritical: boolean;
+    playerTypeMultiplier: number;
+    enemyTypeMultiplier: number;
     playerHpAfter: number;
     enemyHpAfter: number;
 }
@@ -44,6 +48,7 @@ interface BattleState {
     player: Combatant;
     enemy: Combatant;
     playerFirst: boolean;
+    log?: TurnResult[];
 }
 
 interface BattleResult {
@@ -54,6 +59,48 @@ interface BattleResult {
     captured: any;
     evolution: any;
 }
+
+// ── Tabla de afinidades ───────────────────────────────────────
+
+const AFFINITY_COLOR: Record<string, string> = {
+    EMBER: "#ff6b35",
+    TIDE: "#4cc9f0",
+    GROVE: "#06d6a0",
+    VOLT: "#ffd60a",
+    STONE: "#adb5bd",
+    FROST: "#a8dadc",
+    VENOM: "#7b2fff",
+    ASTRAL: "#e040fb",
+    SHADE: "#e63946",
+    IRON: "#90a4ae",
+};
+
+const AFFINITY_EMOJI: Record<string, string> = {
+    EMBER: "🔥",
+    TIDE: "💧",
+    GROVE: "🌿",
+    VOLT: "⚡",
+    STONE: "🪨",
+    FROST: "❄️",
+    VENOM: "☠️",
+    ASTRAL: "✨",
+    SHADE: "🌑",
+    IRON: "⚙️",
+};
+
+// Qué affinities atacan a cuáles con ventaja (x2)
+const SUPER_EFFECTIVE: Record<string, string[]> = {
+    EMBER: ["GROVE", "FROST"],
+    TIDE: ["EMBER", "STONE"],
+    GROVE: ["TIDE", "STONE"],
+    VOLT: ["TIDE", "IRON"],
+    STONE: ["EMBER", "FROST"],
+    FROST: ["GROVE"],
+    VENOM: ["GROVE", "FROST"],
+    ASTRAL: ["SHADE", "VENOM"],
+    SHADE: ["ASTRAL", "GROVE"],
+    IRON: ["FROST", "STONE"],
+};
 
 // ── Componentes ───────────────────────────────────────────────
 
@@ -74,18 +121,17 @@ function HpBar({ current, max, color }: { current: number; max: number; color: s
     );
 }
 
-const AFFINITY_COLOR: Record<string, string> = {
-    EMBER: "#ff6b35",
-    TIDE: "#4cc9f0",
-    GROVE: "#06d6a0",
-    VOLT: "#ffd60a",
-    STONE: "#adb5bd",
-    FROST: "#a8dadc",
-    VENOM: "#7b2fff",
-    ASTRAL: "#e040fb",
-    SHADE: "#e63946",
-    IRON: "#90a4ae",
-};
+function TypeBadge({ affinity }: { affinity: string }) {
+    const color = AFFINITY_COLOR[affinity] ?? "#5a6a85";
+    return (
+        <span
+            className="text-xs font-display font-bold px-1.5 py-0.5 rounded"
+            style={{ background: `${color}25`, color, border: `1px solid ${color}40` }}
+        >
+            {AFFINITY_EMOJI[affinity]} {affinity}
+        </span>
+    );
+}
 
 function MoveButton({ move, onClick, disabled }: { move: Move; onClick: () => void; disabled: boolean }) {
     const color = AFFINITY_COLOR[move.affinity] ?? "#5a6a85";
@@ -93,11 +139,8 @@ function MoveButton({ move, onClick, disabled }: { move: Move; onClick: () => vo
         <button
             onClick={onClick}
             disabled={disabled}
-            className="flex flex-col items-start p-3 rounded-xl border transition-all disabled:opacity-40 hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-                borderColor: `${color}40`,
-                background: `${color}10`,
-            }}
+            className="flex flex-col items-start p-3 rounded-xl border transition-all disabled:opacity-40 hover:scale-[1.02] active:scale-[0.98] text-left"
+            style={{ borderColor: `${color}40`, background: `${color}10` }}
             onMouseEnter={(e) => {
                 if (!disabled) (e.currentTarget as HTMLElement).style.borderColor = color;
             }}
@@ -107,12 +150,111 @@ function MoveButton({ move, onClick, disabled }: { move: Move; onClick: () => vo
         >
             <div className="flex items-center justify-between w-full mb-1">
                 <span className="font-display font-bold text-sm tracking-wide" style={{ color }}>
-                    {move.name}
+                    {AFFINITY_EMOJI[move.affinity]} {move.name}
                 </span>
                 <span className="text-xs font-display font-bold text-muted">POW {move.power}</span>
             </div>
-            <div className="text-xs text-muted">{move.description}</div>
+            <div className="text-xs text-muted leading-tight">{move.description}</div>
         </button>
+    );
+}
+
+function AffinityChart({
+    playerAffinities,
+    enemyAffinities,
+}: {
+    playerAffinities: string[];
+    enemyAffinities: string[];
+}) {
+    const [open, setOpen] = useState(false);
+    const allTypes = Object.keys(AFFINITY_COLOR);
+
+    // Calcular ventajas del jugador contra el enemigo
+    const playerAdvantages = playerAffinities.flatMap((pa) =>
+        (SUPER_EFFECTIVE[pa] ?? []).filter((t) => enemyAffinities.includes(t)).map((t) => ({ from: pa, to: t })),
+    );
+    const enemyAdvantages = enemyAffinities.flatMap((ea) =>
+        (SUPER_EFFECTIVE[ea] ?? []).filter((t) => playerAffinities.includes(t)).map((t) => ({ from: ea, to: t })),
+    );
+
+    return (
+        <div className="flex-shrink-0">
+            <button
+                onClick={() => setOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-border text-xs text-muted font-display tracking-widest uppercase hover:border-blue hover:text-blue transition-all"
+            >
+                <span>📊 Tabla de afinidades</span>
+                <span>{open ? "▲" : "▼"}</span>
+            </button>
+
+            {open && (
+                <div className="mt-2 bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
+                    {/* Ventajas del jugador */}
+                    {playerAdvantages.length > 0 && (
+                        <div>
+                            <div className="text-xs text-green font-display font-bold mb-1.5">✅ TUS VENTAJAS</div>
+                            <div className="flex flex-wrap gap-1">
+                                {playerAdvantages.map((a, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex items-center gap-1 text-xs bg-green/10 border border-green/20 rounded-lg px-2 py-1"
+                                    >
+                                        <TypeBadge affinity={a.from} />
+                                        <span className="text-green font-bold">→ x2 vs</span>
+                                        <TypeBadge affinity={a.to} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Ventajas del enemigo */}
+                    {enemyAdvantages.length > 0 && (
+                        <div>
+                            <div className="text-xs text-red font-display font-bold mb-1.5">⚠️ VENTAJAS DEL RIVAL</div>
+                            <div className="flex flex-wrap gap-1">
+                                {enemyAdvantages.map((a, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex items-center gap-1 text-xs bg-red/10 border border-red/20 rounded-lg px-2 py-1"
+                                    >
+                                        <TypeBadge affinity={a.from} />
+                                        <span className="text-red font-bold">→ x2 vs</span>
+                                        <TypeBadge affinity={a.to} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {playerAdvantages.length === 0 && enemyAdvantages.length === 0 && (
+                        <div className="text-xs text-muted text-center py-1">Sin ventajas de tipo directas</div>
+                    )}
+
+                    {/* Tabla completa colapsable */}
+                    <details>
+                        <summary className="text-xs text-muted cursor-pointer hover:text-blue transition-colors font-display">
+                            Ver tabla completa
+                        </summary>
+                        <div className="mt-2 grid grid-cols-1 gap-1">
+                            {allTypes.map((atk) => {
+                                const targets = SUPER_EFFECTIVE[atk];
+                                if (!targets?.length) return null;
+                                return (
+                                    <div key={atk} className="flex items-center gap-1 flex-wrap">
+                                        <TypeBadge affinity={atk} />
+                                        <span className="text-muted text-xs">→ x2:</span>
+                                        {targets.map((t) => (
+                                            <TypeBadge key={t} affinity={t} />
+                                        ))}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </details>
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -123,7 +265,6 @@ export default function CombatPage() {
     const [defId, setDefId] = useState("");
     const [error, setError] = useState("");
 
-    // Estado NPC por turnos
     const [battle, setBattle] = useState<BattleState | null>(null);
     const [playerHp, setPlayerHp] = useState(0);
     const [enemyHp, setEnemyHp] = useState(0);
@@ -131,9 +272,26 @@ export default function CombatPage() {
     const [result, setResult] = useState<BattleResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [lastTurn, setLastTurn] = useState<TurnResult | null>(null);
-
-    // Estado PvP (simulado)
     const [pvpResult, setPvpResult] = useState<any>(null);
+
+    // ── Recuperar sesión activa al montar ─────────────────────
+    useEffect(() => {
+        async function checkActive() {
+            try {
+                const res = await api.battleNpcActive();
+                if (res?.battleId) {
+                    setBattle(res);
+                    setPlayerHp(res.player.hp);
+                    setEnemyHp(res.enemy.hp);
+                    setLog(res.log ?? []);
+                    if (res.log?.length > 0) setLastTurn(res.log[res.log.length - 1]);
+                }
+            } catch {
+                // No hay sesión activa — normal
+            }
+        }
+        checkActive();
+    }, []);
 
     // ── Iniciar combate NPC ───────────────────────────────────
     async function handleStartNpc() {
@@ -203,7 +361,6 @@ export default function CombatPage() {
         }
     }
 
-    // ── Reset ─────────────────────────────────────────────────
     function handleReset() {
         setBattle(null);
         setResult(null);
@@ -213,7 +370,7 @@ export default function CombatPage() {
         setPvpResult(null);
     }
 
-    // ── PvP (simulado sin cambios) ────────────────────────────
+    // ── PvP ───────────────────────────────────────────────────
     async function handlePvp() {
         setError("");
         setPvpResult(null);
@@ -226,6 +383,13 @@ export default function CombatPage() {
         } finally {
             setLoading(false);
         }
+    }
+
+    // ── Helpers de display ────────────────────────────────────
+    function typeMultiplierLabel(mult: number) {
+        if (mult >= 2) return <span className="text-green font-bold"> ¡SUPER EFECTIVO!</span>;
+        if (mult <= 0.5) return <span className="text-muted"> No muy efectivo</span>;
+        return null;
     }
 
     const isBattleActive = !!battle;
@@ -269,8 +433,7 @@ export default function CombatPage() {
 
             <div className="flex-1 flex overflow-hidden">
                 {/* Columna principal */}
-                <div className="flex-1 flex flex-col p-4 gap-3 overflow-hidden">
-                    {/* Error */}
+                <div className="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
                     {error && (
                         <div
                             className="flex-shrink-0 px-4 py-2 rounded-xl border text-sm font-semibold"
@@ -289,7 +452,6 @@ export default function CombatPage() {
                         className="flex-shrink-0 bg-card border border-border rounded-2xl overflow-hidden"
                         style={{ background: "linear-gradient(135deg, #0d1525, #0f1923)" }}
                     >
-                        {/* Banner resultado */}
                         {isBattleOver && (
                             <div
                                 className={`text-center py-2 font-display font-bold text-2xl tracking-widest border-b
@@ -303,25 +465,25 @@ export default function CombatPage() {
                             </div>
                         )}
 
-                        {/* Sprites + HP */}
                         {(isBattleActive || isBattleOver) && (
                             <div className="flex items-center justify-around px-8 py-4">
                                 {/* Jugador */}
-                                <div className="text-center w-32">
+                                <div className="text-center w-36">
                                     <div
                                         className="w-16 h-16 mx-auto flex items-center justify-center text-4xl mb-2"
                                         style={{ filter: "drop-shadow(0 0 8px rgba(76,201,240,0.5))" }}
                                     >
-                                        {battle?.player.art.front ?? (result && "🔵")}
+                                        🔵
                                     </div>
-                                    <div className="font-display font-bold text-xs mb-1 text-blue">
-                                        {battle?.player.name ?? ""} Nv.{battle?.player.level ?? ""}
+                                    <div className="font-display font-bold text-xs mb-0.5 text-blue">
+                                        {battle?.player.name} Nv.{battle?.player.level}
                                     </div>
-                                    <HpBar
-                                        current={playerHp}
-                                        max={(battle?.player.maxHp ?? result) ? 1 : 1}
-                                        color="#4cc9f0"
-                                    />
+                                    <div className="flex justify-center gap-1 mb-1">
+                                        {(battle?.player.affinities ?? []).map((a) => (
+                                            <TypeBadge key={a} affinity={a} />
+                                        ))}
+                                    </div>
+                                    <HpBar current={playerHp} max={battle?.player.maxHp ?? 1} color="#4cc9f0" />
                                     <div className="text-xs text-muted mt-0.5">
                                         {playerHp}/{battle?.player.maxHp ?? 0} HP
                                     </div>
@@ -330,15 +492,20 @@ export default function CombatPage() {
                                 <div className="font-display font-bold text-xl text-muted">VS</div>
 
                                 {/* Enemigo */}
-                                <div className="text-center w-32">
+                                <div className="text-center w-36">
                                     <div
                                         className="w-16 h-16 mx-auto flex items-center justify-center text-4xl mb-2"
                                         style={{ filter: "drop-shadow(0 0 8px rgba(230,57,70,0.5))" }}
                                     >
-                                        {battle?.enemy.art.front ?? "❓"}
+                                        ❓
                                     </div>
-                                    <div className="font-display font-bold text-xs mb-1 text-red uppercase">
-                                        {battle?.enemy.name ?? ""} Nv.{battle?.enemy.level ?? ""}
+                                    <div className="font-display font-bold text-xs mb-0.5 text-red uppercase">
+                                        {battle?.enemy.name} Nv.{battle?.enemy.level}
+                                    </div>
+                                    <div className="flex justify-center gap-1 mb-1">
+                                        {(battle?.enemy.affinities ?? []).map((a) => (
+                                            <TypeBadge key={a} affinity={a} />
+                                        ))}
                                     </div>
                                     <HpBar current={enemyHp} max={battle?.enemy.maxHp ?? 1} color="#e63946" />
                                     <div className="text-xs text-muted mt-0.5">
@@ -356,12 +523,14 @@ export default function CombatPage() {
                                     <span className="text-muted"> → </span>
                                     <span className="text-white font-bold">{lastTurn.playerDamage} dmg</span>
                                     {lastTurn.playerCritical && <span className="text-yellow"> ⚡CRÍTICO</span>}
+                                    {typeMultiplierLabel(lastTurn.playerTypeMultiplier)}
                                 </div>
                                 <div className="flex-1 bg-red/10 border border-red/20 rounded-lg px-3 py-2">
                                     <span className="text-red font-bold">{lastTurn.enemyMoveName}</span>
                                     <span className="text-muted"> → </span>
                                     <span className="text-white font-bold">{lastTurn.enemyDamage} dmg</span>
                                     {lastTurn.enemyCritical && <span className="text-yellow"> ⚡CRÍTICO</span>}
+                                    {typeMultiplierLabel(lastTurn.enemyTypeMultiplier)}
                                 </div>
                             </div>
                         )}
@@ -387,14 +556,14 @@ export default function CombatPage() {
                                 </div>
                                 {result!.captured && (
                                     <div className="flex-1 bg-green/10 border border-green/30 rounded-xl p-2 text-center">
-                                        <div className="text-3xl">{result!.captured.art?.portrait ?? "✨"}</div>
+                                        <div className="text-2xl">✨</div>
                                         <div className="text-green text-xs font-display">¡Capturado!</div>
                                         <div className="text-muted text-xs">{result!.captured.name}</div>
                                     </div>
                                 )}
                                 {result!.evolution?.evolved && (
                                     <div className="flex-1 bg-yellow/10 border border-yellow/30 rounded-xl p-2 text-center">
-                                        <div className="text-3xl">⬆️</div>
+                                        <div className="text-2xl">⬆️</div>
                                         <div className="text-yellow text-xs font-display">¡Evolución!</div>
                                         <div className="text-muted text-xs">{result!.evolution.newName}</div>
                                     </div>
@@ -403,10 +572,17 @@ export default function CombatPage() {
                         )}
                     </div>
 
-                    {/* Moves / Botones de acción */}
+                    {/* Tabla de afinidades — solo en combate activo */}
+                    {isBattleActive && battle && (
+                        <AffinityChart
+                            playerAffinities={battle.player.affinities}
+                            enemyAffinities={battle.enemy.affinities}
+                        />
+                    )}
+
+                    {/* Moves / Acciones NPC */}
                     {mode === "npc" && (
                         <>
-                            {/* Grid de moves activos */}
                             {isBattleActive && (
                                 <div className="flex-shrink-0 grid grid-cols-2 gap-2">
                                     {battle!.player.moves!.map((move) => (
@@ -420,7 +596,6 @@ export default function CombatPage() {
                                 </div>
                             )}
 
-                            {/* Botón huir */}
                             {isBattleActive && (
                                 <button
                                     onClick={handleFlee}
@@ -431,7 +606,6 @@ export default function CombatPage() {
                                 </button>
                             )}
 
-                            {/* Botón iniciar */}
                             {!isBattleActive && !isBattleOver && (
                                 <button
                                     onClick={handleStartNpc}
@@ -446,7 +620,6 @@ export default function CombatPage() {
                                 </button>
                             )}
 
-                            {/* Botón volver a combatir */}
                             {isBattleOver && (
                                 <button
                                     onClick={handleReset}
@@ -502,7 +675,7 @@ export default function CombatPage() {
                 </div>
 
                 {/* Log de turnos */}
-                <div className="w-52 flex-shrink-0 border-l border-border flex flex-col overflow-hidden">
+                <div className="w-56 flex-shrink-0 border-l border-border flex flex-col overflow-hidden">
                     <div className="flex-shrink-0 px-4 py-3 border-b border-border font-display font-semibold text-xs text-muted tracking-widest uppercase">
                         Log de batalla
                     </div>
@@ -514,18 +687,20 @@ export default function CombatPage() {
                         )}
                         {log.map((t, i) => (
                             <div key={i} className="text-xs bg-white/3 rounded-lg px-2 py-1.5 border border-border/30">
-                                <div className="text-muted font-display mb-0.5">Turno {t.turn}</div>
-                                <div>
+                                <div className="text-muted font-display mb-1">Turno {t.turn}</div>
+                                <div className="flex items-center gap-1 flex-wrap">
                                     <span className="text-blue font-semibold">{t.playerMoveName}</span>
-                                    <span className="text-muted"> → </span>
+                                    <span className="text-muted">→</span>
                                     <span className="text-white font-bold">{t.playerDamage}</span>
                                     {t.playerCritical && <span className="text-yellow">⚡</span>}
+                                    {t.playerTypeMultiplier >= 2 && <span className="text-green text-xs">✅</span>}
                                 </div>
-                                <div>
+                                <div className="flex items-center gap-1 flex-wrap">
                                     <span className="text-red font-semibold">{t.enemyMoveName}</span>
-                                    <span className="text-muted"> → </span>
+                                    <span className="text-muted">→</span>
                                     <span className="text-white font-bold">{t.enemyDamage}</span>
                                     {t.enemyCritical && <span className="text-yellow">⚡</span>}
+                                    {t.enemyTypeMultiplier >= 2 && <span className="text-red text-xs">⚠️</span>}
                                 </div>
                             </div>
                         ))}

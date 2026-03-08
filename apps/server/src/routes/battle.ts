@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { startNpcBattle, executeTurn, fleeBattle } from "../services/battleService.js";
+import { startNpcBattle, executeTurn, fleeBattle, getActiveBattle } from "../services/battleService.js";
 import { runPvpBattle } from "../services/pvpService.js";
 import { z } from "zod";
 import { challengeSanctum, getSanctumsStatus } from "../services/gymService.js";
@@ -40,6 +40,16 @@ router.post("/battle/npc/flee", requireAuth, async (req, res) => {
         res.json(result);
     } catch (e) {
         console.error("[battle/npc/flee]", e);
+        res.status(500).json({ error: "Internal error" });
+    }
+});
+
+router.get("/battle/npc/active", requireAuth, async (req, res) => {
+    try {
+        const session = getActiveBattle(req.user!.userId);
+        if (!session) return res.status(404).json({ error: "No hay combate activo" });
+        res.json(session);
+    } catch (e) {
         res.status(500).json({ error: "Internal error" });
     }
 });

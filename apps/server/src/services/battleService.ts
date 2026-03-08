@@ -1,40 +1,106 @@
 // ─────────────────────────────────────────────────────────────
 // apps/server/src/services/battleService.ts
-// Combate NPC por turnos con moves — MVP
 // ─────────────────────────────────────────────────────────────
 import { prisma } from "./prisma.js";
 import { useNpcToken } from "./tokenService.js";
 import { addXp } from "./trainerService.js";
-import { addItem, hasItem, removeItem } from "./inventoryService.js";
+import { hasItem, removeItem } from "./inventoryService.js";
 import { getCreature, getAllCreatures } from "./creatureService.js";
 import type { Move } from "./creatureService.js";
 import type { ItemType } from "@prisma/client";
 import { checkLevelEvolution } from "./evolutionService.js";
-import {
-    createBattleSession,
-    getSession,
-    getUserSession,
-    deleteSession,
-    type BattleSession,
-    type BattleCombatant,
-} from "./battleStore.js";
+import { createBattleSession, getSession, getUserSession, deleteSession, type BattleCombatant } from "./battleStore.js";
 
-// ── Encounter pool por nivel ──────────────────────────────────
+// ── Tabla de ventajas de afinidad ────────────────────────────
+// 2.0 = súper efectivo, 0.5 = poco efectivo, 1.0 = normal
+export const AFFINITY_CHART: Record<string, Record<string, number>> = {
+    EMBER: { GROVE: 2.0, FROST: 2.0, STONE: 0.5, TIDE: 0.5, EMBER: 0.5 },
+    TIDE: { EMBER: 2.0, STONE: 2.0, GROVE: 0.5, VOLT: 0.5, TIDE: 0.5 },
+    GROVE: { TIDE: 2.0, STONE: 2.0, EMBER: 0.5, VENOM: 0.5, GROVE: 0.5 },
+    VOLT: { TIDE: 2.0, IRON: 2.0, GROVE: 0.5, STONE: 0.5, VOLT: 0.5 },
+    STONE: { EMBER: 2.0, FROST: 2.0, GROVE: 0.5, TIDE: 0.5, STONE: 0.5 },
+    FROST: { GROVE: 2.0, EMBER: 0.5, FROST: 0.5, TIDE: 0.5 },
+    VENOM: { GROVE: 2.0, FROST: 2.0, STONE: 0.5, VENOM: 0.5 },
+    ASTRAL: { SHADE: 2.0, VENOM: 2.0, ASTRAL: 0.5 },
+    SHADE: { ASTRAL: 2.0, GROVE: 2.0, SHADE: 0.5, EMBER: 0.5 },
+    IRON: { FROST: 2.0, STONE: 2.0, EMBER: 0.5, IRON: 0.5 },
+};
 
+function getTypeMultiplier(moveAffinity: string, defenderAffinities: string[]): number {
+    const chart = AFFINITY_CHART[moveAffinity] ?? {};
+    let multiplier = 1.0;
+    for (const aff of defenderAffinities) {
+        multiplier *= chart[aff] ?? 1.0;
+    }
+    return multiplier;
+}
+
+// ── Stats escalados por nivel — valores más generosos ────────
+function calcStat(base: number, level: number): number {
+    return Math.floor((2 * base * level) / 100) + Math.floor(level * 0.5) + 15;
+}
+
+function calcHp(base: number, level: number): number {
+    return Math.floor((2 * base * level) / 100) + level + 50;
+}
+
+// ── Fórmula de daño ───────────────────────────────────────────
+function calcDamageResult(
+    attackerLevel: number,
+    attackStat: number,
+    defenseStat: number,
+    move: Move,
+    attackerAffinities: string[],
+    defenderAffinities: string[],
+): { damage: number; critical: boolean; typeMultiplier: number } {
+    const hit = Math.random() < move.accuracy;
+    if (!hit) return { damage: 0, critical: false, typeMultiplier: 1 };
+
+    const stab = attackerAffinities.includes(move.affinity) ? 1.5 : 1;
+    const isCritical = Math.random() < 0.0625;
+    const critical = isCritical ? 1.5 : 1;
+    const typeMultiplier = getTypeMultiplier(move.affinity, defenderAffinities);
+
+    // Daño base reducido con divisor mayor para combates más largos
+    const base = Math.floor((((2 * attackerLevel) / 5 + 2) * move.power * (attackStat / defenseStat)) / 100 + 2);
+
+    return {
+        damage: Math.max(1, Math.floor(base * stab * critical * typeMultiplier) + randInt(-1, 1)),
+        critical: isCritical,
+        typeMultiplier,
+    };
+}
+
+// ── Encounter pool — filtra por nivel de evolución ───────────
 function getEncounterPool(trainerLevel: number): string[] {
     const all = getAllCreatures();
-    if (trainerLevel <= 10) return all.filter((c) => c.rarity === "COMMON").map((c) => c.id);
-    if (trainerLevel <= 25) return all.filter((c) => ["COMMON", "RARE"].includes(c.rarity)).map((c) => c.id);
-    if (trainerLevel <= 50) return all.filter((c) => ["COMMON", "RARE", "ELITE"].includes(c.rarity)).map((c) => c.id);
-    return all.map((c) => c.id);
+
+    let rarityFilter: string[];
+    if (trainerLevel <= 10) rarityFilter = ["COMMON"];
+    else if (trainerLevel <= 25) rarityFilter = ["COMMON", "RARE"];
+    else if (trainerLevel <= 50) rarityFilter = ["COMMON", "RARE", "ELITE"];
+    else rarityFilter = ["COMMON", "RARE", "ELITE", "LEGENDARY", "MYTHIC"];
+
+    return all.filter((c) => rarityFilter.includes(c.rarity)).map((c) => c.id);
 }
 
 function getEncounterLevelRange(trainerLevel: number): { min: number; max: number } {
-    if (trainerLevel <= 10) return { min: 2, max: 12 };
-    if (trainerLevel <= 25) return { min: 8, max: 25 };
-    if (trainerLevel <= 50) return { min: 20, max: 45 };
-    if (trainerLevel <= 75) return { min: 35, max: 65 };
-    return { min: 50, max: 90 };
+    if (trainerLevel <= 10) return { min: 3, max: 10 };
+    if (trainerLevel <= 25) return { min: 8, max: 22 };
+    if (trainerLevel <= 50) return { min: 18, max: 40 };
+    if (trainerLevel <= 75) return { min: 30, max: 60 };
+    return { min: 45, max: 80 };
+}
+
+// Genera un nivel válido para la especie — respeta evolvesAt
+function getValidEnemyLevel(speciesId: string, min: number, max: number): number {
+    const species = getCreature(speciesId);
+    // Si evoluciona por nivel, el enemigo no puede aparecer >= ese nivel
+    if (species.evolution?.method === "LEVEL" && typeof species.evolution.value === "number") {
+        max = Math.min(max, species.evolution.value - 1);
+    }
+    if (min > max) min = max;
+    return randInt(min, max);
 }
 
 function randInt(min: number, max: number) {
@@ -45,41 +111,7 @@ function randPick<T>(arr: T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// ── Stats escalados por nivel ─────────────────────────────────
-
-function calcStat(base: number, level: number): number {
-    return Math.floor((2 * base * level) / 100) + level + 10;
-}
-
-function calcHp(base: number, level: number): number {
-    return Math.floor((2 * base * level) / 100) + level + 10;
-}
-
-// ── Fórmula de daño con moves y STAB ─────────────────────────
-
-// Wrapper tipado
-function calcDamageResult(
-    attackerLevel: number,
-    attackStat: number,
-    defenseStat: number,
-    move: Move,
-    attackerAffinities: string[],
-): { damage: number; critical: boolean } {
-    const stab = attackerAffinities.includes(move.affinity) ? 1.5 : 1;
-    const isCritical = Math.random() < 0.0625;
-    const critical = isCritical ? 1.5 : 1;
-    const hit = Math.random() < move.accuracy;
-    if (!hit) return { damage: 0, critical: false };
-
-    const base = Math.floor((((2 * attackerLevel) / 5 + 2) * move.power * (attackStat / defenseStat)) / 50 + 2);
-    return {
-        damage: Math.max(1, Math.floor(base * stab * critical) + randInt(-2, 2)),
-        critical: isCritical,
-    };
-}
-
 // ── Captura ───────────────────────────────────────────────────
-
 const CATCH_RATES: Record<string, number> = {
     FRAGMENT: 0.3,
     SHARD: 0.55,
@@ -107,7 +139,6 @@ async function attemptCapture(userId: string, enemyHpPercent: number, speciesCat
 }
 
 // ── XP y monedas ─────────────────────────────────────────────
-
 function calcXpGained(enemyLevel: number, won: boolean): number {
     const base = Math.floor(enemyLevel * 1.5);
     return won ? base : Math.floor(base * 0.2);
@@ -118,10 +149,38 @@ function calcCoinsGained(enemyLevel: number, won: boolean): number {
     return randInt(enemyLevel * 2, enemyLevel * 5);
 }
 
-// ── START — Iniciar combate NPC ───────────────────────────────
+// ── GET ACTIVE — Recuperar sesión activa ──────────────────────
+export function getActiveBattle(userId: string) {
+    const session = getUserSession(userId);
+    if (!session) return null;
+    return {
+        battleId: session.battleId,
+        player: {
+            speciesId: session.player.speciesId,
+            name: session.player.name,
+            level: session.player.level,
+            hp: session.player.hp,
+            maxHp: session.player.maxHp,
+            art: session.player.art,
+            affinities: session.player.affinities,
+            moves: session.player.moves,
+        },
+        enemy: {
+            speciesId: session.enemy.speciesId,
+            name: session.enemy.name,
+            level: session.enemy.level,
+            hp: session.enemy.hp,
+            maxHp: session.enemy.maxHp,
+            art: session.enemy.art,
+            affinities: session.enemy.affinities,
+        },
+        playerFirst: session.player.speed >= session.enemy.speed,
+        log: session.log,
+    };
+}
 
+// ── START — Iniciar combate NPC ───────────────────────────────
 export async function startNpcBattle(userId: string) {
-    // Verificar que no hay combate activo
     const existing = getUserSession(userId);
     if (existing) return { error: "Ya tienes un combate activo" };
 
@@ -138,11 +197,10 @@ export async function startNpcBattle(userId: string) {
 
     const playerSpecies = getCreature(playerMyth.speciesId);
 
-    // Generar enemigo
     const pool = getEncounterPool(trainer.level);
     const enemySpecies = getCreature(randPick(pool));
     const { min, max } = getEncounterLevelRange(trainer.level);
-    const enemyLevel = randInt(min, max);
+    const enemyLevel = getValidEnemyLevel(enemySpecies.id, min, max);
 
     const player: BattleCombatant = {
         speciesId: playerMyth.speciesId,
@@ -208,36 +266,32 @@ export async function startNpcBattle(userId: string) {
 }
 
 // ── TURN — Ejecutar un turno ──────────────────────────────────
-
 export async function executeTurn(userId: string, battleId: string, moveId: string) {
     const session = getSession(battleId);
     if (!session) return { error: "Combate no encontrado" };
     if (session.userId !== userId) return { error: "No autorizado" };
     if (session.status !== "active") return { error: "El combate ya ha terminado" };
 
-    // Validar move del jugador
     const playerMove = session.player.moves.find((m) => m.id === moveId);
     if (!playerMove) return { error: "Move no válido" };
 
-    // Move del enemigo — aleatorio
     const enemyMove = randPick(session.enemy.moves);
 
     let playerHp = session.player.hp;
     let enemyHp = session.enemy.hp;
     session.turn++;
 
-    // Orden por velocidad
     const playerFirst = session.player.speed >= session.enemy.speed;
+    const order = playerFirst ? ["player", "enemy"] : ["enemy", "player"];
 
-    let playerDamage = 0;
-    let enemyDamage = 0;
-    let playerCritical = false;
-    let enemyCritical = false;
+    let playerDamage = 0,
+        enemyDamage = 0;
+    let playerCritical = false,
+        enemyCritical = false;
+    let playerTypeMultiplier = 1,
+        enemyTypeMultiplier = 1;
 
-    const first = playerFirst ? "player" : "enemy";
-    const second = playerFirst ? "enemy" : "player";
-
-    for (const attacker of [first, second]) {
+    for (const attacker of order) {
         if (playerHp <= 0 || enemyHp <= 0) break;
 
         if (attacker === "player") {
@@ -247,9 +301,11 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
                 session.enemy.defense,
                 playerMove,
                 session.player.affinities,
+                session.enemy.affinities,
             );
             playerDamage = result.damage;
             playerCritical = result.critical;
+            playerTypeMultiplier = result.typeMultiplier;
             enemyHp = Math.max(0, enemyHp - playerDamage);
         } else {
             const result = calcDamageResult(
@@ -258,14 +314,15 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
                 session.player.defense,
                 enemyMove,
                 session.enemy.affinities,
+                session.player.affinities,
             );
             enemyDamage = result.damage;
             enemyCritical = result.critical;
+            enemyTypeMultiplier = result.typeMultiplier;
             playerHp = Math.max(0, playerHp - enemyDamage);
         }
     }
 
-    // Actualizar HP en sesión
     session.player.hp = playerHp;
     session.enemy.hp = enemyHp;
 
@@ -273,18 +330,21 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
         turn: session.turn,
         playerMove: playerMove.id,
         playerMoveName: playerMove.name,
+        playerMoveAffinity: playerMove.affinity,
         enemyMove: enemyMove.id,
         enemyMoveName: enemyMove.name,
+        enemyMoveAffinity: enemyMove.affinity,
         playerDamage,
         enemyDamage,
         playerCritical,
         enemyCritical,
+        playerTypeMultiplier,
+        enemyTypeMultiplier,
         playerHpAfter: playerHp,
         enemyHpAfter: enemyHp,
     };
     session.log.push(turnResult);
 
-    // ¿Terminó el combate?
     const battleOver = playerHp <= 0 || enemyHp <= 0;
     if (!battleOver) {
         return { status: "ongoing", turn: turnResult, playerHp, enemyHp };
@@ -293,7 +353,6 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
     const won = enemyHp <= 0;
     session.status = won ? "won" : "lost";
 
-    // XP y monedas
     const xpGained = calcXpGained(session.enemy.level, won);
     const coinsGained = calcCoinsGained(session.enemy.level, won);
 
@@ -307,7 +366,6 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
             : Promise.resolve(),
     ]);
 
-    // Captura
     let captured = null;
     if (won) {
         const enemyHpPercent = session.enemy.hp / session.enemy.maxHp;
@@ -339,7 +397,6 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
         }
     }
 
-    // BattleLog
     await prisma.battleLog.create({
         data: {
             userId,
@@ -355,9 +412,7 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
         },
     });
 
-    // Evolución
     const evoResult = await checkLevelEvolution(session.playerInstanceId);
-
     deleteSession(battleId);
 
     return {
@@ -376,14 +431,12 @@ export async function executeTurn(userId: string, battleId: string, moveId: stri
 }
 
 // ── FLEE — Huir del combate ───────────────────────────────────
-
 export async function fleeBattle(userId: string, battleId: string) {
     const session = getSession(battleId);
     if (!session) return { error: "Combate no encontrado" };
     if (session.userId !== userId) return { error: "No autorizado" };
     if (session.status !== "active") return { error: "El combate ya ha terminado" };
 
-    // XP mínima por huir
     const xpGained = calcXpGained(session.enemy.level, false);
     await addXp(userId, xpGained);
 

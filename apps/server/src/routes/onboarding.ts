@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../services/prisma.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { getStarterCreatures, getCreature } from "../services/creatureService.js";
+import { AVATARS } from "../data/avatars.js";
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
 router.get("/data", requireAuth, async (req, res) => {
     try {
         const starters = getStarterCreatures();
-        res.json({ starters });
+        res.json({ starters, avatars: AVATARS });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Error cargando starters" });
@@ -19,7 +20,7 @@ router.get("/data", requireAuth, async (req, res) => {
 // POST /onboarding/complete
 router.post("/complete", requireAuth, async (req, res) => {
     try {
-        const userId = (req as any).userId as string;
+        const userId = req.user!.userId;
         const { gender, avatar, starterId } = req.body;
 
         if (!gender || !avatar || !starterId) {

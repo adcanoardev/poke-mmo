@@ -31,7 +31,7 @@ export function createApp() {
     app.use(trainerRouter);
     app.use(battleRouter);
     app.use(rankingRouter);
-    app.use(onboardingRouter);
+    app.use("/onboarding", onboardingRouter);
 
     // 404 catch-all
     app.use((_req, res) => {
