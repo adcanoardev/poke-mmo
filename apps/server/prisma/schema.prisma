@@ -153,6 +153,8 @@ model CreatureInstance {
 
   caughtAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  inNursery Boolean @default(false)
 }
 
 // ─── Battletag ───────────────────────────────────────

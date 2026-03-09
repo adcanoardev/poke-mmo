@@ -101,3 +101,57 @@ export async function collectMine(userId: string): Promise<{ item: ItemType; qua
 
     return { item, quantity };
 }
+
+// ─── FRAGMENT FORGE ──────────────────────────────────────────────────────────
+
+const FORGE_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6h fijo nivel 1
+
+export async function getForgeStatus(userId: string) {
+    const forge = await getStructure(userId, "FRAGMENT_FORGE");
+    const elapsed = Date.now() - forge.lastCollected.getTime();
+    const ready = elapsed >= FORGE_COOLDOWN_MS;
+    const nextCollectMs = ready ? 0 : FORGE_COOLDOWN_MS - elapsed;
+    return { level: forge.level, ready, nextCollectMs };
+}
+
+export async function collectForge(userId: string): Promise<{ item: ItemType; quantity: number } | null> {
+    const forge = await getStructure(userId, "FRAGMENT_FORGE");
+    const elapsed = Date.now() - forge.lastCollected.getTime();
+    if (elapsed < FORGE_COOLDOWN_MS) return null;
+    const quantity = 1 + Math.floor(forge.level / 2);
+    await Promise.all([
+        addItem(userId, "FRAGMENT", quantity),
+        prisma.structure.update({
+            where: { userId_type: { userId, type: "FRAGMENT_FORGE" } },
+            data: { lastCollected: new Date() },
+        }),
+    ]);
+    return { item: "FRAGMENT" as ItemType, quantity };
+}
+
+// ─── LAB ─────────────────────────────────────────────────────────────────────
+
+const LAB_COOLDOWN_MS = 8 * 60 * 60 * 1000; // 8h fijo nivel 1
+
+export async function getLabStatus(userId: string) {
+    const lab = await getStructure(userId, "LAB");
+    const elapsed = Date.now() - lab.lastCollected.getTime();
+    const ready = elapsed >= LAB_COOLDOWN_MS;
+    const nextCollectMs = ready ? 0 : LAB_COOLDOWN_MS - elapsed;
+    return { level: lab.level, ready, nextCollectMs };
+}
+
+export async function collectLab(userId: string): Promise<{ item: ItemType; quantity: number } | null> {
+    const lab = await getStructure(userId, "LAB");
+    const elapsed = Date.now() - lab.lastCollected.getTime();
+    if (elapsed < LAB_COOLDOWN_MS) return null;
+    const quantity = 1 + Math.floor(lab.level / 2);
+    await Promise.all([
+        addItem(userId, "ELIXIR", quantity),
+        prisma.structure.update({
+            where: { userId_type: { userId, type: "LAB" } },
+            data: { lastCollected: new Date() },
+        }),
+    ]);
+    return { item: "ELIXIR" as ItemType, quantity };
+}

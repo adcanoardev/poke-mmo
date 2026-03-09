@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../services/prisma.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { getStarterCreatures, getCreature } from "../services/creatureService.js";
+import { getStarterCreatures, getCreature, isValidStarter } from "../services/creatureService.js";
 import { AVATARS } from "../data/avatars.js";
 
 const router = Router();
@@ -28,7 +28,7 @@ router.post("/complete", requireAuth, async (req, res) => {
         }
 
         const species = getCreature(starterId);
-        if (!["001", "004", "007"].includes(species.id)) {
+        if (!isValidStarter(species.id)) {
             return res.status(400).json({ error: "Starter no válido" });
         }
 

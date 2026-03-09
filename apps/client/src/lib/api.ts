@@ -58,4 +58,18 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ avatar: avatarId, gender, starterId }),
         }),
+    // Forge
+    forgeStatus: () => request<any>("/forge/me"),
+    forgeCollect: () => request<any>("/forge/collect", { method: "POST" }),
+
+    // Lab
+    labStatus: () => request<any>("/lab/me"),
+    labCollect: () => request<any>("/lab/collect", { method: "POST" }),
+
+    // Nursery
+    nurseryStatus: () => request<any>("/nursery/me"),
+    nurseryAssign: (creatureId: string) =>
+        request<any>("/nursery/assign", { method: "POST", body: JSON.stringify({ creatureId }) }),
+    nurseryCollect: () => request<any>("/nursery/collect", { method: "POST" }),
+    nurseryRemove: () => request<any>("/nursery/remove", { method: "POST" }),
 };

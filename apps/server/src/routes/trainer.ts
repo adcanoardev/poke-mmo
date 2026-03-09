@@ -7,6 +7,8 @@ import { getMineStatus, collectMine } from "../services/mineService.js";
 import { prisma } from "../services/prisma.js";
 import { checkLevelEvolution, getAvailableItemEvolutions, evolveWithItem } from "../services/evolutionService.js";
 import { z } from "zod";
+import { getForgeStatus, collectForge, getLabStatus, collectLab } from "../services/mineService.js";
+import { getNurseryStatus, assignToNursery, collectNursery, removeFromNursery } from "../services/nurseryService.js";
 
 const router = Router();
 
@@ -99,7 +101,7 @@ router.get("/creatures/me", requireAuth, async (req, res) => {
 router.get("/creatures/party", requireAuth, async (req, res) => {
     try {
         const party = await prisma.creatureInstance.findMany({
-            where: { userId: req.user!.userId, isInParty: true },
+            where: { userId: req.user!.userId, isInParty: true, inNursery: false },
             orderBy: { slot: "asc" },
         });
         res.json(party);
@@ -142,6 +144,79 @@ router.post("/creatures/:id/evolve", requireAuth, async (req, res) => {
         res.json(result);
     } catch (e) {
         res.status(400).json({ error: "Invalid request" });
+    }
+});
+
+// ─── FRAGMENT FORGE ──────────────────────────────────────────────────────────
+router.get("/forge/me", requireAuth, async (req, res) => {
+    try {
+        res.json(await getForgeStatus(req.user!.userId));
+    } catch (e) {
+        res.status(500).json({ error: "Internal error" });
+    }
+});
+
+router.post("/forge/collect", requireAuth, async (req, res) => {
+    try {
+        const result = await collectForge(req.user!.userId);
+        if (!result) return res.status(400).json({ error: "La Forja aún no está lista" });
+        res.json({ collected: result });
+    } catch (e) {
+        res.status(500).json({ error: "Internal error" });
+    }
+});
+
+// ─── LAB ─────────────────────────────────────────────────────────────────────
+router.get("/lab/me", requireAuth, async (req, res) => {
+    try {
+        res.json(await getLabStatus(req.user!.userId));
+    } catch (e) {
+        res.status(500).json({ error: "Internal error" });
+    }
+});
+
+router.post("/lab/collect", requireAuth, async (req, res) => {
+    try {
+        const result = await collectLab(req.user!.userId);
+        if (!result) return res.status(400).json({ error: "El Laboratorio aún no está listo" });
+        res.json({ collected: result });
+    } catch (e) {
+        res.status(500).json({ error: "Internal error" });
+    }
+});
+
+// ─── NURSERY ─────────────────────────────────────────────────────────────────
+router.get("/nursery/me", requireAuth, async (req, res) => {
+    try {
+        res.json(await getNurseryStatus(req.user!.userId));
+    } catch (e) {
+        res.status(500).json({ error: "Internal error" });
+    }
+});
+
+router.post("/nursery/assign", requireAuth, async (req, res) => {
+    try {
+        const { creatureId } = req.body;
+        if (!creatureId) return res.status(400).json({ error: "Falta creatureId" });
+        res.json(await assignToNursery(req.user!.userId, creatureId));
+    } catch (e: any) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
+router.post("/nursery/collect", requireAuth, async (req, res) => {
+    try {
+        res.json(await collectNursery(req.user!.userId));
+    } catch (e: any) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
+router.post("/nursery/remove", requireAuth, async (req, res) => {
+    try {
+        res.json(await removeFromNursery(req.user!.userId));
+    } catch (e: any) {
+        res.status(400).json({ error: e.message });
     }
 });
 
