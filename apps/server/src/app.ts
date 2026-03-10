@@ -12,6 +12,7 @@ import trainerRouter from "./routes/trainer.js";
 import battleRouter from "./routes/battle.js";
 import rankingRouter from "./routes/ranking.js";
 import onboardingRouter from "./routes/onboarding.js";
+import sanctumsRouter from "./routes/sanctums.js";
 
 export function createApp() {
     const app = express();
@@ -31,6 +32,7 @@ export function createApp() {
     app.use(trainerRouter);
     app.use(battleRouter);
     app.use(rankingRouter);
+    app.use(sanctumsRouter);
     app.use("/onboarding", onboardingRouter);
 
     // 404 catch-all
