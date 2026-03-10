@@ -7,7 +7,7 @@ const NAV = [
     { icon: "🐾", label: "Equipo", path: "/team" },
     { icon: "⚔️", label: "Combatir", path: "/battle" },
     { icon: "◈", label: "Fragmentos", path: "/fragment" },
-    { icon: "📖", label: "Míticadex", path: "/myths" },
+    { icon: "📖", label: "Arcanum", path: "/myths" },
     { icon: "🎒", label: "Inventario", path: "/inventory" },
     { icon: "🏅", label: "Santuarios", path: "/sanctums" },
     { icon: "🏆", label: "Ranking", path: "/ranking" },
