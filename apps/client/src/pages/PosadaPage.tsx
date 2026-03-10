@@ -4,6 +4,13 @@ import TrainerSidebar from "../components/TrainerSidebar";
 import { api } from "../lib/api";
 import { useNavigate } from "react-router-dom";
 
+const POSADA_IMAGES = {
+    mina: "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/tavern/mina.avif",
+    forja: "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/tavern/forja.avif",
+    laboratorio: "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/tavern/laboratorio.avif",
+    guarderia: "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/tavern/guarderia.avif",
+};
+
 function msToTime(ms: number) {
     const s = Math.floor(ms / 1000);
     const h = Math.floor(s / 3600);
@@ -73,6 +80,7 @@ function MineCard({ inventory }: { inventory: any[] }) {
             msg={msg}
             collecting={collecting}
             onCollect={handleCollect}
+            bgImage={POSADA_IMAGES.mina}
         />
     );
 }
@@ -116,65 +124,75 @@ function ForgeCard() {
 
     return (
         <div
-            className={`bg-card border rounded-2xl p-5 flex flex-col transition-all
+            className={`border rounded-2xl p-5 flex flex-col transition-all relative overflow-hidden
             ${ready ? "border-green/40" : "border-border"}`}
-            style={ready ? { boxShadow: "0 0 20px rgba(6,214,160,0.15)" } : {}}
+            style={{
+                backgroundImage: `url('${POSADA_IMAGES.forja}')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                ...(ready ? { boxShadow: "0 0 20px rgba(6,214,160,0.15)" } : {}),
+            }}
         >
-            <div className="flex justify-between items-start mb-3">
-                <span className="text-4xl">🏭</span>
-                <span className="bg-bg3 border border-border rounded-lg px-2 py-0.5 text-xs text-muted font-display font-semibold">
-                    NIV {forge?.level ?? 1}
-                </span>
-            </div>
-            <div className="font-display font-bold text-lg mb-1">Forja de Fragmentos</div>
-            <div className="text-muted text-xs mb-3 flex-1">Produce Fragmentos para invocar Myths</div>
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-bg/80 rounded-2xl" />
 
-            {msg && (
-                <div
-                    className="text-xs font-semibold mb-2"
-                    style={{ color: msg.startsWith("✅") ? "#06d6a0" : "#e63946" }}
-                >
-                    {msg}
+            {/* Contenido */}
+            <div className="relative z-10 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-3">
+                    <span className="text-4xl">🏭</span>
+                    <span className="bg-bg3 border border-border rounded-lg px-2 py-0.5 text-xs text-muted font-display font-semibold">
+                        NIV {forge?.level ?? 1}
+                    </span>
                 </div>
-            )}
+                <div className="font-display font-bold text-lg mb-1">Forja de Fragmentos</div>
+                <div className="text-muted text-xs mb-3 flex-1">Produce Fragmentos para invocar Myths</div>
 
-            {ready ? (
-                <>
-                    <div className="text-green text-xs font-semibold mb-2">✅ ¡Lista!</div>
+                {msg && (
+                    <div
+                        className="text-xs font-semibold mb-2"
+                        style={{ color: msg.startsWith("✅") ? "#06d6a0" : "#e63946" }}
+                    >
+                        {msg}
+                    </div>
+                )}
+
+                {ready ? (
+                    <>
+                        <div className="text-green text-xs font-semibold mb-2">✅ ¡Lista!</div>
+                        <button
+                            onClick={handleCollect}
+                            disabled={collecting}
+                            className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg disabled:opacity-50"
+                            style={{
+                                background: "linear-gradient(135deg, #06d6a0, #04a57a)",
+                                boxShadow: "0 0 12px rgba(6,214,160,0.3)",
+                            }}
+                        >
+                            {collecting ? "..." : "Recoger"}
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <div className="text-muted text-xs mb-1.5">
+                            ⏱ {nextCollectMs != null ? msToTime(nextCollectMs) : "..."}
+                        </div>
+                        <ProgressBar ms={nextCollectMs ?? totalCooldownMs} totalMs={totalCooldownMs} />
+                    </>
+                )}
+
+                {fragmentCount > 0 && (
                     <button
-                        onClick={handleCollect}
-                        disabled={collecting}
-                        className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg disabled:opacity-50"
+                        onClick={() => navigate("/fragmento")}
+                        className="mt-3 py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg transition-all"
                         style={{
-                            background: "linear-gradient(135deg, #06d6a0, #04a57a)",
-                            boxShadow: "0 0 12px rgba(6,214,160,0.3)",
+                            background: "linear-gradient(135deg, #4cc9f0 0%, #7b2fff 100%)",
+                            boxShadow: "0 0 12px rgba(76,201,240,0.3)",
                         }}
                     >
-                        {collecting ? "..." : "Recoger"}
+                        ◈ Abrir fragmentos ({fragmentCount})
                     </button>
-                </>
-            ) : (
-                <>
-                    <div className="text-muted text-xs mb-1.5">
-                        ⏱ {nextCollectMs != null ? msToTime(nextCollectMs) : "..."}
-                    </div>
-                    <ProgressBar ms={nextCollectMs ?? totalCooldownMs} totalMs={totalCooldownMs} />
-                </>
-            )}
-
-            {/* Botón abrir fragmentos — siempre visible si hay stock */}
-            {fragmentCount > 0 && (
-                <button
-                    onClick={() => navigate("/fragmento")}
-                    className="mt-3 py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg transition-all"
-                    style={{
-                        background: "linear-gradient(135deg, #4cc9f0 0%, #7b2fff 100%)",
-                        boxShadow: "0 0 12px rgba(76,201,240,0.3)",
-                    }}
-                >
-                    ◈ Abrir fragmentos ({fragmentCount})
-                </button>
-            )}
+                )}
+            </div>
         </div>
     );
 }
@@ -220,6 +238,7 @@ function LabCard() {
             msg={msg}
             collecting={collecting}
             onCollect={handleCollect}
+            bgImage={POSADA_IMAGES.laboratorio}
         />
     );
 }
@@ -227,16 +246,16 @@ function LabCard() {
 // ─── Tarjeta Guardería ────────────────────────────────────────────────────────
 function NurseryCard() {
     const [nursery, setNursery] = useState<any>(null);
-    const [party, setParty] = useState<any[]>([]);
+    const [allMyths, setAllMyths] = useState<any[]>([]);
     const [collecting, setCollecting] = useState(false);
     const [assigning, setAssigning] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
     const [msg, setMsg] = useState("");
 
     const load = useCallback(async () => {
-        const [n, p] = await Promise.all([api.nurseryStatus(), api.party()]);
+        const [n, all] = await Promise.all([api.nurseryStatus(), api.creatures()]);
         setNursery(n);
-        setParty(p);
+        setAllMyths((all as any[]).filter((c: any) => !c.inNursery && c.level < 60));
     }, []);
 
     useEffect(() => {
@@ -262,7 +281,7 @@ function NurseryCard() {
         setMsg("");
         try {
             const res = await api.nurseryCollect();
-            setMsg(`⬆️ ¡${res.myth.speciesId} subió al nivel ${res.newLevel}!`);
+            setMsg(`⬆️ ¡${res.myth.name ?? res.myth.speciesId} subió al nivel ${res.newLevel}!`);
             load();
         } catch (e: any) {
             setMsg(`⏱ ${e.message}`);
@@ -274,7 +293,7 @@ function NurseryCard() {
     async function handleRemove() {
         try {
             await api.nurseryRemove();
-            setMsg("Myth devuelto al equipo");
+            setMsg("Myth devuelto al almacén");
             load();
         } catch (e: any) {
             setMsg(`❌ ${e.message}`);
@@ -284,112 +303,158 @@ function NurseryCard() {
     const hasMyth = !!nursery?.myth;
     const isReady = nursery?.ready ?? false;
     const isMaxLevel = nursery?.maxLevel ?? false;
+    const inParty = allMyths.filter((c) => c.isInParty);
+    const inStorage = allMyths.filter((c) => !c.isInParty);
 
     return (
         <div
-            className={`bg-card border rounded-2xl p-5 flex flex-col transition-all
+            className={`border rounded-2xl p-5 flex flex-col transition-all relative overflow-hidden
             ${isReady ? "border-yellow/40" : "border-border"}`}
-            style={isReady ? { boxShadow: "0 0 20px rgba(255,214,10,0.12)" } : {}}
+            style={{
+                backgroundImage: `url('${POSADA_IMAGES.guarderia}')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                ...(isReady ? { boxShadow: "0 0 20px rgba(255,214,10,0.12)" } : {}),
+            }}
         >
-            <div className="flex justify-between items-start mb-3">
-                <span className="text-4xl">🥚</span>
-                <span className="bg-bg3 border border-border rounded-lg px-2 py-0.5 text-xs text-muted font-display font-semibold">
-                    NIV {nursery?.level ?? 1}
-                </span>
-            </div>
-            <div className="font-display font-bold text-lg mb-1">Guardería</div>
-            <div className="text-muted text-xs mb-3">Entrena un Myth lentamente mientras exploras</div>
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-bg/80 rounded-2xl" />
 
-            {msg && (
-                <div
-                    className="text-xs font-semibold mb-2"
-                    style={{ color: msg.startsWith("✅") || msg.startsWith("⬆️") ? "#06d6a0" : "#e63946" }}
-                >
-                    {msg}
+            {/* Contenido */}
+            <div className="relative z-10 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-3">
+                    <span className="text-4xl">🥚</span>
+                    <span className="bg-bg3 border border-border rounded-lg px-2 py-0.5 text-xs text-muted font-display font-semibold">
+                        NIV {nursery?.level ?? 1}
+                    </span>
                 </div>
-            )}
+                <div className="font-display font-bold text-lg mb-1">Guardería</div>
+                <div className="text-muted text-xs mb-3">Entrena un Myth lentamente mientras exploras</div>
 
-            {/* Sin Myth asignado */}
-            {!hasMyth && (
-                <>
-                    <div className="text-muted text-xs mb-3 flex-1">Sin Myth asignado</div>
-                    <button
-                        onClick={() => setShowPicker((s) => !s)}
-                        disabled={assigning}
-                        className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase border border-border text-muted hover:border-yellow hover:text-yellow transition-all disabled:opacity-50"
+                {msg && (
+                    <div
+                        className="text-xs font-semibold mb-2"
+                        style={{ color: msg.startsWith("✅") || msg.startsWith("⬆️") ? "#06d6a0" : "#e63946" }}
                     >
-                        {assigning ? "..." : "＋ Asignar Myth"}
-                    </button>
-                    {showPicker && (
-                        <div className="mt-2 flex flex-col gap-1">
-                            {party.filter((c) => !c.inNursery && c.level < 60).length === 0 && (
-                                <div className="text-muted text-xs text-center py-2">
-                                    Sin Myths disponibles en el equipo
-                                </div>
-                            )}
-                            {party
-                                .filter((c) => c.slot !== -1 && c.level < 60)
-                                .map((c: any) => (
-                                    <button
-                                        key={c.id}
-                                        onClick={() => handleAssign(c.id)}
-                                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg3 border border-border hover:border-yellow/40 transition-all text-xs"
-                                    >
-                                        <span className="font-display font-bold text-blue">{c.speciesId}</span>
-                                        <span className="text-muted">Nv. {c.level}</span>
-                                    </button>
-                                ))}
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* Con Myth asignado */}
-            {hasMyth && !isMaxLevel && (
-                <>
-                    <div className="flex items-center justify-between mb-2">
-                        <div>
-                            <span className="font-display font-bold text-sm text-blue">{nursery.myth.speciesId}</span>
-                            <span className="text-muted text-xs ml-2">
-                                Nv. {nursery.myth.level} → {nursery.myth.level + 1}
-                            </span>
-                        </div>
-                        <button onClick={handleRemove} className="text-xs text-muted hover:text-red transition-colors">
-                            ✕
-                        </button>
+                        {msg}
                     </div>
+                )}
 
-                    {isReady ? (
-                        <>
-                            <div className="text-yellow text-xs font-semibold mb-2">⚡ ¡Listo para subir!</div>
+                {/* Sin Myth asignado */}
+                {!hasMyth && (
+                    <>
+                        <div className="text-muted text-xs mb-3 flex-1">Sin Myth asignado</div>
+                        <button
+                            onClick={() => setShowPicker((s) => !s)}
+                            disabled={assigning}
+                            className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase border border-border text-muted hover:border-yellow hover:text-yellow transition-all disabled:opacity-50"
+                        >
+                            {assigning ? "..." : "＋ Asignar Myth"}
+                        </button>
+
+                        {showPicker && (
+                            <div className="mt-2 flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+                                {allMyths.length === 0 && (
+                                    <div className="text-muted text-xs text-center py-2">Sin Myths disponibles</div>
+                                )}
+                                {inParty.length > 0 && (
+                                    <>
+                                        <div className="text-muted/60 text-xs font-display uppercase tracking-widest px-1">
+                                            Equipo
+                                        </div>
+                                        {inParty.map((c: any) => (
+                                            <button
+                                                key={c.id}
+                                                onClick={() => handleAssign(c.id)}
+                                                className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg3 border border-border hover:border-yellow/40 transition-all text-xs"
+                                            >
+                                                <span className="font-display font-bold text-blue">
+                                                    {c.name ?? c.speciesId}
+                                                </span>
+                                                <span className="text-muted">Nv. {c.level}</span>
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
+                                {inStorage.length > 0 && (
+                                    <>
+                                        <div className="text-muted/60 text-xs font-display uppercase tracking-widest px-1 mt-1">
+                                            Almacén
+                                        </div>
+                                        {inStorage.map((c: any) => (
+                                            <button
+                                                key={c.id}
+                                                onClick={() => handleAssign(c.id)}
+                                                className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg3 border border-border hover:border-yellow/40 transition-all text-xs"
+                                            >
+                                                <span className="font-display font-bold text-muted">
+                                                    {c.name ?? c.speciesId}
+                                                </span>
+                                                <span className="text-muted">Nv. {c.level}</span>
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Con Myth asignado */}
+                {hasMyth && !isMaxLevel && (
+                    <>
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <div className="text-3xl leading-none">{nursery.myth.art?.front ?? "❓"}</div>
+                                <div>
+                                    <span className="font-display font-bold text-sm text-blue">
+                                        {nursery.myth.name ?? nursery.myth.speciesId}
+                                    </span>
+                                    <div className="text-muted text-xs">
+                                        Nv. {nursery.myth.level} → {nursery.myth.level + 1}
+                                    </div>
+                                </div>
+                            </div>
                             <button
-                                onClick={handleCollect}
-                                disabled={collecting}
-                                className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg disabled:opacity-50"
-                                style={{
-                                    background: "linear-gradient(135deg, #ffd60a, #e6a800)",
-                                    boxShadow: "0 0 12px rgba(255,214,10,0.3)",
-                                }}
+                                onClick={handleRemove}
+                                className="text-xs text-muted hover:text-red transition-colors"
                             >
-                                {collecting ? "..." : "⬆️ Subir nivel"}
+                                ✕
                             </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="text-muted text-xs mb-1.5">⏱ {msToTime(nursery.nextCollectMs)}</div>
-                            <ProgressBar
-                                ms={nursery.nextCollectMs}
-                                totalMs={nursery.currentLevelCooldownMs}
-                                color="linear-gradient(90deg, #ffd60a, #e6a800)"
-                            />
-                        </>
-                    )}
-                </>
-            )}
+                        </div>
 
-            {hasMyth && isMaxLevel && (
-                <div className="text-green text-xs font-semibold flex-1">🏆 Nivel máximo alcanzado (60)</div>
-            )}
+                        {isReady ? (
+                            <>
+                                <div className="text-yellow text-xs font-semibold mb-2">⚡ ¡Listo para subir!</div>
+                                <button
+                                    onClick={handleCollect}
+                                    disabled={collecting}
+                                    className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg disabled:opacity-50"
+                                    style={{
+                                        background: "linear-gradient(135deg, #ffd60a, #e6a800)",
+                                        boxShadow: "0 0 12px rgba(255,214,10,0.3)",
+                                    }}
+                                >
+                                    {collecting ? "..." : "⬆️ Subir nivel"}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-muted text-xs mb-1.5">⏱ {msToTime(nursery.nextCollectMs)}</div>
+                                <ProgressBar
+                                    ms={nursery.nextCollectMs}
+                                    totalMs={nursery.currentLevelCooldownMs}
+                                    color="linear-gradient(90deg, #ffd60a, #e6a800)"
+                                />
+                            </>
+                        )}
+                    </>
+                )}
+
+                {hasMyth && isMaxLevel && (
+                    <div className="text-green text-xs font-semibold flex-1">🏆 Nivel máximo alcanzado (60)</div>
+                )}
+            </div>
         </div>
     );
 }
@@ -406,6 +471,7 @@ function StructureCard({
     msg,
     collecting,
     onCollect,
+    bgImage,
 }: {
     icon: string;
     name: string;
@@ -417,54 +483,66 @@ function StructureCard({
     msg: string;
     collecting: boolean;
     onCollect: () => void;
+    bgImage?: string;
 }) {
     return (
         <div
-            className={`bg-card border rounded-2xl p-5 flex flex-col transition-all
+            className={`border rounded-2xl p-5 flex flex-col transition-all relative overflow-hidden
             ${ready ? "border-green/40" : "border-border"}`}
-            style={ready ? { boxShadow: "0 0 20px rgba(6,214,160,0.15)" } : {}}
+            style={{
+                ...(bgImage
+                    ? { backgroundImage: `url('${bgImage}')`, backgroundSize: "cover", backgroundPosition: "center" }
+                    : { background: "var(--color-card, #0f1923)" }),
+                ...(ready ? { boxShadow: "0 0 20px rgba(6,214,160,0.15)" } : {}),
+            }}
         >
-            <div className="flex justify-between items-start mb-3">
-                <span className="text-4xl">{icon}</span>
-                <span className="bg-bg3 border border-border rounded-lg px-2 py-0.5 text-xs text-muted font-display font-semibold">
-                    NIV {level}
-                </span>
-            </div>
-            <div className="font-display font-bold text-lg mb-1">{name}</div>
-            <div className="text-muted text-xs mb-3 flex-1">{desc}</div>
+            {/* Overlay oscuro para legibilidad */}
+            {bgImage && <div className="absolute inset-0 bg-bg/80 rounded-2xl" />}
 
-            {msg && (
-                <div
-                    className="text-xs font-semibold mb-2"
-                    style={{ color: msg.startsWith("✅") ? "#06d6a0" : "#e63946" }}
-                >
-                    {msg}
+            {/* Contenido */}
+            <div className="relative z-10 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-3">
+                    <span className="text-4xl">{icon}</span>
+                    <span className="bg-bg3 border border-border rounded-lg px-2 py-0.5 text-xs text-muted font-display font-semibold">
+                        NIV {level}
+                    </span>
                 </div>
-            )}
+                <div className="font-display font-bold text-lg mb-1">{name}</div>
+                <div className="text-muted text-xs mb-3 flex-1">{desc}</div>
 
-            {ready ? (
-                <>
-                    <div className="text-green text-xs font-semibold mb-2">✅ ¡Lista!</div>
-                    <button
-                        onClick={onCollect}
-                        disabled={collecting}
-                        className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg disabled:opacity-50"
-                        style={{
-                            background: "linear-gradient(135deg, #06d6a0, #04a57a)",
-                            boxShadow: "0 0 12px rgba(6,214,160,0.3)",
-                        }}
+                {msg && (
+                    <div
+                        className="text-xs font-semibold mb-2"
+                        style={{ color: msg.startsWith("✅") ? "#06d6a0" : "#e63946" }}
                     >
-                        {collecting ? "..." : "Recoger"}
-                    </button>
-                </>
-            ) : (
-                <>
-                    <div className="text-muted text-xs mb-1.5">
-                        ⏱ {nextCollectMs != null ? msToTime(nextCollectMs) : "..."}
+                        {msg}
                     </div>
-                    <ProgressBar ms={nextCollectMs ?? totalCooldownMs} totalMs={totalCooldownMs} />
-                </>
-            )}
+                )}
+
+                {ready ? (
+                    <>
+                        <div className="text-green text-xs font-semibold mb-2">✅ ¡Lista!</div>
+                        <button
+                            onClick={onCollect}
+                            disabled={collecting}
+                            className="py-2 rounded-xl font-display font-bold text-xs tracking-widest uppercase text-bg disabled:opacity-50"
+                            style={{
+                                background: "linear-gradient(135deg, #06d6a0, #04a57a)",
+                                boxShadow: "0 0 12px rgba(6,214,160,0.3)",
+                            }}
+                        >
+                            {collecting ? "..." : "Recoger"}
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <div className="text-muted text-xs mb-1.5">
+                            ⏱ {nextCollectMs != null ? msToTime(nextCollectMs) : "..."}
+                        </div>
+                        <ProgressBar ms={nextCollectMs ?? totalCooldownMs} totalMs={totalCooldownMs} />
+                    </>
+                )}
+            </div>
         </div>
     );
 }

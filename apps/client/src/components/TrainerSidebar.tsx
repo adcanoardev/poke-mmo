@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useTrainer } from "../context/TrainerContext";
+import { useNavigate } from "react-router-dom";
 
 function Countdown({ initialMs }: { initialMs: number }) {
     const [ms, setMs] = useState(initialMs);
@@ -49,8 +50,8 @@ function TokenDots({ filled, max, color }: { filled: number; max: number; color:
 
 export default function TrainerSidebar() {
     const { user } = useAuth();
-    const { trainer, tokens } = useTrainer();
-
+    const { trainer, tokens, fragments } = useTrainer();
+    const navigate = useNavigate();
     const xpForLevel = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.8));
     const xpPct = trainer ? Math.min(100, Math.round((trainer.xp / xpForLevel(trainer.level)) * 100)) : 0;
 
@@ -124,6 +125,20 @@ export default function TrainerSidebar() {
                         +1 en <Countdown initialMs={tokens.nextPvpRechargeMs} />
                     </div>
                 )}
+            </div>
+            <div className="border-t border-border/50" />
+
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-display font-bold tracking-widest uppercase" style={{ color: "#4cc9f0" }}>
+                    ◈ Fragmentos
+                </span>
+                <span
+                    className="font-display font-bold text-xs cursor-pointer hover:text-white transition-colors"
+                    style={{ color: "#4cc9f0" }}
+                    onClick={() => fragments > 0 && navigate("/fragmento")}
+                >
+                    {fragments}
+                </span>
             </div>
         </div>
     );

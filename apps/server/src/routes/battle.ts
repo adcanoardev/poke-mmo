@@ -4,6 +4,8 @@ import { startNpcBattle, executeTurn, fleeBattle, getActiveBattle } from "../ser
 import { runPvpBattle } from "../services/pvpService.js";
 import { z } from "zod";
 import { challengeSanctum, getSanctumsStatus } from "../services/gymService.js";
+import { prisma } from "../services/prisma.js";
+import { getCreature } from "../services/creatureService.js";
 
 const router = Router();
 
@@ -49,6 +51,47 @@ router.get("/battle/npc/active", requireAuth, async (req, res) => {
         const session = getActiveBattle(req.user!.userId);
         if (!session) return res.status(404).json({ error: "No hay combate activo" });
         res.json(session);
+    } catch (e) {
+        res.status(500).json({ error: "Internal error" });
+    }
+});
+
+// ── Battle Stats ────────────────────────────────────────────────
+
+router.get("/battle/stats", requireAuth, async (req, res) => {
+    try {
+        const userId = req.user!.userId;
+
+        const [logs, creatures] = await Promise.all([
+            prisma.battleLog.findMany({ where: { userId } }),
+            prisma.creatureInstance.findMany({ where: { userId } }),
+        ]);
+
+        const npcWins = logs.filter(l => l.type === "NPC" && l.result === "WIN").length;
+        const npcLosses = logs.filter(l => l.type === "NPC" && l.result === "LOSE").length;
+        const pvpWins = logs.filter(l => l.type === "PVP" && l.result === "WIN").length;
+        const pvpLosses = logs.filter(l => l.type === "PVP" && l.result === "LOSE").length;
+        const captured = logs.filter(l => l.capturedSpeciesId !== null).length;
+        const totalXp = logs.reduce((sum, l) => sum + (l.xpGained ?? 0), 0);
+        const totalCoins = logs.reduce((sum, l) => sum + (l.coinsGained ?? 0), 0);
+
+        const byRarity: Record<string, number> = {
+            COMMON: 0, RARE: 0, ELITE: 0, LEGENDARY: 0, MYTHIC: 0,
+        };
+
+        for (const c of creatures) {
+            try {
+                const species = getCreature(c.speciesId);
+                byRarity[species.rarity] = (byRarity[species.rarity] ?? 0) + 1;
+            } catch { }
+        }
+
+        res.json({
+            npcWins, npcLosses, pvpWins, pvpLosses,
+            captured, totalXp, totalCoins,
+            totalMyths: creatures.length,
+            byRarity,
+        });
     } catch (e) {
         res.status(500).json({ error: "Internal error" });
     }

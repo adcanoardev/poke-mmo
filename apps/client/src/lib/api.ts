@@ -52,6 +52,7 @@ export const api = {
     battleNpcActive: () => request<any>("/battle/npc/active"),
     battlePvp: (defenderUserId: string) =>
         request<any>("/battle/pvp", { method: "POST", body: JSON.stringify({ defenderUserId }) }),
+    battleStats: () => request<any>("/battle/stats"),
     gyms: () => request<any[]>("/gyms"),
     challengeGym: (id: number) => request<any>(`/gyms/${id}/challenge`, { method: "POST" }),
     ranking: () => request<any>("/ranking"),

@@ -3,6 +3,11 @@ import Layout from "../components/Layout";
 import TrainerSidebar from "../components/TrainerSidebar";
 import { api } from "../lib/api";
 
+const COMBAT_BACKGROUNDS = [
+    "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/battlemaps/battlemap1.avif",
+    "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/battlemaps/battlemap2.avif",
+];
+
 interface Move {
     id: string;
     name: string;
@@ -287,13 +292,13 @@ function FloatingDamage({ floats }: { floats: FloatingDmg[] }) {
                         top: "25%",
                         left: f.side === "player" ? "5%" : "auto",
                         right: f.side === "enemy" ? "5%" : "auto",
-                        fontSize: f.critical ? "2.2rem" : "1.6rem",
+                        fontSize: f.critical ? "2.4rem" : "1.8rem",
                         color: f.critical ? "#e63946" : "#ffffff",
                         textShadow: f.critical
                             ? "0 0 16px #e63946, 0 2px 4px rgba(0,0,0,0.8)"
                             : "0 2px 8px rgba(0,0,0,0.9)",
                         zIndex: 10,
-                        animation: "floatUp 1.3s ease-out forwards",
+                        animation: "floatUp 1.9s ease-out forwards",
                     }}
                 >
                     -{f.value}
@@ -322,6 +327,7 @@ export default function CombatPage() {
     // Snapshot de ambos combatientes al terminar (para mantenerlos en pantalla)
     const [lastCombatants, setLastCombatants] = useState<{ player: Combatant; enemy: Combatant } | null>(null);
     const floatCounter = useRef(0);
+    const [bg] = useState(() => COMBAT_BACKGROUNDS[Math.floor(Math.random() * COMBAT_BACKGROUNDS.length)]);
 
     useEffect(() => {
         const style = document.createElement("style");
@@ -550,8 +556,15 @@ export default function CombatPage() {
                     {/* ── Arena ── */}
                     <div
                         className="flex-shrink-0 rounded-2xl border border-border overflow-hidden relative"
-                        style={{ height: 250, background: "linear-gradient(135deg, #0d1525, #0f1923)" }}
+                        style={{
+                            height: 250,
+                            backgroundImage: `url('${bg}')`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                        }}
                     >
+                        {/* Overlay oscuro para que se vean las barras de HP y los personajes */}
+                        <div className="absolute inset-0 bg-bg/70" />
                         <FloatingDamage floats={floats} />
                         {isBattleOver && (
                             <div
@@ -565,7 +578,7 @@ export default function CombatPage() {
                                 {result!.result === "WIN" ? "🏆 VICTORIA" : "💀 DERROTA"}
                             </div>
                         )}
-                        <div className="flex items-center justify-around px-10 h-full">
+                        <div className="flex items-center justify-around px-10 h-full relative z-10">
                             {/* Jugador */}
                             <div className="text-center w-44">
                                 <div
@@ -589,7 +602,7 @@ export default function CombatPage() {
                                 </div>
                             </div>
 
-                            <div className="font-display font-bold text-3xl" style={{ color: "#1e2d45" }}>
+                            <div className="font-display font-bold text-3xl" style={{ color: "#ffffff" }}>
                                 VS
                             </div>
 
