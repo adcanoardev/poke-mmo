@@ -3,12 +3,13 @@ import { useAuth } from "../hooks/useAuth";
 
 const NAV = [
     { icon: "🏡", label: "Posada", path: "/" },
-    { icon: "👤", label: "Perfil", path: "/perfil" },
-    { icon: "🐾", label: "Equipo", path: "/equipo" },
-    { icon: "⚔️", label: "Combatir", path: "/combate" },
-    { icon: "◈", label: "Fragmentos", path: "/fragmento" },
-    { icon: "🎒", label: "Inventario", path: "/inventario" },
-    { icon: "🏅", label: "Santuarios", path: "/santuarios" },
+    { icon: "👤", label: "Perfil", path: "/profile" },
+    { icon: "🐾", label: "Equipo", path: "/team" },
+    { icon: "⚔️", label: "Combatir", path: "/battle" },
+    { icon: "◈", label: "Fragmentos", path: "/fragment" },
+    { icon: "📖", label: "Míticadex", path: "/myths" },
+    { icon: "🎒", label: "Inventario", path: "/inventory" },
+    { icon: "🏅", label: "Santuarios", path: "/sanctums" },
     { icon: "🏆", label: "Ranking", path: "/ranking" },
 ];
 

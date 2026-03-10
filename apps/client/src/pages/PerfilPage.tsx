@@ -15,6 +15,17 @@ const EMBLEM_INFO = [
     { icon: "🌑", name: "Emblema Sombra", sanctum: "Nox", affinity: "SHADE", level: 50 },
 ];
 
+const AVATAR_EMOJI: Record<string, string> = {
+    male_1: "👦",
+    male_2: "🧑",
+    male_3: "👨",
+    male_4: "🧔",
+    female_1: "👧",
+    female_2: "👩",
+    female_3: "🧕",
+    female_4: "👱‍♀️",
+};
+
 const AFFINITY_COLORS: Record<string, string> = {
     EMBER: "#ff6b35",
     TIDE: "#4cc9f0",
@@ -125,7 +136,7 @@ export default function PerfilPage() {
                             boxShadow: "0 0 20px rgba(76,201,240,0.3)",
                         }}
                     >
-                        🧢
+                        {AVATAR_EMOJI[trainer?.avatar] ?? "🧙"}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="font-display font-bold text-2xl">{user?.username}</div>

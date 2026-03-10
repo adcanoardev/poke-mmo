@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Layout from "../components/Layout";
 import TrainerSidebar from "../components/TrainerSidebar";
 import { api } from "../lib/api";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const COMBAT_BACKGROUNDS = [
     "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/battlemaps/battlemap1.avif",
@@ -310,7 +311,7 @@ function FloatingDamage({ floats }: { floats: FloatingDmg[] }) {
 }
 
 export default function CombatPage() {
-    const [mode, setMode] = useState<"npc" | "pvp">("npc");
+    // mode eliminado — usar combatMode / setCombatMode
     const [defId, setDefId] = useState("");
     const [error, setError] = useState("");
     const [battle, setBattle] = useState<BattleState | null>(null);
@@ -328,6 +329,23 @@ export default function CombatPage() {
     const [lastCombatants, setLastCombatants] = useState<{ player: Combatant; enemy: Combatant } | null>(null);
     const floatCounter = useRef(0);
     const [bg] = useState(() => COMBAT_BACKGROUNDS[Math.floor(Math.random() * COMBAT_BACKGROUNDS.length)]);
+    const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    // Detecta modo: state.mode tiene precedencia sobre query param
+    const initialMode: "npc" | "pvp" =
+        (location.state as { mode?: string } | null)?.mode === "pvp" || searchParams.get("mode") === "pvp"
+            ? "pvp"
+            : "npc";
+    // Estado de pestaña activa (NPC vs PvP)
+    const [combatMode, setCombatMode] = useState<"npc" | "pvp">(initialMode);
+
+    // Sincroniza combatMode cuando se navega a /combate desde el sidebar
+    // (incluso si ya estamos en /combate)
+    useEffect(() => {
+        const state = location.state as { mode?: string } | null;
+        if (state?.mode === "pvp") setCombatMode("pvp");
+        else if (state?.mode === "npc") setCombatMode("npc");
+    }, [location.state]);
 
     useEffect(() => {
         const style = document.createElement("style");
@@ -515,13 +533,13 @@ export default function CombatPage() {
                             <button
                                 key={m}
                                 onClick={() => {
-                                    setMode(m);
+                                    setCombatMode(m);
                                     handleReset();
                                 }}
                                 className={`px-4 py-1.5 rounded-lg font-display font-bold text-sm tracking-widest uppercase transition-all
-                                    ${mode === m ? "text-bg" : "border border-border text-muted hover:border-blue hover:text-blue"}`}
+                                    ${combatMode === m ? "text-bg" : "border border-border text-muted hover:border-blue hover:text-blue"}`}
                                 style={
-                                    mode === m
+                                    combatMode === m
                                         ? {
                                               background:
                                                   m === "npc"
@@ -721,7 +739,7 @@ export default function CombatPage() {
 
                     {/* ── Zona de acción ── */}
                     <div className="flex-shrink-0">
-                        {mode === "npc" && (
+                        {combatMode === "npc" && (
                             <>
                                 <div className="flex gap-3">
                                     <div style={{ flex: "0 0 65%" }} className="flex flex-col gap-2">
@@ -800,7 +818,7 @@ export default function CombatPage() {
                                 )}
                             </>
                         )}
-                        {mode === "pvp" && (
+                        {combatMode === "pvp" && (
                             <>
                                 {!pvpResult && (
                                     <input

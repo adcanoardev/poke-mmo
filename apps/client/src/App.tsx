@@ -10,6 +10,7 @@ import PosadaPage from "./pages/PosadaPage";
 import SantuariosPage from "./pages/SantuariosPage";
 import EquipoPage from "./pages/EquipoPage";
 import FragmentPage from "./pages/FragmentPage";
+import MythsPage from "./pages/MythsPage";
 
 export default function App() {
     const { user, loading } = useAuth();
@@ -38,14 +39,15 @@ export default function App() {
                     )
                 }
             />
-            <Route path="/combate" element={user ? <CombatPage /> : <Navigate to="/login" />} />
-            <Route path="/inventario" element={user ? <InventarioPage /> : <Navigate to="/login" />} />
-            <Route path="/santuarios" element={user ? <SantuariosPage /> : <Navigate to="/login" />} />
             <Route path="/ranking" element={user ? <RankingPage /> : <Navigate to="/login" />} />
-            <Route path="/perfil" element={user ? <PerfilPage /> : <Navigate to="/login" />} />
             <Route path="/onboarding" element={user ? <OnboardingPage /> : <Navigate to="/login" />} />
-            <Route path="/equipo" element={user ? <EquipoPage /> : <Navigate to="/login" />} />
-            <Route path="/fragmento" element={<FragmentPage />} />
+            <Route path="/myths" element={user ? <MythsPage /> : <Navigate to="/login" />} />
+            <Route path="/profile" element={user ? <PerfilPage /> : <Navigate to="/login" />} />
+            <Route path="/team" element={user ? <EquipoPage /> : <Navigate to="/login" />} />
+            <Route path="/battle" element={user ? <CombatPage /> : <Navigate to="/login" />} />
+            <Route path="/fragment" element={<FragmentPage />} />
+            <Route path="/inventory" element={user ? <InventarioPage /> : <Navigate to="/login" />} />
+            <Route path="/sanctums" element={user ? <SantuariosPage /> : <Navigate to="/login" />} />
         </Routes>
     );
 }

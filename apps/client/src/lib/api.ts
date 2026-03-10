@@ -77,4 +77,7 @@ export const api = {
         request<any>("/nursery/assign", { method: "POST", body: JSON.stringify({ creatureId }) }),
     nurseryCollect: () => request<any>("/nursery/collect", { method: "POST" }),
     nurseryRemove: () => request<any>("/nursery/remove", { method: "POST" }),
+    // Dex
+    dex: () => request<any[]>("/dex"),
+    dexById: (id: string) => request<any>(`/dex/${id}`),
 };

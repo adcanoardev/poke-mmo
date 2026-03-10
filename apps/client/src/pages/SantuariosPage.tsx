@@ -48,10 +48,19 @@ export default function SantuariosPage() {
                 )}
             </div>
 
-            <div className="flex-1 p-6 grid grid-cols-4 grid-rows-2 gap-3 overflow-hidden">
+            <div
+    className="flex-1 p-6 grid grid-cols-4 grid-rows-2 gap-3 overflow-hidden relative"
+    style={{
+        backgroundImage: `url('https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/maps/mythara_map.avif')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+    }}
+>
+    {/* Overlay oscuro para que las cards sean legibles */}
+    <div className="absolute inset-0 bg-bg/80 pointer-events-none" />
                 {sanctums.map((s: any) => (
                     <div key={s.id}
-                        className={`bg-card border rounded-2xl p-4 flex flex-col transition-all relative overflow-hidden
+                        className={`relative z-10 bg-card border rounded-2xl p-4 flex flex-col transition-all overflow-hidden
                             ${s.earned ? "border-yellow/40" : s.unlocked ? "border-border hover:border-blue/40" : "border-border opacity-50"}`}
                         style={s.earned ? { boxShadow: "0 0 12px rgba(255,214,10,0.1)" } : {}}>
                         {s.earned && <div className="absolute top-3 right-3 text-lg">✅</div>}

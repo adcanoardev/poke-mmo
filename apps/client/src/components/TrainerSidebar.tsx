@@ -1,145 +1,221 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { useTrainer } from "../context/TrainerContext";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTrainer } from "../context/TrainerContext";
 
-function Countdown({ initialMs }: { initialMs: number }) {
-    const [ms, setMs] = useState(initialMs);
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        setMs(initialMs);
-        if (initialMs <= 0) return;
-        const interval = setInterval(() => {
-            setMs((prev) => {
-                if (prev <= 1000) {
-                    clearInterval(interval);
-                    return 0;
-                }
-                return prev - 1000;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [initialMs]);
-
-    const s = Math.floor(ms / 1000);
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    const str = h > 0 ? `${h}h ${m.toString().padStart(2, "0")}m` : `${m}m ${sec.toString().padStart(2, "0")}s`;
-
-    return <span>{str}</span>;
+function formatCountdown(seconds: number): string {
+    if (seconds <= 0) return "listo";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m > 0 ? `${m}m ${s.toString().padStart(2, "0")}s` : `${s}s`;
 }
 
-function TokenDots({ filled, max, color }: { filled: number; max: number; color: string }) {
+function TokenDot({ filled }: { filled: boolean }) {
     return (
-        <div className="flex gap-1.5 flex-wrap">
-            {Array.from({ length: max }).map((_, i) => (
-                <div
-                    key={i}
-                    className="w-2.5 h-2.5 rounded-full transition-all"
-                    style={{
-                        background: i < filled ? color : "rgba(255,255,255,0.08)",
-                        boxShadow: i < filled ? `0 0 6px ${color}` : "none",
-                        border: i < filled ? "none" : "1px solid rgba(255,255,255,0.1)",
-                    }}
-                />
-            ))}
-        </div>
+        <span
+            className={`inline-block w-3.5 h-3.5 rounded-full border transition-all duration-300 ${
+                filled ? "bg-yellow border-yellow shadow-[0_0_6px_rgba(255,214,10,0.5)]" : "bg-bg border-border"
+            }`}
+        />
     );
 }
 
+const AVATAR_EMOJI: Record<string, string> = {
+    male_1: "👦",
+    male_2: "🧑",
+    male_3: "👨",
+    male_4: "🧔",
+    female_1: "👧",
+    female_2: "👩",
+    female_3: "🧕",
+    female_4: "👱‍♀️",
+};
+
+// ─── component ────────────────────────────────────────────────────────────────
+
 export default function TrainerSidebar() {
-    const { user } = useAuth();
-    const { trainer, tokens, fragments } = useTrainer();
     const navigate = useNavigate();
-    const xpForLevel = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.8));
-    const xpPct = trainer ? Math.min(100, Math.round((trainer.xp / xpForLevel(trainer.level)) * 100)) : 0;
+    const { trainer, tokens, fragments, reload } = useTrainer();
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Auto-reload every 30s + listen for sidebar:reload event
+    useEffect(() => {
+        intervalRef.current = setInterval(reload, 30_000);
+        const handler = () => reload();
+        window.addEventListener("sidebar:reload", handler);
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            window.removeEventListener("sidebar:reload", handler);
+        };
+    }, [reload]);
+
+    // ── derived ────────────────────────────────────────────────────────────────
+
+    const npcTokens = tokens?.npcTokens ?? 0;
+    const pvpTokens = tokens?.pvpTokens ?? 0;
+    const MAX_NPC = 10;
+    const MAX_PVP = 5;
+
+    /** Seconds until next NPC token */
+    const npcSecondsLeft = (() => {
+        if (!tokens?.lastNpcRecharge || npcTokens >= MAX_NPC) return 0;
+        const rechargeMs = 30 * 60 * 1000; // 30 min
+        const elapsed = Date.now() - new Date(tokens.lastNpcRecharge).getTime();
+        const remaining = rechargeMs - (elapsed % rechargeMs);
+        return Math.max(0, Math.floor(remaining / 1000));
+    })();
+
+    const pvpSecondsLeft = (() => {
+        if (!tokens?.lastPvpRecharge || pvpTokens >= MAX_PVP) return 0;
+        const rechargeMs = 2 * 60 * 60 * 1000; // 2 h
+        const elapsed = Date.now() - new Date(tokens.lastPvpRecharge).getTime();
+        const remaining = rechargeMs - (elapsed % rechargeMs);
+        return Math.max(0, Math.floor(remaining / 1000));
+    })();
+
+    // Live countdown — re-render every second
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        const t = setInterval(() => setTick((n: number) => n + 1), 1_000);
+        return () => clearInterval(t);
+    }, []);
+
+    // ── handlers ──────────────────────────────────────────────────────────────
+
+    const goNpc = () => navigate("/battle", { state: { mode: "npc" } });
+    const goPvp = () => navigate("/battle", { state: { mode: "pvp" } });
+    const goFragments = () => navigate("/fragment");
+    const goProfile = () => navigate("/profile");
+    // ── render ────────────────────────────────────────────────────────────────
+
+    if (!trainer) {
+        return (
+            <aside className="w-56 shrink-0 flex flex-col gap-3 py-4 px-3">
+                <div className="h-20 rounded-xl bg-card animate-pulse" />
+                <div className="h-32 rounded-xl bg-card animate-pulse" />
+                <div className="h-32 rounded-xl bg-card animate-pulse" />
+            </aside>
+        );
+    }
 
     return (
-        <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-                <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-base flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, #7b2fff, #4cc9f0)" }}
-                >
-                    🧢
-                </div>
-                <div className="min-w-0">
-                    <div className="font-display font-bold text-sm truncate">{user?.username}</div>
-                    <div className="text-xs" style={{ color: "#8899bb" }}>
-                        Nv. {trainer?.level ?? 1}
+        <aside className="w-56 shrink-0 flex flex-col gap-3 py-4 px-3 overflow-y-auto">
+            {/* ── Trainer card ─────────────────────────────────────────────────── */}
+            <div
+                onClick={goProfile}
+                className="bg-card border border-border rounded-xl px-4 py-3 flex flex-col gap-1 cursor-pointer hover:border-blue/40 hover:bg-bg3 transition-all"
+            >
+                <div className="flex items-center gap-2">
+                    <span className="text-2xl">{AVATAR_EMOJI[trainer?.avatar] ?? "🧙"}</span>
+                    <div className="min-w-0">
+                        <p className="text-white font-semibold text-sm truncate">{trainer?.username ?? "—"}</p>
+                        <p className="text-muted text-xs">Nivel {trainer?.level ?? "—"}</p>
                     </div>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                    <span className="text-yellow text-xs font-medium">
+                        🪙 {trainer?.coins?.toLocaleString() ?? "—"}
+                    </span>
+                    {fragments > 0 && (
+                        <button
+                            onClick={goFragments}
+                            className="text-xs text-blue hover:text-white transition-colors"
+                            title="Abrir fragmentos"
+                        >
+                            ◈ ×{fragments}
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div>
-                <div className="bg-white/5 rounded-full h-1 overflow-hidden">
-                    <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${xpPct}%`, background: "linear-gradient(90deg, #4cc9f0, #7b2fff)" }}
-                    />
-                </div>
-                <div className="flex justify-between text-xs mt-0.5" style={{ color: "#8899bb" }}>
-                    <span>{trainer?.xp ?? 0} XP</span>
-                    <span>💰 {trainer?.coins ?? 0}</span>
-                </div>
-            </div>
+            {/* ── Divider ──────────────────────────────────────────────────────── */}
+            <p className="text-muted text-[10px] uppercase tracking-widest px-1 mt-1">Combate</p>
 
-            <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                    <span
-                        className="text-xs font-display font-bold tracking-widest uppercase"
-                        style={{ color: "#ffd60a" }}
-                    >
-                        ⚔️ NPC
-                    </span>
-                    <span className="font-display font-bold text-xs" style={{ color: "#ffd60a" }}>
-                        {tokens?.npcTokens ?? 0}/10
+            {/* ── NPC section ──────────────────────────────────────────────────── */}
+            <button
+                onClick={goNpc}
+                className={`
+    group w-full bg-card border rounded-xl px-4 py-3 text-left
+    transition-all duration-200
+    ${
+        npcTokens > 0
+            ? "border-border hover:border-yellow hover:bg-bg3 cursor-pointer"
+            : "border-border opacity-60 hover:border-yellow hover:bg-bg3 cursor-pointer"
+    }
+  `}
+            >
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-white text-xs font-semibold uppercase tracking-wide">vs NPC</span>
+                    <span className="text-muted text-xs">
+                        {npcTokens}/{MAX_NPC}
                     </span>
                 </div>
-                <TokenDots filled={tokens?.npcTokens ?? 0} max={10} color="#ffd60a" />
-                {tokens?.nextNpcRechargeMs > 0 && (
-                    <div className="text-xs" style={{ color: "#8899bb" }}>
-                        +1 en <Countdown initialMs={tokens.nextNpcRechargeMs} />
-                    </div>
+
+                {/* Token dots */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                    {Array.from({ length: MAX_NPC }).map((_, i) => (
+                        <TokenDot key={i} filled={i < npcTokens} />
+                    ))}
+                </div>
+
+                {/* Countdown */}
+                {npcTokens < MAX_NPC && (
+                    <p className="text-muted text-[11px]">
+                        Próxima ficha: <span className="text-blue">{formatCountdown(npcSecondsLeft)}</span>
+                    </p>
                 )}
-            </div>
 
-            <div className="border-t border-border/50" />
+                {npcTokens > 0 && (
+                    <p className="text-yellow text-[11px] mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        ▶ Iniciar combate NPC
+                    </p>
+                )}
+            </button>
 
-            <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                    <span
-                        className="text-xs font-display font-bold tracking-widest uppercase"
-                        style={{ color: "#e63946" }}
-                    >
-                        🔴 PvP
-                    </span>
-                    <span className="font-display font-bold text-xs" style={{ color: "#e63946" }}>
-                        {tokens?.pvpTokens ?? 0}/5
+            {/* ── Visual separator ─────────────────────────────────────────────── */}
+            <div className="border-t border-border mx-1" />
+
+            {/* ── PvP section ──────────────────────────────────────────────────── */}
+            <button
+                onClick={goPvp}
+                className={`
+    group w-full bg-card border rounded-xl px-4 py-3 text-left
+    transition-all duration-200
+    ${
+        pvpTokens > 0
+            ? "border-border hover:border-red hover:bg-bg3 cursor-pointer"
+            : "border-border opacity-60 hover:border-red hover:bg-bg3 cursor-pointer"
+    }
+  `}
+            >
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-white text-xs font-semibold uppercase tracking-wide">PvP</span>
+                    <span className="text-muted text-xs">
+                        {pvpTokens}/{MAX_PVP}
                     </span>
                 </div>
-                <TokenDots filled={tokens?.pvpTokens ?? 0} max={5} color="#e63946" />
-                {tokens?.nextPvpRechargeMs > 0 && (
-                    <div className="text-xs" style={{ color: "#8899bb" }}>
-                        +1 en <Countdown initialMs={tokens.nextPvpRechargeMs} />
-                    </div>
-                )}
-            </div>
-            <div className="border-t border-border/50" />
 
-            <div className="flex items-center justify-between">
-                <span className="text-xs font-display font-bold tracking-widest uppercase" style={{ color: "#4cc9f0" }}>
-                    ◈ Fragmentos
-                </span>
-                <span
-                    className="font-display font-bold text-xs cursor-pointer hover:text-white transition-colors"
-                    style={{ color: "#4cc9f0" }}
-                    onClick={() => fragments > 0 && navigate("/fragmento")}
-                >
-                    {fragments}
-                </span>
-            </div>
-        </div>
+                {/* Token dots */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                    {Array.from({ length: MAX_PVP }).map((_, i) => (
+                        <TokenDot key={i} filled={i < pvpTokens} />
+                    ))}
+                </div>
+
+                {/* Countdown */}
+                {pvpTokens < MAX_PVP && (
+                    <p className="text-muted text-[11px]">
+                        Próxima ficha: <span className="text-blue">{formatCountdown(pvpSecondsLeft)}</span>
+                    </p>
+                )}
+
+                {pvpTokens > 0 && (
+                    <p className="text-red text-[11px] mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        ⚔ Buscar rival
+                    </p>
+                )}
+            </button>
+        </aside>
     );
 }

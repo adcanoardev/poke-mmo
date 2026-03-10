@@ -23,21 +23,19 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen bg-bg flex items-center justify-center relative overflow-hidden">
-            {/* Fondo */}
+            {/* Fondo — mapa mundial */}
             <div className="absolute inset-0 pointer-events-none">
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        background:
-                            "radial-gradient(ellipse 80% 60% at 20% 50%, rgba(123,47,255,0.12) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 30%, rgba(76,201,240,0.08) 0%, transparent 60%)",
-                    }}
+                <img
+                    src="https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/maps/mythara_map.avif"
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ opacity: 0.35 }}
                 />
                 <div
                     className="absolute inset-0"
                     style={{
-                        backgroundImage:
-                            "linear-gradient(rgba(76,201,240,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(76,201,240,0.03) 1px, transparent 1px)",
-                        backgroundSize: "40px 40px",
+                        background:
+                            "radial-gradient(ellipse 100% 100% at 50% 50%, rgba(7,11,20,0.3) 0%, rgba(7,11,20,0.85) 100%)",
                     }}
                 />
             </div>
