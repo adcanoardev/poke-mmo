@@ -1,6 +1,6 @@
 // apps/client/src/context/TrainerContext.tsx
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { api } from "../lib/api";
+import { api, getToken } from "../lib/api";
 
 interface TrainerContextValue {
     trainer: any;
@@ -22,6 +22,7 @@ export function TrainerProvider({ children }: { children: React.ReactNode }) {
     const [fragments, setFragments] = useState<number>(0);
 
     const load = useCallback(async () => {
+        if (!getToken()) return; // ← sin token, no hay fetch
         try {
             const [t, tk, inv] = await Promise.all([api.trainer(), api.tokens(), api.inventory()]);
             setTrainer(t);

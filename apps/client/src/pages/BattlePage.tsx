@@ -9,14 +9,26 @@ import { useTrainer } from "../context/TrainerContext";
 // ─────────────────────────────────────────
 
 type Affinity = "EMBER" | "TIDE" | "GROVE" | "VOLT" | "STONE" | "FROST" | "VENOM" | "ASTRAL" | "IRON" | "SHADE";
+type StatusEffect = "burn" | "poison" | "freeze" | "fear" | "paralyze" | null;
+type MoveType = "physical" | "special" | "support";
+
+interface Buff {
+    stat: "atk" | "def" | "spd";
+    multiplier: number;
+    turnsLeft: number;
+    emoji: string;
+}
 
 interface Move {
     id: string;
     name: string;
     affinity: Affinity;
+    type: MoveType;
     power: number;
     accuracy: number;
+    cooldown: number;
     description: string;
+    effect: any;
 }
 
 interface BattleMyth {
@@ -32,7 +44,10 @@ interface BattleMyth {
     affinities: Affinity[];
     moves: Move[];
     art: { portrait: string; front: string; back: string };
-    status: null | "poisoned" | "burned" | "stunned";
+    status: StatusEffect;
+    statusTurnsLeft: number;
+    cooldownsLeft: Record<string, number>;
+    buffs: Buff[];
     defeated: boolean;
 }
 
@@ -41,6 +56,8 @@ interface BattleSession {
     playerTeam: BattleMyth[];
     enemyTeam: BattleMyth[];
     turn: number;
+    turnQueue: string[];
+    currentQueueIndex: number;
     status: "ongoing" | "win" | "lose";
 }
 
@@ -48,6 +65,11 @@ interface BattleSession {
 function cloneSession(s: any): BattleSession {
     return JSON.parse(JSON.stringify(s));
 }
+
+// Iconos de estado
+const STATUS_ICONS: Record<string, string> = {
+    burn: "🔥", poison: "☠️", freeze: "❄️", fear: "😨", paralyze: "⚡"
+};
 
 // ─────────────────────────────────────────
 // Affinity config — colores, emojis y efectos de proyectil
@@ -204,25 +226,26 @@ interface MythSlotProps {
     myth: BattleMyth;
     selected?: boolean;
     targeted?: boolean;
+    isActing?: boolean;
     flashAffinity?: Affinity | null;
-    floatingDmg?: { value: number; crit: boolean; mult: number } | null;
+    floatingDmg?: { value: number; crit: boolean; mult: number; heal?: boolean } | null;
     onClick?: () => void;
 }
 
-function MythSlot({ myth, selected, targeted, flashAffinity, floatingDmg, onClick }: MythSlotProps) {
+function MythSlot({ myth, selected, targeted, isActing, flashAffinity, floatingDmg, onClick }: MythSlotProps) {
     const cfg = flashAffinity ? AFFINITY_CONFIG[flashAffinity] : null;
     const canClick = onClick && !myth.defeated;
 
     return (
         <div className="relative flex flex-col items-center gap-1 w-24">
-            {/* Daño flotante */}
+            {/* Daño / curación flotante */}
             {floatingDmg && (
                 <div
                     className={`absolute -top-8 left-1/2 z-30 font-black text-sm pointer-events-none animate-float-dmg
-                    ${floatingDmg.crit ? "text-yellow-300 scale-125" : floatingDmg.mult >= 2 ? "text-orange-400" : floatingDmg.mult <= 0.5 ? "text-blue-300" : "text-white"}`}
+                    ${floatingDmg.heal ? "text-emerald-400" : floatingDmg.crit ? "text-yellow-300 scale-125" : floatingDmg.mult >= 2 ? "text-orange-400" : floatingDmg.mult <= 0.5 ? "text-blue-300" : "text-white"}`}
                 >
-                    {floatingDmg.value > 0 ? `-${floatingDmg.value}` : "¡Fallo!"}
-                    {floatingDmg.crit && <span className="text-xs ml-0.5">!</span>}
+                    {floatingDmg.heal ? `+${floatingDmg.value}` : floatingDmg.value > 0 ? `-${floatingDmg.value}` : "¡Fallo!"}
+                    {floatingDmg.crit && !floatingDmg.heal && <span className="text-xs ml-0.5">!</span>}
                 </div>
             )}
 
@@ -234,22 +257,26 @@ function MythSlot({ myth, selected, targeted, flashAffinity, floatingDmg, onClic
                     ${
                         myth.defeated
                             ? "border-slate-700 bg-slate-900/60 grayscale opacity-30 cursor-not-allowed"
-                            : selected
-                              ? "border-blue-400 bg-blue-500/10 shadow-lg cursor-pointer scale-110"
-                              : targeted
-                                ? "border-red-400 bg-red-500/10 shadow-lg cursor-pointer scale-110"
-                                : canClick
-                                  ? "border-slate-600 bg-slate-800/60 hover:border-slate-400 hover:scale-105 cursor-pointer"
-                                  : "border-slate-700 bg-slate-800/40"
+                            : isActing
+                              ? "border-yellow-400 bg-yellow-500/10 shadow-lg scale-110"
+                              : selected
+                                ? "border-blue-400 bg-blue-500/10 shadow-lg cursor-pointer scale-110"
+                                : targeted
+                                  ? "border-red-400 bg-red-500/10 shadow-lg cursor-pointer scale-110"
+                                  : canClick
+                                    ? "border-slate-600 bg-slate-800/60 hover:border-slate-400 hover:scale-105 cursor-pointer"
+                                    : "border-slate-700 bg-slate-800/40"
                     }`}
                 style={{
-                    boxShadow: selected
-                        ? "0 0 16px rgba(96,165,250,0.5)"
-                        : targeted
-                          ? "0 0 16px rgba(248,113,113,0.5), 0 0 4px rgba(248,113,113,0.8)"
-                          : cfg
-                            ? `0 0 20px ${cfg.glow}`
-                            : undefined,
+                    boxShadow: isActing
+                        ? "0 0 20px rgba(250,204,21,0.6)"
+                        : selected
+                          ? "0 0 16px rgba(96,165,250,0.5)"
+                          : targeted
+                            ? "0 0 16px rgba(248,113,113,0.5), 0 0 4px rgba(248,113,113,0.8)"
+                            : cfg
+                              ? `0 0 20px ${cfg.glow}`
+                              : undefined,
                 }}
             >
                 {/* Flash de impacto */}
@@ -260,12 +287,22 @@ function MythSlot({ myth, selected, targeted, flashAffinity, floatingDmg, onClic
                     />
                 )}
 
-                {/* Pulso de selección */}
+                {/* Pulso actor activo */}
+                {isActing && !myth.defeated && (
+                    <div className="absolute inset-0 rounded-xl border-2 border-yellow-400/60 animate-pulse pointer-events-none" />
+                )}
                 {selected && !myth.defeated && (
                     <div className="absolute inset-0 rounded-xl border-2 border-blue-400/50 animate-pulse pointer-events-none" />
                 )}
                 {targeted && !myth.defeated && (
                     <div className="absolute inset-0 rounded-xl border-2 border-red-400/60 animate-pulse pointer-events-none" />
+                )}
+
+                {/* Icono de estado en esquina superior derecha */}
+                {myth.status && !myth.defeated && (
+                    <span className="absolute top-0.5 right-0.5 text-xs z-20 drop-shadow">
+                        {STATUS_ICONS[myth.status] ?? "⚠️"}
+                    </span>
                 )}
 
                 {myth.defeated ? (
@@ -277,11 +314,11 @@ function MythSlot({ myth, selected, targeted, flashAffinity, floatingDmg, onClic
 
             <p
                 className={`text-xs font-bold truncate w-20 text-center font-mono
-                ${myth.defeated ? "text-slate-600" : selected ? "text-blue-300" : targeted ? "text-red-400" : "text-slate-200"}`}
+                ${myth.defeated ? "text-slate-600" : isActing ? "text-yellow-300" : selected ? "text-blue-300" : targeted ? "text-red-400" : "text-slate-200"}`}
             >
                 {myth.name}
             </p>
-            <p className="text-slate-500 text-xs font-mono">Nv.{myth.level}</p>
+            <p className="text-slate-500 text-xs font-mono">Nv.{myth.level} · {myth.speed}spd</p>
 
             {!myth.defeated && (
                 <div className="w-20">
@@ -290,6 +327,17 @@ function MythSlot({ myth, selected, targeted, flashAffinity, floatingDmg, onClic
                         {myth.hp}
                         <span className="text-slate-700">/{myth.maxHp}</span>
                     </p>
+                </div>
+            )}
+
+            {/* Buffs activos */}
+            {!myth.defeated && myth.buffs && myth.buffs.length > 0 && (
+                <div className="flex gap-0.5 flex-wrap justify-center">
+                    {myth.buffs.map((b, i) => (
+                        <span key={i} className="text-xs" title={`${b.stat.toUpperCase()} ×${b.multiplier} (${b.turnsLeft}t)`}>
+                            {b.emoji}
+                        </span>
+                    ))}
                 </div>
             )}
 
@@ -530,13 +578,19 @@ export default function BattlePage() {
     const [loadingStart, setLoadingStart] = useState(false);
     const [animating, setAnimating] = useState(false);
 
-    const [activePlayerMythId, setActivePlayerMythId] = useState<string | null>(null);
+    // Sistema de turnos por SPD
+    // currentActorId = instanceId del Myth que debe actuar AHORA
+    const [currentActorId, setCurrentActorId] = useState<string | null>(null);
+    // El jugador elige a qué enemigo atacar
     const [targetEnemyMythId, setTargetEnemyMythId] = useState<string | null>(null);
+    // Timer 15s
+    const [timer, setTimer] = useState<number>(15);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Animaciones
     const [projectile, setProjectile] = useState<ProjectileState | null>(null);
     const [flashMap, setFlashMap] = useState<Record<string, Affinity>>({});
-    const [floatMap, setFloatMap] = useState<Record<string, { value: number; crit: boolean; mult: number }>>({});
+    const [floatMap, setFloatMap] = useState<Record<string, { value: number; crit: boolean; mult: number; heal?: boolean }>>({});
 
     const [log, setLog] = useState<{ text: string; type: "normal" | "good" | "bad" | "crit" | "miss" | "system" }[]>(
         [],
@@ -552,9 +606,10 @@ export default function BattlePage() {
         api.battleNpcActive()
             .then((s: any) => {
                 if (s?.status === "ongoing") {
-                    setSession(cloneSession(s));
+                    const cloned = cloneSession(s);
+                    setSession(cloned);
                     setPhase("battle");
-                    autoSelect(s);
+                    initTurn(cloned);
                 }
             })
             .catch(() => {});
@@ -564,14 +619,57 @@ export default function BattlePage() {
         if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
     }, [log]);
 
-    function autoSelect(s: BattleSession) {
-        const fp = s.playerTeam.find((m) => !m.defeated);
-        const fe = s.enemyTeam.find((m) => !m.defeated);
-        if (fp) setActivePlayerMythId(fp.instanceId);
-        if (fe) setTargetEnemyMythId(fe.instanceId);
+    // Inicializar estado de turno al recibir sesión
+    function initTurn(s: BattleSession) {
+        // El actor actual es el primero de la cola
+        const actorId = s.turnQueue?.[s.currentQueueIndex ?? 0] ?? null;
+        setCurrentActorId(actorId);
+
+        // Si el actor es un Myth del jugador, seleccionar target por defecto
+        const isPlayerActor = s.playerTeam.some(m => m.instanceId === actorId);
+        if (isPlayerActor) {
+            const firstEnemy = s.enemyTeam.find(m => !m.defeated);
+            if (firstEnemy) setTargetEnemyMythId(firstEnemy.instanceId);
+        }
     }
 
-    type LogType = "normal" | "good" | "bad" | "crit" | "miss" | "system";
+    // Timer de 15s — solo activo cuando es turno del jugador
+    const currentActorIsPlayer = session?.playerTeam.some(m => m.instanceId === currentActorId) ?? false;
+
+    useEffect(() => {
+        if (phase !== "battle" || animating || !currentActorIsPlayer) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            return;
+        }
+        setTimer(15);
+        timerRef.current = setInterval(() => {
+            setTimer(t => {
+                if (t <= 1) {
+                    clearInterval(timerRef.current!);
+                    // Tiempo agotado: ataque básico al primer enemigo vivo
+                    handleTimerExpired();
+                    return 0;
+                }
+                return t - 1;
+            });
+        }, 1000);
+        return () => { if (timerRef.current) clearInterval(timerRef.current!); };
+    }, [currentActorId, phase, animating]);
+
+    function handleTimerExpired() {
+        if (!session) return;
+        const actor = session.playerTeam.find(m => m.instanceId === currentActorId);
+        if (!actor) return;
+        // Move básico: cooldown 0 o menor power
+        const basicMove = actor.moves
+            .filter(mv => mv.power > 0 && !(actor.cooldownsLeft?.[mv.id] > 0))
+            .sort((a, b) => a.cooldown - b.cooldown)[0] ?? actor.moves[0];
+        const firstEnemy = session.enemyTeam.find(m => !m.defeated);
+        if (!basicMove || !firstEnemy) return;
+        handleMove(basicMove.id, firstEnemy.instanceId);
+    }
+
+    type LogType = "normal" | "good" | "bad" | "crit" | "miss" | "system" | "status" | "heal";
     function addLog(text: string, type: LogType = "normal") {
         setLog((l) => [...l.slice(-50), { text, type }]);
     }
@@ -580,30 +678,23 @@ export default function BattlePage() {
         return new Promise<void>((r) => setTimeout(r, ms));
     }
 
-    async function flashAndFloat(instanceId: string, affinity: Affinity, dmg: number, crit: boolean, mult: number) {
+    async function flashAndFloat(instanceId: string, affinity: Affinity, dmg: number, crit: boolean, mult: number, heal = false) {
         setFlashMap((m) => ({ ...m, [instanceId]: affinity }));
-        setFloatMap((m) => ({ ...m, [instanceId]: { value: dmg, crit, mult } }));
+        setFloatMap((m) => ({ ...m, [instanceId]: { value: dmg, crit, mult, heal } }));
         await sleep(600);
-        setFlashMap((m) => {
-            const n = { ...m };
-            delete n[instanceId];
-            return n;
-        });
+        setFlashMap((m) => { const n = { ...m }; delete n[instanceId]; return n; });
         await sleep(400);
-        setFloatMap((m) => {
-            const n = { ...m };
-            delete n[instanceId];
-            return n;
-        });
+        setFloatMap((m) => { const n = { ...m }; delete n[instanceId]; return n; });
     }
 
     async function handleStart(order: string[]) {
         setLoadingStart(true);
         try {
             const s = await api.battleNpcStart(order);
-            setSession(cloneSession(s));
+            const cloned = cloneSession(s);
+            setSession(cloned);
             setPhase("battle");
-            autoSelect(s);
+            initTurn(cloned);
             addLog("⚔️ ¡Comienza el combate!", "system");
             await reload();
         } catch (e: any) {
@@ -613,96 +704,84 @@ export default function BattlePage() {
         }
     }
 
-    async function handleMove(moveId: string) {
-        if (!session || !activePlayerMythId || animating) return;
+    async function handleMove(moveId: string, forcedTargetId?: string) {
+        if (!session || animating) return;
+        // Parar timer
+        if (timerRef.current) clearInterval(timerRef.current);
 
-        const playerMyth = session.playerTeam.find((m) => m.instanceId === activePlayerMythId);
-        const targetMyth = session.enemyTeam.find((m) => m.instanceId === targetEnemyMythId);
-        if (!playerMyth || !targetMyth) return;
-        const move = playerMyth.moves.find((mv) => mv.id === moveId);
-        if (!move) return;
+        const resolvedTarget = forcedTargetId ?? targetEnemyMythId ?? undefined;
 
         setAnimating(true);
         try {
-            const res = await api.battleNpcTurn(
-                session.battleId,
-                activePlayerMythId,
-                moveId,
-                targetEnemyMythId ?? undefined,
-            );
-            const { session: rawSession, playerAction, npcAction, xpGained, coinsGained } = res;
+            const res = await api.battleNpcTurn(session.battleId, moveId, resolvedTarget);
+            const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
             const newSession: BattleSession = cloneSession(rawSession);
 
-            // ── 1. Log acción del jugador ──
-            addLog(`${playerAction.myth} → ${playerAction.move} → ${playerAction.target}`, "normal");
+            // ── Animación del turno ──
+            const direction = action.isPlayerMyth ? "ltr" : "rtl";
 
-            // ── 2. Proyectil player → enemy ──
-            setProjectile({ affinity: playerAction.moveAffinity as Affinity, direction: "ltr" });
-            await sleep(480);
-            setProjectile(null);
-            await sleep(80);
+            // Bloqueado por estado
+            if (action.blockedByStatus) {
+                addLog(action.blockedByStatus, "status");
+            } else {
+                // Log de acción
+                const logPrefix = action.isPlayerMyth ? "" : "👾 ";
+                addLog(`${logPrefix}${action.actorName} usa ${action.move} → ${action.targetName}`, "normal");
 
-            // ── 3. Flash + daño en el enemigo objetivo ──
-            const eTarget = newSession.enemyTeam.find((m: BattleMyth) => m.name === playerAction.target);
-            if (eTarget) {
-                await flashAndFloat(
-                    eTarget.instanceId,
-                    playerAction.moveAffinity as Affinity,
-                    playerAction.damage,
-                    playerAction.crit,
-                    playerAction.mult,
-                );
-            }
+                // Proyectil
+                setProjectile({ affinity: action.moveAffinity as Affinity, direction });
+                await sleep(480);
+                setProjectile(null);
+                await sleep(80);
 
-            if (playerAction.mult >= 2) addLog(`¡Súper eficaz! ×${playerAction.mult}`, "good");
-            else if (playerAction.mult < 1) addLog(`Poco eficaz... ×${playerAction.mult}`, "bad");
-            if (playerAction.crit) addLog("💥 ¡Golpe crítico!", "crit");
-            if (playerAction.damage === 0) addLog("El ataque falló", "miss");
-
-            // ── 4. Actualizar HP parcial del enemigo impactado ──
-            setSession((prev) => {
-                if (!prev) return prev;
-                const next = cloneSession(prev);
-                const updated = newSession.enemyTeam.find((m: BattleMyth) => m.instanceId === eTarget?.instanceId);
-                if (updated) {
-                    const t = next.enemyTeam.find((m: BattleMyth) => m.instanceId === updated.instanceId);
-                    if (t) {
-                        t.hp = updated.hp;
-                        t.defeated = updated.defeated;
-                    }
+                // Flash + daño en el objetivo
+                if (action.targetInstanceId && action.damage > 0) {
+                    await flashAndFloat(
+                        action.targetInstanceId,
+                        action.moveAffinity as Affinity,
+                        action.damage,
+                        action.crit,
+                        action.mult,
+                    );
+                } else if (action.missed) {
+                    addLog("¡Falló!", "miss");
                 }
-                return next;
-            });
-            await sleep(200);
 
-            // ── 5. NPC contraataca ──
-            addLog(`${npcAction.myth} → ${npcAction.move} → ${npcAction.target}`, "normal");
-            setProjectile({ affinity: npcAction.moveAffinity as Affinity, direction: "rtl" });
-            await sleep(480);
-            setProjectile(null);
-            await sleep(80);
+                // Logs de combate
+                if (action.mult >= 2) addLog(`⚡ ¡Súper eficaz! ×${action.mult}`, "good");
+                else if (action.mult > 0 && action.mult < 1) addLog(`💤 Poco eficaz ×${action.mult}`, "bad");
+                if (action.crit) addLog("💥 ¡Golpe crítico!", "crit");
 
-            const pTarget = newSession.playerTeam.find((m: BattleMyth) => m.name === npcAction.target);
-            if (pTarget) {
-                await flashAndFloat(
-                    pTarget.instanceId,
-                    npcAction.moveAffinity as Affinity,
-                    npcAction.damage,
-                    npcAction.crit,
-                    npcAction.mult,
-                );
+                // Estado aplicado
+                if (action.statusApplied) {
+                    const icon = STATUS_ICONS[action.statusApplied] ?? "⚠️";
+                    addLog(`${icon} ¡${action.targetName} ha sido afectado por ${action.statusApplied}!`, "status");
+                }
+
+                // Buff aplicado
+                if (action.buffApplied) {
+                    addLog(`${action.buffApplied.emoji} ¡${action.actorName} subió su ${action.buffApplied.stat.toUpperCase()}!`, "good");
+                }
+
+                // Drain / heal
+                if (action.healAmount && action.healAmount > 0) {
+                    await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.healAmount, false, 1, true);
+                    addLog(`💚 ${action.actorName} recupera ${action.healAmount} HP`, "heal");
+                }
             }
 
-            if (npcAction.mult >= 2) addLog(`¡Rival súper eficaz! ×${npcAction.mult}`, "bad");
-            else if (npcAction.mult < 1) addLog(`Rival poco eficaz ×${npcAction.mult}`, "good");
-            if (npcAction.crit) addLog("💥 ¡Crítico del rival!", "crit");
-            if (npcAction.damage === 0) addLog("El rival falló", "miss");
+            // Tick de estado al final del turno
+            if (action.statusTickDamage && action.statusTickDamage > 0) {
+                await sleep(300);
+                await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.statusTickDamage, false, 1);
+                addLog(action.statusTickMsg ?? `${action.actorName} sufre daño por estado`, "status");
+            }
 
-            // ── 6. Aplicar sesión completa (actualiza TODOS los HP) ──
+            // Aplicar sesión completa
             setSession(newSession);
             await sleep(150);
 
-            // ── 7. Fin de combate ──
+            // Fin de combate
             if (newSession.status === "win" || newSession.status === "lose") {
                 addLog(
                     newSession.status === "win" ? "🏆 ¡Victoria!" : "💀 Derrota...",
@@ -711,17 +790,117 @@ export default function BattlePage() {
                 setResult({ status: newSession.status, xp: xpGained, coins: coinsGained });
                 setPhase("result");
                 window.dispatchEvent(new Event("sidebar:reload"));
-            } else {
-                // Auto-reselect primer vivo
-                const np = newSession.playerTeam.find((m: BattleMyth) => !m.defeated);
-                const ne = newSession.enemyTeam.find((m: BattleMyth) => !m.defeated);
-                if (np) setActivePlayerMythId(np.instanceId);
-                if (ne) setTargetEnemyMythId(ne.instanceId);
+                return;
             }
+
+            // Siguiente turno
+            setCurrentActorId(nextActorId);
+            if (nextActorIsPlayer) {
+                // Mantener target si sigue vivo, si no, primer enemigo vivo
+                const targetStillAlive = newSession.enemyTeam.find(
+                    m => m.instanceId === targetEnemyMythId && !m.defeated
+                );
+                if (!targetStillAlive) {
+                    const firstEnemy = newSession.enemyTeam.find(m => !m.defeated);
+                    setTargetEnemyMythId(firstEnemy?.instanceId ?? null);
+                }
+            }
+
+            // Si el siguiente es NPC, ejecutar automáticamente tras breve pausa
+            if (!nextActorIsPlayer && nextActorId) {
+                await sleep(600);
+                // El NPC elige su move automáticamente en el backend (moveId ignorado)
+                await handleNpcTurn(newSession, nextActorId);
+            }
+
         } catch (e: any) {
             addLog(`Error: ${e.message}`, "bad");
         } finally {
             setAnimating(false);
+        }
+    }
+
+    // Turno automático del NPC (encadenado si el siguiente también es NPC)
+    async function handleNpcTurn(currentSession: BattleSession, npcActorId: string) {
+        try {
+            // moveId vacío: el backend lo ignora para NPC y elige con IA
+            const res = await api.battleNpcTurn(currentSession.battleId, "__npc__", undefined);
+            const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
+            const newSession: BattleSession = cloneSession(rawSession);
+
+            if (action.blockedByStatus) {
+                addLog(action.blockedByStatus, "status");
+            } else {
+                addLog(`👾 ${action.actorName} usa ${action.move} → ${action.targetName}`, "normal");
+                setProjectile({ affinity: action.moveAffinity as Affinity, direction: "rtl" });
+                await sleep(480);
+                setProjectile(null);
+                await sleep(80);
+
+                if (action.targetInstanceId && action.damage > 0) {
+                    await flashAndFloat(
+                        action.targetInstanceId,
+                        action.moveAffinity as Affinity,
+                        action.damage,
+                        action.crit,
+                        action.mult,
+                    );
+                } else if (action.missed) {
+                    addLog("¡El rival falló!", "miss");
+                }
+
+                if (action.mult >= 2) addLog(`⚡ ¡Rival súper eficaz! ×${action.mult}`, "bad");
+                else if (action.mult > 0 && action.mult < 1) addLog(`💤 Rival poco eficaz ×${action.mult}`, "good");
+                if (action.crit) addLog("💥 ¡Crítico del rival!", "crit");
+
+                if (action.statusApplied) {
+                    const icon = STATUS_ICONS[action.statusApplied] ?? "⚠️";
+                    addLog(`${icon} ¡${action.targetName} ha sido afectado por ${action.statusApplied}!`, "status");
+                }
+                if (action.buffApplied) {
+                    addLog(`${action.buffApplied.emoji} ${action.actorName} subió su ${action.buffApplied.stat.toUpperCase()}`, "bad");
+                }
+                if (action.healAmount && action.healAmount > 0) {
+                    await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.healAmount, false, 1, true);
+                    addLog(`💚 ${action.actorName} recupera ${action.healAmount} HP`, "status");
+                }
+            }
+
+            if (action.statusTickDamage && action.statusTickDamage > 0) {
+                await sleep(300);
+                await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.statusTickDamage, false, 1);
+                addLog(action.statusTickMsg ?? "", "status");
+            }
+
+            setSession(newSession);
+            await sleep(150);
+
+            if (newSession.status === "win" || newSession.status === "lose") {
+                addLog(newSession.status === "win" ? "🏆 ¡Victoria!" : "💀 Derrota...",
+                    newSession.status === "win" ? "good" : "bad");
+                setResult({ status: newSession.status, xp: xpGained, coins: coinsGained });
+                setPhase("result");
+                window.dispatchEvent(new Event("sidebar:reload"));
+                return;
+            }
+
+            setCurrentActorId(nextActorId);
+            if (nextActorIsPlayer) {
+                const firstEnemy = newSession.enemyTeam.find(m => !m.defeated);
+                setTargetEnemyMythId(prev => {
+                    const stillAlive = newSession.enemyTeam.find(m => m.instanceId === prev && !m.defeated);
+                    return stillAlive ? prev : (firstEnemy?.instanceId ?? null);
+                });
+            }
+
+            // Si el siguiente también es NPC, encadenar
+            if (!nextActorIsPlayer && nextActorId) {
+                await sleep(600);
+                await handleNpcTurn(newSession, nextActorId);
+            }
+
+        } catch (e: any) {
+            addLog(`Error NPC: ${e.message}`, "bad");
         }
     }
 
@@ -770,9 +949,10 @@ export default function BattlePage() {
         }
     }
 
-    const activePlayerMyth = session?.playerTeam.find((m) => m.instanceId === activePlayerMythId);
+    // Variables derivadas para el render
+    const currentActor = session ? [...session.playerTeam, ...session.enemyTeam].find(m => m.instanceId === currentActorId) ?? null : null;
     const targetEnemy = session?.enemyTeam.find((m) => m.instanceId === targetEnemyMythId);
-    const canCapture = targetEnemy && !targetEnemy.defeated && targetEnemy.hp / targetEnemy.maxHp < 0.25;
+    const canCapture = targetEnemy && !targetEnemy.defeated && targetEnemy.hp / targetEnemy.maxHp < 0.25 && currentActorIsPlayer;
 
     // ── PvP ──
     if (mode === "pvp") {
@@ -915,14 +1095,29 @@ export default function BattlePage() {
                 <div className="flex-1 flex overflow-hidden">
                     {/* ── Arena + controles ── */}
                     <div className="flex-1 flex flex-col p-4 gap-3 overflow-auto min-w-0">
+                        {/* Header turno + timer */}
                         <div className="flex items-center justify-between flex-shrink-0">
                             <span className="font-mono text-xs text-slate-500 tracking-widest">
                                 Turno {session?.turn ?? 0}
                             </span>
                             {animating && (
                                 <span className="font-mono text-xs text-yellow-400 animate-pulse tracking-widest">
-                                    ⚡ Resolviendo turno...
+                                    ⚡ Resolviendo...
                                 </span>
+                            )}
+                            {/* Timer 15s — solo cuando es turno del jugador */}
+                            {currentActorIsPlayer && !animating && (
+                                <div className={`flex items-center gap-1.5 font-mono text-xs font-black tabular-nums
+                                    ${timer <= 5 ? "text-red-400 animate-pulse" : timer <= 10 ? "text-yellow-400" : "text-slate-400"}`}>
+                                    ⏱ {timer}s
+                                    <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-1000 ease-linear
+                                                ${timer <= 5 ? "bg-red-500" : timer <= 10 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                            style={{ width: `${(timer / 15) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
                             )}
                         </div>
 
@@ -937,11 +1132,13 @@ export default function BattlePage() {
                                     <MythSlot
                                         key={myth.instanceId}
                                         myth={myth}
-                                        targeted={myth.instanceId === targetEnemyMythId}
+                                        isActing={myth.instanceId === currentActorId}
+                                        targeted={myth.instanceId === targetEnemyMythId && currentActorIsPlayer}
                                         flashAffinity={flashMap[myth.instanceId]}
                                         floatingDmg={floatMap[myth.instanceId]}
                                         onClick={() => {
-                                            if (!myth.defeated && !animating) setTargetEnemyMythId(myth.instanceId);
+                                            if (!myth.defeated && !animating && currentActorIsPlayer)
+                                                setTargetEnemyMythId(myth.instanceId);
                                         }}
                                     />
                                 ))}
@@ -966,35 +1163,42 @@ export default function BattlePage() {
                                     <MythSlot
                                         key={myth.instanceId}
                                         myth={myth}
-                                        selected={myth.instanceId === activePlayerMythId}
+                                        isActing={myth.instanceId === currentActorId}
                                         flashAffinity={flashMap[myth.instanceId]}
                                         floatingDmg={floatMap[myth.instanceId]}
-                                        onClick={() => {
-                                            if (!myth.defeated && !animating) setActivePlayerMythId(myth.instanceId);
-                                        }}
                                     />
                                 ))}
                             </div>
                         </div>
 
-                        {/* Indicador selección */}
+                        {/* Indicador turno actual */}
                         <div className="flex-shrink-0 flex items-center justify-center gap-4 text-xs font-mono">
-                            <span className={activePlayerMyth ? "text-blue-400" : "text-slate-600"}>
-                                {activePlayerMyth ? `🔵 ${activePlayerMyth.name}` : "🔵 Elige tu Myth"}
-                            </span>
-                            <span className="text-slate-700">→ ataca →</span>
-                            <span className={targetEnemy ? "text-red-400" : "text-slate-600"}>
-                                {targetEnemy ? `🔴 ${targetEnemy.name}` : "🔴 Elige objetivo"}
-                            </span>
+                            {currentActorIsPlayer ? (
+                                <>
+                                    <span className="text-yellow-300 animate-pulse">
+                                        ⚔️ Turno de {session?.playerTeam.find(m => m.instanceId === currentActorId)?.name ?? "..."}
+                                    </span>
+                                    <span className="text-slate-700">→ ataca →</span>
+                                    <span className={targetEnemy ? "text-red-400" : "text-slate-600"}>
+                                        {targetEnemy ? `🎯 ${targetEnemy.name}` : "Elige objetivo"}
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="text-slate-500 animate-pulse">
+                                    👾 Turno de {session ? [...session.playerTeam, ...session.enemyTeam].find(m => m.instanceId === currentActorId)?.name ?? "..." : "..."}
+                                </span>
+                            )}
                         </div>
 
-                        {/* Moves */}
+                        {/* Moves — solo si es turno de un Myth del jugador */}
                         <div className="flex-shrink-0">
-                            {activePlayerMyth && !activePlayerMyth.defeated ? (
+                            {currentActorIsPlayer && currentActor && !currentActor.defeated ? (
                                 <div className="grid grid-cols-2 gap-2">
-                                    {activePlayerMyth.moves.map((move) => {
+                                    {currentActor.moves.map((move) => {
                                         const cfg = AFFINITY_CONFIG[move.affinity];
-                                        const ok = !animating && !!targetEnemy && !targetEnemy.defeated;
+                                        const onCooldown = !!(currentActor.cooldownsLeft?.[move.id] > 0);
+                                        const cdLeft = currentActor.cooldownsLeft?.[move.id] ?? 0;
+                                        const ok = !animating && !!targetEnemy && !targetEnemy.defeated && !onCooldown;
                                         return (
                                             <button
                                                 key={move.id}
@@ -1009,12 +1213,15 @@ export default function BattlePage() {
                                                     }`}
                                             >
                                                 <span className="text-xl">{cfg.emoji}</span>
-                                                <div className="min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <p className="font-mono text-xs font-bold truncate">{move.name}</p>
                                                     <p className="text-xs opacity-60 font-mono">
-                                                        {move.power > 0 ? `${move.power} pow` : "estado"} ·{" "}
-                                                        {move.accuracy}%
+                                                        {move.power > 0 ? `${move.power}pw` : "estado"} · {move.accuracy}%
+                                                        {move.cooldown > 0 && ` · CD${move.cooldown}`}
                                                     </p>
+                                                    {onCooldown && (
+                                                        <p className="text-xs text-red-400 font-mono font-black">⏳ {cdLeft}t</p>
+                                                    )}
                                                 </div>
                                             </button>
                                         );
@@ -1023,9 +1230,7 @@ export default function BattlePage() {
                             ) : (
                                 <div className="h-20 flex items-center justify-center">
                                     <p className="text-slate-600 text-sm font-mono">
-                                        {session?.playerTeam.every((m) => m.defeated)
-                                            ? "Todos tus Myths han caído..."
-                                            : "← Selecciona un Myth activo"}
+                                        {animating ? "⚡ Resolviendo..." : "👾 Turno del rival..."}
                                     </p>
                                 </div>
                             )}
@@ -1090,7 +1295,11 @@ export default function BattlePage() {
                                                           ? "#64748b"
                                                           : entry.type === "system"
                                                             ? "#818cf8"
-                                                            : "#94a3b8",
+                                                            : entry.type === "status"
+                                                              ? "#fb923c"
+                                                              : entry.type === "heal"
+                                                                ? "#34d399"
+                                                                : "#94a3b8",
                                         }}
                                     >
                                         {entry.text}

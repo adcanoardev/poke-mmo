@@ -1,6 +1,6 @@
 const BASE = "/api";
 
-function getToken(): string | null {
+export function getToken(): string | null {
     return localStorage.getItem("token");
 }
 export function saveToken(token: string) {
@@ -48,10 +48,10 @@ export const api = {
     // Battle 3v3
     battleNpcStart: (order: string[]) =>
         request<any>("/battle/npc/start", { method: "POST", body: JSON.stringify({ order }) }),
-    battleNpcTurn: (battleId: string, actingMythId: string, moveId: string, targetMythId?: string) =>
+    battleNpcTurn: (battleId: string, moveId: string, targetMythId?: string) =>
         request<any>("/battle/npc/turn", {
             method: "POST",
-            body: JSON.stringify({ battleId, actingMythId, moveId, ...(targetMythId ? { targetMythId } : {}) }),
+            body: JSON.stringify({ battleId, moveId, ...(targetMythId ? { targetMythId } : {}) }),
         }),
     battleNpcFlee: (battleId: string) =>
         request<any>("/battle/npc/flee", { method: "POST", body: JSON.stringify({ battleId }) }),
