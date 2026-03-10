@@ -1,509 +1,570 @@
-// ─────────────────────────────────────────────────────────────
-// apps/server/src/services/battleService.ts
-// ─────────────────────────────────────────────────────────────
 import { prisma } from "./prisma.js";
-import { useNpcToken } from "./tokenService.js";
+import { createBattleSession, getSession, getUserSession, deleteSession } from "./battleStore.js";
+import { getCreature } from "./creatureService.js";
 import { addXp } from "./trainerService.js";
-import { hasItem, removeItem } from "./inventoryService.js";
-import { getCreature, getAllCreatures } from "./creatureService.js";
-import type { Move } from "./creatureService.js";
-import type { ItemType } from "@prisma/client";
-import { checkLevelEvolution } from "./evolutionService.js";
-import { createBattleSession, getSession, getUserSession, deleteSession, type BattleCombatant } from "./battleStore.js";
 
-// ── Tabla de ventajas de afinidad ────────────────────────────
-// 2.0 = súper efectivo, 0.5 = poco efectivo, 1.0 = normal
-export const AFFINITY_CHART: Record<string, Record<string, number>> = {
-    EMBER: { GROVE: 2.0, FROST: 2.0, STONE: 0.5, TIDE: 0.5, EMBER: 0.5 },
-    TIDE: { EMBER: 2.0, STONE: 2.0, GROVE: 0.5, VOLT: 0.5, TIDE: 0.5 },
-    GROVE: { TIDE: 2.0, STONE: 2.0, EMBER: 0.5, VENOM: 0.5, GROVE: 0.5 },
-    VOLT: { TIDE: 2.0, IRON: 2.0, GROVE: 0.5, STONE: 0.5, VOLT: 0.5 },
-    STONE: { EMBER: 2.0, FROST: 2.0, GROVE: 0.5, TIDE: 0.5, STONE: 0.5 },
-    FROST: { GROVE: 2.0, EMBER: 0.5, FROST: 0.5, TIDE: 0.5 },
-    VENOM: { GROVE: 2.0, FROST: 2.0, STONE: 0.5, VENOM: 0.5 },
-    ASTRAL: { SHADE: 2.0, VENOM: 2.0, ASTRAL: 0.5 },
-    SHADE: { ASTRAL: 2.0, GROVE: 2.0, SHADE: 0.5, EMBER: 0.5 },
-    IRON: { FROST: 2.0, STONE: 2.0, EMBER: 0.5, IRON: 0.5 },
+// ─────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────
+
+export type Affinity =
+    | "EMBER" | "TIDE" | "GROVE" | "VOLT" | "STONE"
+    | "FROST" | "VENOM" | "ASTRAL" | "IRON" | "SHADE";
+
+export interface Move {
+    id: string;
+    name: string;
+    affinity: Affinity;
+    power: number;
+    accuracy: number;
+    description: string;
+}
+
+export interface BattleMyth {
+    instanceId: string;
+    speciesId: string;
+    name: string;
+    level: number;
+    hp: number;
+    maxHp: number;
+    attack: number;
+    defense: number;
+    speed: number;
+    affinities: Affinity[];
+    moves: Move[];
+    art: { portrait: string; front: string; back: string };
+    status: null | "poisoned" | "burned" | "stunned";
+    defeated: boolean;
+}
+
+export interface BattleSession3v3 {
+    battleId: string;
+    userId: string;
+    playerTeam: BattleMyth[];
+    enemyTeam: BattleMyth[];
+    turn: number;
+    status: "ongoing" | "win" | "lose";
+    createdAt: number;
+    lastAccessedAt: number;
+}
+
+// ─────────────────────────────────────────
+// Session store 3v3 (independiente del battleStore legacy)
+// ─────────────────────────────────────────
+
+const TTL_MS = 1000 * 60 * 30;
+const sessions = new Map<string, BattleSession3v3>();
+
+function setSession(s: BattleSession3v3) {
+    sessions.set(s.battleId, s);
+}
+
+function getSession3v3(battleId: string): BattleSession3v3 | undefined {
+    const s = sessions.get(battleId);
+    if (!s) return undefined;
+    s.lastAccessedAt = Date.now();
+    return s;
+}
+
+function deleteSession3v3(battleId: string) {
+    sessions.delete(battleId);
+}
+
+function evict() {
+    const now = Date.now();
+    for (const [id, s] of sessions) {
+        if (now - s.lastAccessedAt > TTL_MS) sessions.delete(id);
+    }
+}
+
+function makeBattleId(): string {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    return Array.from({ length: 18 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+// ─────────────────────────────────────────
+// Affinity chart
+// ─────────────────────────────────────────
+
+export const AFFINITY_CHART: Record<Affinity, Partial<Record<Affinity, number>>> = {
+    EMBER: { GROVE: 2, FROST: 2, TIDE: 0.5, STONE: 0.5, EMBER: 0.5 },
+    TIDE: { EMBER: 2, STONE: 2, VOLT: 0.5, GROVE: 0.5, TIDE: 0.5 },
+    GROVE: { TIDE: 2, STONE: 2, EMBER: 0.5, VENOM: 0.5, GROVE: 0.5 },
+    VOLT: { TIDE: 2, IRON: 2, GROVE: 0.5, STONE: 0.5, VOLT: 0.5 },
+    STONE: { EMBER: 2, VOLT: 2, GROVE: 0.5, TIDE: 0.5, STONE: 0.5 },
+    FROST: { GROVE: 2, ASTRAL: 2, EMBER: 0.5, IRON: 0.5, FROST: 0.5 },
+    VENOM: { GROVE: 2, ASTRAL: 2, STONE: 0.5, IRON: 0.5, VENOM: 0.5 },
+    ASTRAL: { SHADE: 2, VENOM: 0.5, ASTRAL: 0.5 },
+    IRON: { FROST: 2, STONE: 2, EMBER: 0.5, IRON: 0.5 },
+    SHADE: { ASTRAL: 2, VENOM: 2, SHADE: 0.5 },
 };
 
-function getTypeMultiplier(moveAffinity: string, defenderAffinities: string[]): number {
-    const chart = AFFINITY_CHART[moveAffinity] ?? {};
-    let multiplier = 1.0;
-    for (const aff of defenderAffinities) {
-        multiplier *= chart[aff] ?? 1.0;
+export function getAffinityMultiplier(moveAffinity: Affinity, defenderAffinities: Affinity[]): number {
+    let mult = 1;
+    for (const a of defenderAffinities) {
+        mult *= AFFINITY_CHART[moveAffinity]?.[a] ?? 1;
     }
-    return multiplier;
+    return mult;
 }
 
-// ── Stats escalados por nivel — valores más generosos ────────
-function calcStat(base: number, level: number): number {
-    return Math.floor((2 * base * level) / 100) + Math.floor(level * 0.5) + 15;
-}
+// ─────────────────────────────────────────
+// Damage formula
+// ─────────────────────────────────────────
 
-function calcHp(base: number, level: number): number {
-    return Math.floor((2 * base * level) / 100) + level + 50;
-}
-
-// ── Fórmula de daño ───────────────────────────────────────────
-function calcDamageResult(
-    attackerLevel: number,
-    attackStat: number,
-    defenseStat: number,
+function calcDamage(
+    attacker: BattleMyth,
     move: Move,
-    attackerAffinities: string[],
-    defenderAffinities: string[],
-): { damage: number; critical: boolean; typeMultiplier: number } {
-    const hit = Math.random() < move.accuracy;
-    if (!hit) return { damage: 0, critical: false, typeMultiplier: 1 };
+    defender: BattleMyth
+): { damage: number; mult: number; crit: boolean; stab: boolean } {
+    const isCrit = Math.random() < 0.0625;
+    const isStab = attacker.affinities.includes(move.affinity);
+    const mult = getAffinityMultiplier(move.affinity, defender.affinities);
+    const stabMult = isStab ? 1.5 : 1;
+    const critMult = isCrit ? 1.5 : 1;
 
-    const stab = attackerAffinities.includes(move.affinity) ? 1.5 : 1;
-    const isCritical = Math.random() < 0.0625;
-    const critical = isCritical ? 1.5 : 1;
-    const typeMultiplier = getTypeMultiplier(move.affinity, defenderAffinities);
+    let dmg = Math.floor(
+        ((2 * attacker.level) / 5 + 2) *
+        move.power *
+        (attacker.attack / defender.defense / 50 + 2) *
+        stabMult *
+        mult *
+        critMult
+    );
+    if (Math.random() > move.accuracy / 100) dmg = 0;
+    return { damage: dmg, mult, crit: isCrit, stab: isStab };
+}
 
-    // Daño base reducido con divisor mayor para combates más largos
-    const base = Math.floor((((2 * attackerLevel) / 5 + 2) * move.power * (attackStat / defenseStat)) / 100 + 2);
+// ─────────────────────────────────────────
+// Build BattleMyth helpers
+// ─────────────────────────────────────────
+
+async function buildPlayerMyth(instanceId: string, userId: string): Promise<BattleMyth> {
+    const inst = await prisma.creatureInstance.findFirst({
+        where: { id: instanceId, userId },
+    });
+    if (!inst) throw new Error(`Myth ${instanceId} no pertenece al jugador`);
+
+    const species = getCreature(inst.speciesId);
+    if (!species) throw new Error(`Especie no encontrada: ${inst.speciesId}`);
 
     return {
-        damage: Math.max(1, Math.floor(base * stab * critical * typeMultiplier) + randInt(-1, 1)),
-        critical: isCritical,
-        typeMultiplier,
+        instanceId: inst.id,
+        speciesId: inst.speciesId,
+        name: species.name,
+        level: inst.level,
+        hp: inst.hp,
+        maxHp: inst.maxHp,
+        attack: inst.attack,
+        defense: inst.defense,
+        speed: inst.speed,
+        affinities: species.affinities as Affinity[],
+        moves: species.moves as Move[],
+        art: species.art,
+        status: null,
+        defeated: false,
     };
 }
 
-// ── Encounter pool — filtra por nivel de evolución ───────────
-function getEncounterPool(trainerLevel: number): string[] {
-    const all = getAllCreatures();
-
-    let rarityFilter: string[];
-    if (trainerLevel <= 10) rarityFilter = ["COMMON"];
-    else if (trainerLevel <= 25) rarityFilter = ["COMMON", "RARE"];
-    else if (trainerLevel <= 50) rarityFilter = ["COMMON", "RARE", "ELITE"];
-    else rarityFilter = ["COMMON", "RARE", "ELITE", "LEGENDARY", "MYTHIC"];
-
-    return all.filter((c) => rarityFilter.includes(c.rarity)).map((c) => c.id);
-}
-
-function getEncounterLevelRange(trainerLevel: number): { min: number; max: number } {
-    if (trainerLevel <= 10) return { min: 3, max: 10 };
-    if (trainerLevel <= 25) return { min: 8, max: 22 };
-    if (trainerLevel <= 50) return { min: 18, max: 40 };
-    if (trainerLevel <= 75) return { min: 30, max: 60 };
-    return { min: 45, max: 80 };
-}
-
-// Genera un nivel válido para la especie — respeta evolvesAt
-function getValidEnemyLevel(speciesId: string, min: number, max: number): number {
+function buildNpcMyth(speciesId: string, level: number): BattleMyth {
     const species = getCreature(speciesId);
-    // Si evoluciona por nivel, el enemigo no puede aparecer >= ese nivel
-    if (species.evolution?.method === "LEVEL" && typeof species.evolution.value === "number") {
-        max = Math.min(max, species.evolution.value - 1);
+    if (!species) throw new Error(`Especie NPC no encontrada: ${speciesId}`);
+
+    const scale = (base: number) => Math.floor(base * (1 + (level - 1) * 0.08));
+
+    return {
+        instanceId: `npc_${speciesId}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        speciesId,
+        name: species.name,
+        level,
+        hp: scale(species.baseStats.hp * 2 + 10),
+        maxHp: scale(species.baseStats.hp * 2 + 10),
+        attack: scale(species.baseStats.atk),
+        defense: scale(species.baseStats.def),
+        speed: scale(species.baseStats.spd),
+        affinities: species.affinities as Affinity[],
+        moves: species.moves as Move[],
+        art: species.art,
+        status: null,
+        defeated: false,
+    };
+}
+
+// ─────────────────────────────────────────
+// NPC AI
+// ─────────────────────────────────────────
+
+function npcChooseMove(attacker: BattleMyth, target: BattleMyth): Move {
+    let best: Move = attacker.moves[0];
+    let bestScore = -1;
+    for (const move of attacker.moves) {
+        const mult = getAffinityMultiplier(move.affinity, target.affinities);
+        const stab = attacker.affinities.includes(move.affinity) ? 1.5 : 1;
+        const score = move.power * mult * stab;
+        if (score > bestScore) { bestScore = score; best = move; }
     }
-    if (min > max) min = max;
-    return randInt(min, max);
+    return best;
 }
 
-function randInt(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+function npcFastestAlive(team: BattleMyth[]): BattleMyth | null {
+    return team.filter((m) => !m.defeated).sort((a, b) => b.speed - a.speed)[0] ?? null;
 }
 
-function randPick<T>(arr: T[]): T {
-    return arr[Math.floor(Math.random() * arr.length)];
+// ─────────────────────────────────────────
+// START
+// ─────────────────────────────────────────
+
+export async function startNpcBattle(
+    userId: string,
+    order: string[]
+): Promise<BattleSession3v3> {
+    evict();
+
+    // Consumir ficha NPC
+    const tokenRow = await prisma.combatToken.findUnique({ where: { userId } });
+    if (!tokenRow || tokenRow.npcTokens <= 0) throw new Error("Sin fichas NPC disponibles");
+
+    await prisma.combatToken.update({
+        where: { userId },
+        data: { npcTokens: { decrement: 1 } },
+    });
+
+    // Construir equipo del jugador (máx 3)
+    const playerTeam: BattleMyth[] = [];
+    for (const id of order.slice(0, 3)) {
+        playerTeam.push(await buildPlayerMyth(id, userId));
+    }
+    if (playerTeam.length === 0) throw new Error("Necesitas al menos 1 Myth en el equipo");
+
+    // Nivel medio del equipo del jugador
+    const avgLevel = Math.round(
+        playerTeam.reduce((s, m) => s + m.level, 0) / playerTeam.length
+    );
+    const enemyLevel = Math.max(1, Math.floor(avgLevel * (0.9 + Math.random() * 0.3)));
+
+    // Equipo NPC — mismo número que el jugador (nunca >doble)
+    const enemyCount = Math.min(playerTeam.length, 3);
+    const creatures = (await import("../data/creatures.json", { assert: { type: "json" } })).default as any[];
+    const pool = creatures
+        .filter((c) => c.id && Array.isArray(c.moves) && c.moves.length >= 1)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, enemyCount);
+
+    const enemyTeam: BattleMyth[] = pool.map((c) => buildNpcMyth(c.id, enemyLevel));
+
+    const session: BattleSession3v3 = {
+        battleId: makeBattleId(),
+        userId,
+        playerTeam,
+        enemyTeam,
+        turn: 0,
+        status: "ongoing",
+        createdAt: Date.now(),
+        lastAccessedAt: Date.now(),
+    };
+
+    setSession(session);
+    return session;
 }
 
-// ── Captura ───────────────────────────────────────────────────
-const CATCH_RATES: Record<string, number> = {
-    FRAGMENT: 0.3,
-    SHARD: 0.55,
-    CRYSTAL: 0.8,
-    RUNE: 1.0,
-};
-const BALL_PRIORITY: ItemType[] = ["RUNE", "CRYSTAL", "SHARD", "FRAGMENT"];
+// ─────────────────────────────────────────
+// TURN
+// ─────────────────────────────────────────
 
-async function attemptCapture(userId: string, enemyHpPercent: number, speciesCatchRate: number) {
-    let ballUsed: ItemType | null = null;
-    for (const ball of BALL_PRIORITY) {
-        if (await hasItem(userId, ball)) {
-            ballUsed = ball;
-            break;
+export interface TurnResult {
+    session: BattleSession3v3;
+    playerAction: {
+        myth: string;
+        move: string;
+        moveAffinity: Affinity;
+        target: string;
+        damage: number;
+        mult: number;
+        crit: boolean;
+        stab: boolean;
+    };
+    npcAction: {
+        myth: string;
+        move: string;
+        moveAffinity: Affinity;
+        target: string;
+        damage: number;
+        mult: number;
+        crit: boolean;
+        stab: boolean;
+    };
+    defeated: string[];
+    xpGained?: number;
+    coinsGained?: number;
+}
+
+export async function executeTurn(
+    userId: string,
+    battleId: string,
+    actingMythId: string,
+    moveId: string,
+    targetMythId?: string   // opcional — si no viene, primer vivo
+): Promise<TurnResult> {
+    const session = getSession3v3(battleId);
+    if (!session || session.userId !== userId) throw new Error("Sesión de combate no encontrada");
+    if (session.status !== "ongoing") throw new Error("El combate ya ha finalizado");
+
+    // ── Myth del jugador ──
+    const playerMyth = session.playerTeam.find(
+        (m) => m.instanceId === actingMythId && !m.defeated
+    );
+    if (!playerMyth) throw new Error("Myth del jugador no válido o ya derrotado");
+
+    const playerMove = playerMyth.moves.find((mv) => mv.id === moveId);
+    if (!playerMove) throw new Error("Move no válido");
+
+    // ── Objetivo del jugador (el que seleccionó, o primero vivo) ──
+    const playerTarget =
+        (targetMythId
+            ? session.enemyTeam.find((m) => m.instanceId === targetMythId && !m.defeated)
+            : undefined) ?? session.enemyTeam.find((m) => !m.defeated);
+    if (!playerTarget) throw new Error("No hay Myths enemigos disponibles");
+
+    // ── IA NPC: Myth más rápido vivo ataca al primero vivo del jugador ──
+    const npcAttacker = npcFastestAlive(session.enemyTeam);
+    if (!npcAttacker) throw new Error("No hay Myths enemigos vivos");
+
+    const npcTarget = session.playerTeam.find((m) => !m.defeated);
+    if (!npcTarget) throw new Error("No hay Myths del jugador vivos");
+
+    const npcMove = npcChooseMove(npcAttacker, npcTarget);
+
+    // ── Resolución simultánea ──
+    const playerResult = calcDamage(playerMyth, playerMove, playerTarget);
+    const npcResult = calcDamage(npcAttacker, npcMove, npcTarget);
+
+    playerTarget.hp = Math.max(0, playerTarget.hp - playerResult.damage);
+    npcTarget.hp = Math.max(0, npcTarget.hp - npcResult.damage);
+
+    if (playerTarget.hp === 0) playerTarget.defeated = true;
+    if (npcTarget.hp === 0) npcTarget.defeated = true;
+
+    const defeated: string[] = [];
+    if (playerTarget.defeated) defeated.push(playerTarget.instanceId);
+    if (npcTarget.defeated && npcTarget.instanceId !== playerTarget.instanceId)
+        defeated.push(npcTarget.instanceId);
+
+    session.turn += 1;
+
+    // ── Comprobar fin de combate ──
+    const allEnemyDefeated = session.enemyTeam.every((m) => m.defeated);
+    const allPlayerDefeated = session.playerTeam.every((m) => m.defeated);
+
+    let xpGained: number | undefined;
+    let coinsGained: number | undefined;
+
+    if (allEnemyDefeated || allPlayerDefeated) {
+        session.status = allEnemyDefeated ? "win" : "lose";
+
+        if (session.status === "win") {
+            const avgEnemyLevel = Math.round(
+                session.enemyTeam.reduce((s, m) => s + m.level, 0) / session.enemyTeam.length
+            );
+            xpGained = Math.floor(50 * Math.pow(avgEnemyLevel, 1.4));
+            coinsGained = Math.floor(avgEnemyLevel * 5 + Math.random() * 20);
+
+            await addXp(userId, xpGained);
+            await prisma.trainerProfile.update({
+                where: { userId },
+                data: { coins: { increment: coinsGained } },
+            });
+            await prisma.battleLog.create({
+                data: {
+                    userId,
+                    type: "NPC",
+                    result: "WIN",
+                    xpGained: xpGained ?? 0,
+                    coinsGained: coinsGained ?? 0,
+                    playerSpeciesId: playerMyth.speciesId,
+                    playerLevel: playerMyth.level,
+                    enemySpeciesId: playerTarget.speciesId,
+                    enemyLevel: playerTarget.level,
+                },
+            });
         }
+
+        deleteSession3v3(battleId);
+    } else {
+        setSession(session);
     }
-    if (!ballUsed) return { caught: false, ballUsed: null };
 
-    const ballRate = CATCH_RATES[ballUsed];
-    const hpBonus = (1 - enemyHpPercent) * 0.3;
-    const caught = Math.random() < (ballRate + hpBonus) * speciesCatchRate * 2;
-
-    if (caught) await removeItem(userId, ballUsed, 1);
-    return { caught, ballUsed };
+    return {
+        session,
+        playerAction: {
+            myth: playerMyth.name,
+            move: playerMove.name,
+            moveAffinity: playerMove.affinity,
+            target: playerTarget.name,
+            damage: playerResult.damage,
+            mult: playerResult.mult,
+            crit: playerResult.crit,
+            stab: playerResult.stab,
+        },
+        npcAction: {
+            myth: npcAttacker.name,
+            move: npcMove.name,
+            moveAffinity: npcMove.affinity,
+            target: npcTarget.name,
+            damage: npcResult.damage,
+            mult: npcResult.mult,
+            crit: npcResult.crit,
+            stab: npcResult.stab,
+        },
+        defeated,
+        xpGained,
+        coinsGained,
+    };
 }
 
-// ── XP y monedas ─────────────────────────────────────────────
-function calcXpGained(enemyLevel: number, won: boolean): number {
-    const base = Math.floor(enemyLevel * 1.5);
-    return won ? base : Math.floor(base * 0.2);
+// ─────────────────────────────────────────
+// FLEE
+// ─────────────────────────────────────────
+
+export async function fleeBattle(userId: string, battleId: string): Promise<void> {
+    const session = getSession3v3(battleId);
+    if (!session || session.userId !== userId) throw new Error("Sesión no encontrada");
+    session.status = "lose";
+    deleteSession3v3(battleId);
 }
 
-function calcCoinsGained(enemyLevel: number, won: boolean): number {
-    if (!won) return 0;
-    return randInt(enemyLevel * 2, enemyLevel * 5);
+// ─────────────────────────────────────────
+// CAPTURE
+// ─────────────────────────────────────────
+
+export interface CaptureResult {
+    success: boolean;
+    session: BattleSession3v3;
+    counterDamage?: number;
+    newInstanceId?: string;
 }
 
-// ── XP para el Myth del jugador ───────────────────────────────
-const MYTH_XP_TO_LEVEL = (level: number) => Math.floor(50 * Math.pow(level, 1.6));
+export async function captureMyth(
+    userId: string,
+    battleId: string,
+    targetMythId: string
+): Promise<CaptureResult> {
+    const session = getSession3v3(battleId);
+    if (!session || session.userId !== userId) throw new Error("Sesión no encontrada");
+    if (session.status !== "ongoing") throw new Error("El combate ya ha finalizado");
 
-async function addMythXp(instanceId: string, xpGained: number) {
-    const myth = await prisma.creatureInstance.findUnique({ where: { id: instanceId } });
-    if (!myth || myth.level >= 60) return null;
+    const target = session.enemyTeam.find(
+        (m) => m.instanceId === targetMythId && !m.defeated
+    );
+    if (!target) throw new Error("Objetivo no válido o ya derrotado");
 
-    const newXp = myth.xp + xpGained;
-    const xpNeeded = MYTH_XP_TO_LEVEL(myth.level);
+    if (target.hp / target.maxHp >= 0.25)
+        throw new Error("El Myth debe tener menos del 25% de HP para capturarlo");
 
-    if (newXp < xpNeeded) {
-        await prisma.creatureInstance.update({
-            where: { id: instanceId },
-            data: { xp: newXp },
+    const success = Math.random() < 0.6;
+
+    if (success) {
+        const newInst = await prisma.creatureInstance.create({
+            data: {
+                userId,
+                speciesId: target.speciesId,
+                level: target.level,
+                xp: 0,
+                hp: target.maxHp,
+                maxHp: target.maxHp,
+                attack: target.attack,
+                defense: target.defense,
+                speed: target.speed,
+                isInParty: false,
+                slot: null,
+            },
         });
-        return { leveledUp: false, newLevel: myth.level, newXp };
-    }
 
-    // Subir de nivel (puede subir varios a la vez)
-    let level = myth.level;
-    let xp = newXp;
-    while (xp >= MYTH_XP_TO_LEVEL(level) && level < 60) {
-        xp -= MYTH_XP_TO_LEVEL(level);
+        target.defeated = true;
+
+        await prisma.battleLog.create({
+            data: {
+                userId,
+                type: "NPC",
+                result: "WIN",
+                xpGained: 0,
+                coinsGained: 0,
+                playerSpeciesId: session.playerTeam[0]?.speciesId ?? "000",
+                playerLevel: session.playerTeam[0]?.level ?? 1,
+                enemySpeciesId: target.speciesId,
+                enemyLevel: target.level,
+                capturedSpeciesId: target.speciesId,
+            },
+        });
+        if (session.enemyTeam.every((m) => m.defeated)) {
+            session.status = "win";
+            deleteSession3v3(battleId);
+        } else {
+            setSession(session);
+        }
+
+        return { success: true, session, newInstanceId: newInst.id };
+
+    } else {
+        // Fallo: recupera 15% HP y contraataca
+        target.hp = Math.min(target.maxHp, Math.floor(target.hp + target.maxHp * 0.15));
+
+        const playerTarget = session.playerTeam.find((m) => !m.defeated);
+        let counterDamage = 0;
+
+        if (playerTarget) {
+            const counterMove = npcChooseMove(target, playerTarget);
+            const res = calcDamage(target, counterMove, playerTarget);
+            counterDamage = res.damage;
+            playerTarget.hp = Math.max(0, playerTarget.hp - counterDamage);
+            if (playerTarget.hp === 0) {
+                playerTarget.defeated = true;
+                if (session.playerTeam.every((m) => m.defeated)) {
+                    session.status = "lose";
+                    deleteSession3v3(battleId);
+                    return { success: false, session, counterDamage };
+                }
+            }
+        }
+
+        setSession(session);
+        return { success: false, session, counterDamage };
+    }
+}
+
+// ─────────────────────────────────────────
+// GET ACTIVE BATTLE
+// ─────────────────────────────────────────
+
+export function getActiveBattle(userId: string): BattleSession3v3 | null {
+    for (const s of sessions.values()) {
+        if (s.userId === userId && s.status === "ongoing") return s;
+    }
+    return null;
+}
+
+// ─────────────────────────────────────────
+// MYTH XP (compatibilidad)
+// ─────────────────────────────────────────
+
+export async function addMythXp(instanceId: string, xpAmount: number): Promise<void> {
+    const inst = await prisma.creatureInstance.findUniqueOrThrow({ where: { id: instanceId } });
+    let { xp, level } = inst;
+    xp += xpAmount;
+    const xpNeeded = () => Math.floor(50 * Math.pow(level, 1.6));
+    while (xp >= xpNeeded() && level < 60) {
+        xp -= xpNeeded();
         level++;
     }
-
-    // Recalcular stats al subir de nivel
-    const species = getCreature(myth.speciesId);
-    const newMaxHp = Math.floor(species.baseStats.hp * (1 + level * 0.1));
-    const newAttack = Math.floor(species.baseStats.atk * (1 + level * 0.05));
-    const newDefense = Math.floor(species.baseStats.def * (1 + level * 0.05));
-    const newSpeed = Math.floor(species.baseStats.spd * (1 + level * 0.04));
-
+    const multiplier = level - inst.level;
     await prisma.creatureInstance.update({
         where: { id: instanceId },
         data: {
-            level,
             xp,
-            maxHp: newMaxHp,
-            hp: newMaxHp, // restaura HP al subir de nivel
-            attack: newAttack,
-            defense: newDefense,
-            speed: newSpeed,
+            level,
+            maxHp: Math.floor(inst.maxHp * Math.pow(1.08, multiplier)),
+            hp: Math.floor(inst.maxHp * Math.pow(1.08, multiplier)),
+            attack: Math.floor(inst.attack * Math.pow(1.05, multiplier)),
+            defense: Math.floor(inst.defense * Math.pow(1.05, multiplier)),
+            speed: Math.floor(inst.speed * Math.pow(1.04, multiplier)),
         },
     });
-
-    return { leveledUp: true, newLevel: level, newXp: xp };
-}
-
-// ── GET ACTIVE — Recuperar sesión activa ──────────────────────
-export function getActiveBattle(userId: string) {
-    const session = getUserSession(userId);
-    if (!session) return null;
-    return {
-        battleId: session.battleId,
-        player: {
-            speciesId: session.player.speciesId,
-            name: session.player.name,
-            level: session.player.level,
-            hp: session.player.hp,
-            maxHp: session.player.maxHp,
-            art: session.player.art,
-            affinities: session.player.affinities,
-            moves: session.player.moves,
-        },
-        enemy: {
-            speciesId: session.enemy.speciesId,
-            name: session.enemy.name,
-            level: session.enemy.level,
-            hp: session.enemy.hp,
-            maxHp: session.enemy.maxHp,
-            art: session.enemy.art,
-            affinities: session.enemy.affinities,
-        },
-        playerFirst: session.player.speed >= session.enemy.speed,
-        log: session.log,
-    };
-}
-
-// ── START — Iniciar combate NPC ───────────────────────────────
-export async function startNpcBattle(userId: string) {
-    const existing = getUserSession(userId);
-    if (existing) return { error: "Ya tienes un combate activo" };
-
-    const hasToken = await useNpcToken(userId);
-    if (!hasToken) return { error: "No tienes fichas de combate NPC" };
-
-    const trainer = await prisma.trainerProfile.findUniqueOrThrow({ where: { userId } });
-
-    const playerMyth = await prisma.creatureInstance.findFirst({
-        where: { userId, isInParty: true },
-        orderBy: { slot: "asc" },
-    });
-    if (!playerMyth) return { error: "No tienes ningún Myth en el equipo" };
-
-    const playerSpecies = getCreature(playerMyth.speciesId);
-
-    const pool = getEncounterPool(trainer.level);
-    const enemySpecies = getCreature(randPick(pool));
-    const { min, max } = getEncounterLevelRange(trainer.level);
-    const enemyLevel = getValidEnemyLevel(enemySpecies.id, min, max);
-
-    const player: BattleCombatant = {
-        speciesId: playerMyth.speciesId,
-        name: playerSpecies.name,
-        level: playerMyth.level,
-        hp: playerMyth.hp,
-        maxHp: playerMyth.maxHp,
-        attack: playerMyth.attack,
-        defense: playerMyth.defense,
-        speed: playerMyth.speed,
-        moves: playerSpecies.moves,
-        art: playerSpecies.art,
-        affinities: playerSpecies.affinities,
-    };
-
-    const enemy: BattleCombatant = {
-        speciesId: enemySpecies.id,
-        name: enemySpecies.name,
-        level: enemyLevel,
-        hp: calcHp(enemySpecies.baseStats.hp, enemyLevel),
-        maxHp: calcHp(enemySpecies.baseStats.hp, enemyLevel),
-        attack: calcStat(enemySpecies.baseStats.atk, enemyLevel),
-        defense: calcStat(enemySpecies.baseStats.def, enemyLevel),
-        speed: calcStat(enemySpecies.baseStats.spd, enemyLevel),
-        moves: enemySpecies.moves,
-        art: enemySpecies.art,
-        affinities: enemySpecies.affinities,
-    };
-
-    const session = createBattleSession({
-        userId,
-        player,
-        enemy,
-        playerInstanceId: playerMyth.id,
-        turn: 0,
-        status: "active",
-        log: [],
-    });
-
-    return {
-        battleId: session.battleId,
-        player: {
-            speciesId: player.speciesId,
-            name: player.name,
-            level: player.level,
-            hp: player.hp,
-            maxHp: player.maxHp,
-            art: player.art,
-            affinities: player.affinities,
-            moves: player.moves,
-        },
-        enemy: {
-            speciesId: enemy.speciesId,
-            name: enemy.name,
-            level: enemy.level,
-            hp: enemy.hp,
-            maxHp: enemy.maxHp,
-            art: enemy.art,
-            affinities: enemy.affinities,
-        },
-        playerFirst: player.speed >= enemy.speed,
-    };
-}
-
-// ── TURN — Ejecutar un turno ──────────────────────────────────
-export async function executeTurn(userId: string, battleId: string, moveId: string) {
-    const session = getSession(battleId);
-    if (!session) return { error: "Combate no encontrado" };
-    if (session.userId !== userId) return { error: "No autorizado" };
-    if (session.status !== "active") return { error: "El combate ya ha terminado" };
-
-    const playerMove = session.player.moves.find((m) => m.id === moveId);
-    if (!playerMove) return { error: "Move no válido" };
-
-    const enemyMove = randPick(session.enemy.moves);
-
-    let playerHp = session.player.hp;
-    let enemyHp = session.enemy.hp;
-    session.turn++;
-
-    const playerFirst = session.player.speed >= session.enemy.speed;
-    const order = playerFirst ? ["player", "enemy"] : ["enemy", "player"];
-
-    let playerDamage = 0,
-        enemyDamage = 0;
-    let playerCritical = false,
-        enemyCritical = false;
-    let playerTypeMultiplier = 1,
-        enemyTypeMultiplier = 1;
-
-    for (const attacker of order) {
-        if (playerHp <= 0 || enemyHp <= 0) break;
-
-        if (attacker === "player") {
-            const result = calcDamageResult(
-                session.player.level,
-                session.player.attack,
-                session.enemy.defense,
-                playerMove,
-                session.player.affinities,
-                session.enemy.affinities,
-            );
-            playerDamage = result.damage;
-            playerCritical = result.critical;
-            playerTypeMultiplier = result.typeMultiplier;
-            enemyHp = Math.max(0, enemyHp - playerDamage);
-        } else {
-            const result = calcDamageResult(
-                session.enemy.level,
-                session.enemy.attack,
-                session.player.defense,
-                enemyMove,
-                session.enemy.affinities,
-                session.player.affinities,
-            );
-            enemyDamage = result.damage;
-            enemyCritical = result.critical;
-            enemyTypeMultiplier = result.typeMultiplier;
-            playerHp = Math.max(0, playerHp - enemyDamage);
-        }
-    }
-
-    session.player.hp = playerHp;
-    session.enemy.hp = enemyHp;
-
-    const turnResult = {
-        turn: session.turn,
-        playerMove: playerMove.id,
-        playerMoveName: playerMove.name,
-        playerMoveAffinity: playerMove.affinity,
-        enemyMove: enemyMove.id,
-        enemyMoveName: enemyMove.name,
-        enemyMoveAffinity: enemyMove.affinity,
-        playerDamage,
-        enemyDamage,
-        playerCritical,
-        enemyCritical,
-        playerTypeMultiplier,
-        enemyTypeMultiplier,
-        playerHpAfter: playerHp,
-        enemyHpAfter: enemyHp,
-    };
-    session.log.push(turnResult);
-
-    const battleOver = playerHp <= 0 || enemyHp <= 0;
-    if (!battleOver) {
-        return { status: "ongoing", turn: turnResult, playerHp, enemyHp };
-    }
-
-    const won = enemyHp <= 0;
-    session.status = won ? "won" : "lost";
-
-    const xpGained = calcXpGained(session.enemy.level, won);
-    const coinsGained = calcCoinsGained(session.enemy.level, won);
-
-    const mythXpGained = Math.floor(xpGained * 1.2); // Myths ganan un 20% más de XP que el Binder
-
-    const [updatedTrainer, mythLevelResult] = await Promise.all([
-        addXp(userId, xpGained),
-        addMythXp(session.playerInstanceId, mythXpGained),
-        won && coinsGained > 0
-            ? prisma.trainerProfile.update({
-                  where: { userId },
-                  data: { coins: { increment: coinsGained } },
-              })
-            : Promise.resolve(),
-    ]);
-
-    let captured = null;
-    if (won) {
-        const enemyHpPercent = session.enemy.hp / session.enemy.maxHp;
-        const enemySpecies = getCreature(session.enemy.speciesId);
-        const { caught, ballUsed } = await attemptCapture(userId, enemyHpPercent, enemySpecies.catchRate);
-
-        if (caught) {
-            await prisma.creatureInstance.create({
-                data: {
-                    userId,
-                    speciesId: session.enemy.speciesId,
-                    level: session.enemy.level,
-                    xp: 0,
-                    hp: session.enemy.maxHp,
-                    maxHp: session.enemy.maxHp,
-                    attack: session.enemy.attack,
-                    defense: session.enemy.defense,
-                    speed: session.enemy.speed,
-                    isInParty: false,
-                },
-            });
-            captured = {
-                speciesId: session.enemy.speciesId,
-                name: session.enemy.name,
-                level: session.enemy.level,
-                art: session.enemy.art,
-                ballUsed,
-            };
-        }
-    }
-
-    await prisma.battleLog.create({
-        data: {
-            userId,
-            type: "NPC",
-            result: won ? "WIN" : "LOSE",
-            xpGained,
-            coinsGained,
-            playerSpeciesId: session.player.speciesId,
-            playerLevel: session.player.level,
-            enemySpeciesId: session.enemy.speciesId,
-            enemyLevel: session.enemy.level,
-            capturedSpeciesId: captured?.speciesId ?? null,
-        },
-    });
-
-    const evoResult = await checkLevelEvolution(session.playerInstanceId);
-    deleteSession(battleId);
-
-    return {
-        status: won ? "won" : "lost",
-        turn: turnResult,
-        playerHp,
-        enemyHp,
-        result: won ? "WIN" : "LOSE",
-        xpGained,
-        coinsGained,
-        trainerLevel: updatedTrainer.level,
-        trainerXp: updatedTrainer.xp,
-        mythLevelResult, // ← nuevo
-        captured,
-        evolution: evoResult,
-    };
-}
-
-// ── FLEE — Huir del combate ───────────────────────────────────
-export async function fleeBattle(userId: string, battleId: string) {
-    const session = getSession(battleId);
-    if (!session) return { error: "Combate no encontrado" };
-    if (session.userId !== userId) return { error: "No autorizado" };
-    if (session.status !== "active") return { error: "El combate ya ha terminado" };
-
-    await prisma.battleLog.create({
-        data: {
-            userId,
-            type: "NPC",
-            result: "LOSE",
-            xpGained: 0,
-            coinsGained: 0,
-            playerSpeciesId: session.player.speciesId,
-            playerLevel: session.player.level,
-            enemySpeciesId: session.enemy.speciesId,
-            enemyLevel: session.enemy.level,
-        },
-    });
-
-    deleteSession(battleId);
-    return { status: "fled", xpGained: 0 };
 }
