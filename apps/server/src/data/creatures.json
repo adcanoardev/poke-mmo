@@ -18,9 +18,9 @@
             "value": 16
         },
         "art": {
-            "portrait": "https://raw.githubusercontent.com/adcanoardev/mythara-assets/8fed38f922671cebfd3271e144a6729a09e54f64/myths/001/portrait.png",
-            "front": "https://raw.githubusercontent.com/adcanoardev/mythara-assets/8fed38f922671cebfd3271e144a6729a09e54f64/myths/001/portrait.png",
-            "back": "https://raw.githubusercontent.com/adcanoardev/mythara-assets/8fed38f922671cebfd3271e144a6729a09e54f64/myths/001/portrait.png"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/001/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/001/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/001/back.png"
         },
         "moves": [
             {
@@ -93,9 +93,9 @@
             "value": 36
         },
         "art": {
-            "portrait": "🔥",
-            "front": "🔥",
-            "back": "🔥"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/002/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/002/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/002/back.png"
         },
         "moves": [
             {
@@ -173,9 +173,9 @@
             "spd": 67
         },
         "art": {
-            "portrait": "🔥",
-            "front": "🔥",
-            "back": "🔥"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/003/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/003/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/003/back.png"
         },
         "moves": [
             {
@@ -273,9 +273,9 @@
             "value": 18
         },
         "art": {
-            "portrait": "💧",
-            "front": "💧",
-            "back": "💧"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/back.png"
         },
         "moves": [
             {
@@ -348,9 +348,9 @@
             "value": 34
         },
         "art": {
-            "portrait": "💧",
-            "front": "💧",
-            "back": "💧"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/005/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/005/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/005/back.png"
         },
         "moves": [
             {
@@ -428,9 +428,9 @@
             "spd": 67
         },
         "art": {
-            "portrait": "💧",
-            "front": "💧",
-            "back": "💧"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/006/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/006/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/006/back.png"
         },
         "moves": [
             {
@@ -528,9 +528,9 @@
             "value": 17
         },
         "art": {
-            "portrait": "🌿",
-            "front": "🌿",
-            "back": "🌿"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/007/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/007/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/007/back.png"
         },
         "moves": [
             {
@@ -603,9 +603,9 @@
             "value": 35
         },
         "art": {
-            "portrait": "🌿",
-            "front": "🌿",
-            "back": "🌿"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/008/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/008/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/008/back.png"
         },
         "moves": [
             {
@@ -683,9 +683,9 @@
             "spd": 75
         },
         "art": {
-            "portrait": "🌿",
-            "front": "🌿",
-            "back": "🌿"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/009/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/009/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/009/back.png"
         },
         "moves": [
             {
@@ -783,9 +783,9 @@
             "value": 19
         },
         "art": {
-            "portrait": "⚡",
-            "front": "⚡",
-            "back": "⚡"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/010/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/010/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/010/back.png"
         },
         "moves": [
             {
@@ -853,9 +853,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "⚡",
-            "front": "⚡",
-            "back": "⚡"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/011/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/011/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/011/back.png"
         },
         "moves": [
             {
@@ -938,9 +938,9 @@
             "value": 28
         },
         "art": {
-            "portrait": "🪨",
-            "front": "🪨",
-            "back": "🪨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/012/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/012/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/012/back.png"
         },
         "moves": [
             {
@@ -1008,9 +1008,9 @@
             "spd": 62
         },
         "art": {
-            "portrait": "🪨",
-            "front": "🪨",
-            "back": "🪨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/013/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/013/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/013/back.png"
         },
         "moves": [
             {
@@ -1098,9 +1098,9 @@
             "value": 22
         },
         "art": {
-            "portrait": "❄️",
-            "front": "❄️",
-            "back": "❄️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/014/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/014/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/014/back.png"
         },
         "moves": [
             {
@@ -1173,9 +1173,9 @@
             "value": 40
         },
         "art": {
-            "portrait": "❄️",
-            "front": "❄️",
-            "back": "❄️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/015/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/015/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/015/back.png"
         },
         "moves": [
             {
@@ -1253,9 +1253,9 @@
             "spd": 62
         },
         "art": {
-            "portrait": "❄️",
-            "front": "❄️",
-            "back": "❄️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/016/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/016/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/016/back.png"
         },
         "moves": [
             {
@@ -1338,9 +1338,9 @@
             "spd": 50
         },
         "art": {
-            "portrait": "🪨",
-            "front": "🪨",
-            "back": "🪨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/017/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/017/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/017/back.png"
         },
         "moves": [
             {
@@ -1418,9 +1418,9 @@
             "spd": 47
         },
         "art": {
-            "portrait": "🔥",
-            "front": "🔥",
-            "back": "🔥"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/018/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/018/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/018/back.png"
         },
         "moves": [
             {
@@ -1493,9 +1493,9 @@
             "value": 18
         },
         "art": {
-            "portrait": "☠️",
-            "front": "☠️",
-            "back": "☠️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/019/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/019/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/019/back.png"
         },
         "moves": [
             {
@@ -1568,9 +1568,9 @@
             "value": 38
         },
         "art": {
-            "portrait": "☠️",
-            "front": "☠️",
-            "back": "☠️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/020/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/020/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/020/back.png"
         },
         "moves": [
             {
@@ -1648,9 +1648,9 @@
             "spd": 62
         },
         "art": {
-            "portrait": "☠️",
-            "front": "☠️",
-            "back": "☠️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/021/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/021/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/021/back.png"
         },
         "moves": [
             {
@@ -1738,9 +1738,9 @@
             "value": 20
         },
         "art": {
-            "portrait": "✨",
-            "front": "✨",
-            "back": "✨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/022/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/022/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/022/back.png"
         },
         "moves": [
             {
@@ -1808,9 +1808,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "✨",
-            "front": "✨",
-            "back": "✨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/023/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/023/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/023/back.png"
         },
         "moves": [
             {
@@ -1888,9 +1888,9 @@
             "spd": 55
         },
         "art": {
-            "portrait": "🌑",
-            "front": "🌑",
-            "back": "🌑"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/024/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/024/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/024/back.png"
         },
         "moves": [
             {
@@ -1958,9 +1958,9 @@
             "spd": 65
         },
         "art": {
-            "portrait": "🌑",
-            "front": "🌑",
-            "back": "🌑"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/025/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/025/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/025/back.png"
         },
         "moves": [
             {
@@ -2038,9 +2038,9 @@
             "spd": 62
         },
         "art": {
-            "portrait": "🌑",
-            "front": "🌑",
-            "back": "🌑"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/026/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/026/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/026/back.png"
         },
         "moves": [
             {
@@ -2128,9 +2128,9 @@
             "value": 26
         },
         "art": {
-            "portrait": "⚙️",
-            "front": "⚙️",
-            "back": "⚙️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/027/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/027/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/027/back.png"
         },
         "moves": [
             {
@@ -2198,9 +2198,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "⚙️",
-            "front": "⚙️",
-            "back": "⚙️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/back.png"
         },
         "moves": [
             {
@@ -2278,9 +2278,9 @@
             "spd": 65
         },
         "art": {
-            "portrait": "✨",
-            "front": "✨",
-            "back": "✨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/029/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/029/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/029/back.png"
         },
         "moves": [
             {
@@ -2358,9 +2358,9 @@
             "spd": 75
         },
         "art": {
-            "portrait": "✨",
-            "front": "✨",
-            "back": "✨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/030/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/030/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/030/back.png"
         },
         "moves": [
             {
@@ -2453,9 +2453,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "💧",
-            "front": "💧",
-            "back": "💧"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/031/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/031/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/031/back.png"
         },
         "moves": [
             {
@@ -2533,9 +2533,9 @@
             "spd": 50
         },
         "art": {
-            "portrait": "🌿",
-            "front": "🌿",
-            "back": "🌿"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/032/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/032/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/032/back.png"
         },
         "moves": [
             {
@@ -2613,9 +2613,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "⚡",
-            "front": "⚡",
-            "back": "⚡"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/033/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/033/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/033/back.png"
         },
         "moves": [
             {
@@ -2698,9 +2698,9 @@
             "value": 27
         },
         "art": {
-            "portrait": "⚙️",
-            "front": "⚙️",
-            "back": "⚙️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/034/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/034/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/034/back.png"
         },
         "moves": [
             {
@@ -2768,9 +2768,9 @@
             "spd": 65
         },
         "art": {
-            "portrait": "⚙️",
-            "front": "⚙️",
-            "back": "⚙️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/035/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/035/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/035/back.png"
         },
         "moves": [
             {
@@ -2848,9 +2848,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "🌑",
-            "front": "🌑",
-            "back": "🌑"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/036/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/036/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/036/back.png"
         },
         "moves": [
             {
@@ -2928,9 +2928,9 @@
             "spd": 50
         },
         "art": {
-            "portrait": "🔥",
-            "front": "🔥",
-            "back": "🔥"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/037/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/037/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/037/back.png"
         },
         "moves": [
             {
@@ -3008,9 +3008,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "🌿",
-            "front": "🌿",
-            "back": "🌿"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/038/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/038/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/038/back.png"
         },
         "moves": [
             {
@@ -3088,9 +3088,9 @@
             "spd": 65
         },
         "art": {
-            "portrait": "⚡",
-            "front": "⚡",
-            "back": "⚡"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/039/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/039/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/039/back.png"
         },
         "moves": [
             {
@@ -3173,9 +3173,9 @@
             "value": 24
         },
         "art": {
-            "portrait": "💧",
-            "front": "💧",
-            "back": "💧"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/040/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/040/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/040/back.png"
         },
         "moves": [
             {
@@ -3243,9 +3243,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "💧",
-            "front": "💧",
-            "back": "💧"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/041/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/041/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/041/back.png"
         },
         "moves": [
             {
@@ -3323,9 +3323,9 @@
             "spd": 40
         },
         "art": {
-            "portrait": "🌿",
-            "front": "🌿",
-            "back": "🌿"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/042/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/042/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/042/back.png"
         },
         "moves": [
             {
@@ -3393,9 +3393,9 @@
             "spd": 57
         },
         "art": {
-            "portrait": "🔥",
-            "front": "🔥",
-            "back": "🔥"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/043/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/043/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/043/back.png"
         },
         "moves": [
             {
@@ -3473,9 +3473,9 @@
             "spd": 55
         },
         "art": {
-            "portrait": "🌑",
-            "front": "🌑",
-            "back": "🌑"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/044/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/044/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/044/back.png"
         },
         "moves": [
             {
@@ -3543,9 +3543,9 @@
             "spd": 65
         },
         "art": {
-            "portrait": "✨",
-            "front": "✨",
-            "back": "✨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/045/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/045/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/045/back.png"
         },
         "moves": [
             {
@@ -3623,9 +3623,9 @@
             "spd": 47
         },
         "art": {
-            "portrait": "🌿",
-            "front": "🌿",
-            "back": "🌿"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/046/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/046/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/046/back.png"
         },
         "moves": [
             {
@@ -3693,9 +3693,9 @@
             "spd": 50
         },
         "art": {
-            "portrait": "❄️",
-            "front": "❄️",
-            "back": "❄️"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/047/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/047/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/047/back.png"
         },
         "moves": [
             {
@@ -3773,9 +3773,9 @@
             "spd": 47
         },
         "art": {
-            "portrait": "🪨",
-            "front": "🪨",
-            "back": "🪨"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/048/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/048/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/048/back.png"
         },
         "moves": [
             {
@@ -3843,9 +3843,9 @@
             "spd": 70
         },
         "art": {
-            "portrait": "🔥",
-            "front": "🔥",
-            "back": "🔥"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/049/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/049/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/049/back.png"
         },
         "moves": [
             {
@@ -3929,9 +3929,9 @@
         },
         "evolution": null,
         "art": {
-            "portrait": "🌑",
-            "front": "🌑",
-            "back": "🌑"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/050/portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/050/front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/050/back.png"
         },
         "moves": [
             {
