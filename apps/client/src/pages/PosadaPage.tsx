@@ -22,7 +22,7 @@ const LAB_ITEMS = [
 ];
 
 const FRAGMENT_RATES = [
-    { rarity: "COMÚN",      pct: "92.00%", color: "#94a3b8", bg: "rgba(148,163,184,0.08)", border: "rgba(148,163,184,0.25)" },
+    { rarity: "COMÚN",      pct: "92.00%", color: "#F7FFFB", bg: "rgba(148,163,184,0.08)", border: "rgba(148,163,184,0.25)" },
     { rarity: "RARO",       pct: "7.00%",  color: "#38bdf8", bg: "rgba(56,189,248,0.08)",  border: "rgba(56,189,248,0.3)"  },
     { rarity: "ÉLITE",      pct: "0.80%",  color: "#a78bfa", bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.3)" },
     { rarity: "LEGENDARIO", pct: "0.19%",  color: "#fcd34d", bg: "rgba(252,211,77,0.08)",  border: "rgba(252,211,77,0.3)"  },

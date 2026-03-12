@@ -9,7 +9,7 @@ const RANK_COLORS: Record<string, string> = {
     Elite: "#7b2fff",
     Rival: "#e63946",
     Entrenador: "#4cc9f0",
-    Novato: "#5a6a85",
+    Novato: "#F7FFFB",
 };
 
 export default function RankingPage() {

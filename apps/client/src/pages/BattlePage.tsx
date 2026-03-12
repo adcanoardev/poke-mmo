@@ -5,19 +5,22 @@ import TrainerSidebar from "../components/TrainerSidebar";
 import { api } from "../lib/api";
 import { useTrainer } from "../context/TrainerContext";
 import { useToast } from "../components/Layout";
+
 // ─────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────
 
 type Affinity = "EMBER" | "TIDE" | "GROVE" | "VOLT" | "STONE" | "FROST" | "VENOM" | "ASTRAL" | "IRON" | "SHADE";
-type StatusEffect = "burn" | "poison" | "freeze" | "fear" | "paralyze" | null;
+type StatusEffect = "burn" | "poison" | "freeze" | "fear" | "paralyze" | "stun" | "curse" | null;
 type MoveType = "physical" | "special" | "support";
 
 interface Buff {
-    stat: "atk" | "def" | "spd";
+    type?: string;
+    stat?: "atk" | "def" | "spd" | "acc";
     multiplier: number;
     turnsLeft: number;
     emoji: string;
+    label?: string;
 }
 
 interface Move {
@@ -49,6 +52,8 @@ interface BattleMyth {
     statusTurnsLeft: number;
     cooldownsLeft: Record<string, number>;
     buffs: Buff[];
+    shield?: number;
+    silenced?: number;
     defeated: boolean;
 }
 
@@ -62,18 +67,22 @@ interface BattleSession {
     status: "ongoing" | "win" | "lose";
 }
 
-// Deep clone para forzar re-render en React (CRÍTICO para que el HP se actualice visualmente)
 function cloneSession(s: any): BattleSession {
     return JSON.parse(JSON.stringify(s));
 }
 
-// Iconos de estado
 const STATUS_ICONS: Record<string, string> = {
-    burn: "🔥", poison: "☠️", freeze: "❄️", fear: "😨", paralyze: "⚡"
+    burn: "🔥",
+    poison: "☠️",
+    freeze: "❄️",
+    fear: "😨",
+    paralyze: "⚡",
+    stun: "💫",
+    curse: "💀",
 };
 
 // ─────────────────────────────────────────
-// Affinity config — colores, emojis y efectos de proyectil
+// Affinity config
 // ─────────────────────────────────────────
 
 const AFFINITY_CONFIG: Record<
@@ -82,128 +91,163 @@ const AFFINITY_CONFIG: Record<
         color: string;
         bg: string;
         glow: string;
+        glowRgb: string;
         emoji: string;
         label: string;
         projEmoji: string;
-        projTrail: string;
     }
 > = {
     EMBER: {
         color: "text-orange-400",
         bg: "bg-orange-500/20",
         glow: "#f97316",
+        glowRgb: "249,115,22",
         emoji: "🔥",
         label: "Brasa",
         projEmoji: "🔥",
-        projTrail: "rgba(249,115,22,0.6)",
     },
     TIDE: {
         color: "text-blue-400",
         bg: "bg-blue-500/20",
         glow: "#3b82f6",
+        glowRgb: "59,130,246",
         emoji: "🌊",
         label: "Marea",
         projEmoji: "💧",
-        projTrail: "rgba(59,130,246,0.6)",
     },
     GROVE: {
         color: "text-green-400",
         bg: "bg-green-500/20",
         glow: "#22c55e",
+        glowRgb: "34,197,94",
         emoji: "🌿",
         label: "Bosque",
         projEmoji: "🍃",
-        projTrail: "rgba(34,197,94,0.6)",
     },
     VOLT: {
         color: "text-yellow-300",
         bg: "bg-yellow-400/20",
         glow: "#fde047",
+        glowRgb: "253,224,71",
         emoji: "⚡",
         label: "Voltio",
         projEmoji: "⚡",
-        projTrail: "rgba(253,224,71,0.8)",
     },
     STONE: {
         color: "text-stone-400",
         bg: "bg-stone-500/20",
         glow: "#a8a29e",
+        glowRgb: "168,162,158",
         emoji: "🪨",
         label: "Piedra",
         projEmoji: "🪨",
-        projTrail: "rgba(168,162,158,0.6)",
     },
     FROST: {
         color: "text-cyan-300",
         bg: "bg-cyan-500/20",
         glow: "#67e8f9",
+        glowRgb: "103,232,249",
         emoji: "❄️",
         label: "Escarcha",
         projEmoji: "❄️",
-        projTrail: "rgba(103,232,249,0.7)",
     },
     VENOM: {
         color: "text-purple-400",
         bg: "bg-purple-500/20",
         glow: "#a855f7",
+        glowRgb: "168,85,247",
         emoji: "🧪",
         label: "Veneno",
         projEmoji: "☠️",
-        projTrail: "rgba(168,85,247,0.6)",
     },
     ASTRAL: {
         color: "text-indigo-300",
         bg: "bg-indigo-500/20",
         glow: "#818cf8",
+        glowRgb: "129,140,248",
         emoji: "✨",
         label: "Astral",
         projEmoji: "✨",
-        projTrail: "rgba(129,140,248,0.7)",
     },
     IRON: {
         color: "text-slate-300",
         bg: "bg-slate-500/20",
         glow: "#94a3b8",
+        glowRgb: "148,163,184",
         emoji: "⚙️",
         label: "Hierro",
         projEmoji: "⚙️",
-        projTrail: "rgba(148,163,184,0.6)",
     },
     SHADE: {
         color: "text-violet-400",
         bg: "bg-violet-700/20",
         glow: "#7c3aed",
+        glowRgb: "124,58,237",
         emoji: "🌑",
         label: "Sombra",
         projEmoji: "🌑",
-        projTrail: "rgba(124,58,237,0.7)",
     },
 };
+
+// ─────────────────────────────────────────
+// MythArt — imagen o emoji
+// ─────────────────────────────────────────
+
+function MythArt({
+    art,
+    px,
+    className = "",
+}: {
+    art?: { front?: string; portrait?: string; back?: string };
+    px: number;
+    className?: string;
+}) {
+    const src = art?.front || art?.portrait || "";
+    if (src.startsWith("http")) {
+        return (
+            <img
+                src={src}
+                alt=""
+                className={`object-contain drop-shadow-lg ${className}`}
+                style={{ width: px, height: px }}
+            />
+        );
+    }
+    return (
+        <span style={{ fontSize: px * 0.6 }} className={className}>
+            {src || "❓"}
+        </span>
+    );
+}
 
 // ─────────────────────────────────────────
 // HP Bar
 // ─────────────────────────────────────────
 
-function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
+function HpBar({ hp, maxHp, shield = 0 }: { hp: number; maxHp: number; shield?: number }) {
     const pct = maxHp > 0 ? Math.max(0, (hp / maxHp) * 100) : 0;
+    const shieldPct = maxHp > 0 ? Math.min(100 - pct, (shield / maxHp) * 100) : 0;
     const color = pct > 50 ? "bg-emerald-400" : pct > 25 ? "bg-yellow-400" : "bg-red-500";
     return (
-        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden flex">
             <div
-                className={`h-full rounded-full ${color} transition-all duration-700 ease-out`}
+                className={`h-full rounded-l-full ${color} transition-all duration-700`}
                 style={{ width: `${pct}%` }}
             />
+            {shieldPct > 0 && (
+                <div className="h-full bg-blue-400/70 transition-all duration-700" style={{ width: `${shieldPct}%` }} />
+            )}
         </div>
     );
 }
 
 // ─────────────────────────────────────────
-// Projectile — viaja de un lado a otro
+// Projectile
 // ─────────────────────────────────────────
 
 interface ProjectileState {
     affinity: Affinity;
-    direction: "ltr" | "rtl"; // ltr = player → enemy, rtl = enemy → player
+    direction: "ltr" | "rtl";
 }
 
 function Projectile({ proj }: { proj: ProjectileState }) {
@@ -220,144 +264,167 @@ function Projectile({ proj }: { proj: ProjectileState }) {
 }
 
 // ─────────────────────────────────────────
-// Myth slot card
+// Arena Myth — versión estilo Pokémon (sin borde de carta)
 // ─────────────────────────────────────────
 
-interface MythSlotProps {
+interface ArenaMythProps {
     myth: BattleMyth;
-    selected?: boolean;
-    targeted?: boolean;
+    side: "player" | "enemy"; // player = back view, enemy = front view
     isActing?: boolean;
+    targeted?: boolean;
     flashAffinity?: Affinity | null;
     floatingDmg?: { value: number; crit: boolean; mult: number; heal?: boolean } | null;
     onClick?: () => void;
+    spriteSize?: number;
 }
 
-function MythSlot({ myth, selected, targeted, isActing, flashAffinity, floatingDmg, onClick }: MythSlotProps) {
+function ArenaMyth({
+    myth,
+    side,
+    isActing,
+    targeted,
+    flashAffinity,
+    floatingDmg,
+    onClick,
+    spriteSize = 80,
+}: ArenaMythProps) {
     const cfg = flashAffinity ? AFFINITY_CONFIG[flashAffinity] : null;
     const canClick = onClick && !myth.defeated;
+    const primaryAffinity = myth.affinities?.[0];
+    const afCfg = primaryAffinity ? AFFINITY_CONFIG[primaryAffinity] : null;
 
     return (
-        <div className="relative flex flex-col items-center gap-1 w-24">
+        <div
+            className={`relative flex flex-col items-center gap-1 select-none ${canClick ? "cursor-pointer" : ""}`}
+            onClick={canClick ? onClick : undefined}
+        >
             {/* Daño / curación flotante */}
             {floatingDmg && (
                 <div
-                    className={`absolute -top-8 left-1/2 z-30 font-black text-sm pointer-events-none animate-float-dmg
-                    ${floatingDmg.heal ? "text-emerald-400" : floatingDmg.crit ? "text-yellow-300 scale-125" : floatingDmg.mult >= 2 ? "text-orange-400" : floatingDmg.mult <= 0.5 ? "text-blue-300" : "text-white"}`}
+                    className={`absolute z-30 font-black text-base pointer-events-none animate-float-dmg
+                        ${floatingDmg.heal ? "text-emerald-400" : floatingDmg.crit ? "text-yellow-300" : floatingDmg.mult >= 2 ? "text-orange-400" : floatingDmg.mult <= 0.5 ? "text-blue-300" : "text-white"}`}
+                    style={{ top: -28, left: "50%", transform: "translateX(-50%)" }}
                 >
-                    {floatingDmg.heal ? `+${floatingDmg.value}` : floatingDmg.value > 0 ? `-${floatingDmg.value}` : "¡Fallo!"}
+                    {floatingDmg.heal
+                        ? `+${floatingDmg.value}`
+                        : floatingDmg.value > 0
+                          ? `-${floatingDmg.value}`
+                          : "¡Fallo!"}
                     {floatingDmg.crit && !floatingDmg.heal && <span className="text-xs ml-0.5">!</span>}
                 </div>
             )}
 
-            {/* Tarjeta del Myth */}
-            <div
-                onClick={canClick ? onClick : undefined}
-                className={`relative w-20 h-20 rounded-xl border-2 flex items-center justify-center overflow-hidden
-                    transition-all duration-200
-                    ${
-                        myth.defeated
-                            ? "border-slate-700 bg-slate-900/60 grayscale opacity-30 cursor-not-allowed"
-                            : isActing
-                              ? "border-yellow-400 bg-yellow-500/10 shadow-lg scale-110"
-                              : selected
-                                ? "border-blue-400 bg-blue-500/10 shadow-lg cursor-pointer scale-110"
-                                : targeted
-                                  ? "border-red-400 bg-red-500/10 shadow-lg cursor-pointer scale-110"
-                                  : canClick
-                                    ? "border-slate-600 bg-slate-800/60 hover:border-slate-400 hover:scale-105 cursor-pointer"
-                                    : "border-slate-700 bg-slate-800/40"
-                    }`}
-                style={{
-                    boxShadow: isActing
-                        ? "0 0 20px rgba(250,204,21,0.6)"
-                        : selected
-                          ? "0 0 16px rgba(96,165,250,0.5)"
-                          : targeted
-                            ? "0 0 16px rgba(248,113,113,0.5), 0 0 4px rgba(248,113,113,0.8)"
-                            : cfg
-                              ? `0 0 20px ${cfg.glow}`
-                              : undefined,
-                }}
-            >
+            {/* Sprite container — sin borde */}
+            <div className="relative flex items-end justify-center" style={{ width: spriteSize, height: spriteSize }}>
                 {/* Flash de impacto */}
                 {cfg && (
                     <div
-                        className="absolute inset-0 rounded-xl animate-impact-flash pointer-events-none"
-                        style={{ background: `${cfg.glow}55` }}
+                        className="absolute inset-0 rounded-full animate-impact-flash pointer-events-none"
+                        style={{ background: `radial-gradient(circle, ${cfg.glow}66 0%, transparent 70%)` }}
                     />
                 )}
 
-                {/* Pulso actor activo */}
+                {/* Glow del actor activo */}
                 {isActing && !myth.defeated && (
-                    <div className="absolute inset-0 rounded-xl border-2 border-yellow-400/60 animate-pulse pointer-events-none" />
-                )}
-                {selected && !myth.defeated && (
-                    <div className="absolute inset-0 rounded-xl border-2 border-blue-400/50 animate-pulse pointer-events-none" />
-                )}
-                {targeted && !myth.defeated && (
-                    <div className="absolute inset-0 rounded-xl border-2 border-red-400/60 animate-pulse pointer-events-none" />
+                    <div
+                        className="absolute inset-0 rounded-full animate-pulse pointer-events-none"
+                        style={{
+                            background: afCfg
+                                ? `radial-gradient(circle, ${afCfg.glow}33 0%, transparent 70%)`
+                                : undefined,
+                        }}
+                    />
                 )}
 
-                {/* Icono de estado en esquina superior derecha */}
+                {/* Target ring */}
+                {targeted && !myth.defeated && (
+                    <div className="absolute inset-0 rounded-full border-2 border-red-400/60 animate-pulse pointer-events-none" />
+                )}
+
+                {myth.defeated ? (
+                    <span className="text-4xl opacity-30">💀</span>
+                ) : (
+                    <MythArt
+                        art={
+                            side === "player"
+                                ? { front: myth.art?.back || myth.art?.front, portrait: myth.art?.portrait }
+                                : myth.art
+                        }
+                        px={spriteSize}
+                        className={[
+                            cfg ? "animate-myth-shake" : isActing ? "animate-myth-idle" : "",
+                            myth.status ? `aura-${myth.status}` : "",
+                        ]
+                            .filter(Boolean)
+                            .join(" ")}
+                    />
+                )}
+
+                {/* Estado alterado — esquina superior derecha */}
                 {myth.status && !myth.defeated && (
-                    <span className="absolute top-0.5 right-0.5 text-xs z-20 drop-shadow">
+                    <span className="absolute -top-1 -right-1 text-sm z-20 drop-shadow">
                         {STATUS_ICONS[myth.status] ?? "⚠️"}
                     </span>
                 )}
 
-                {myth.defeated ? (
-                    <span className="text-3xl opacity-40">💀</span>
-                ) : (
-                    <span className={`text-4xl ${cfg ? "animate-myth-shake" : ""}`}>{myth.art?.front ?? "❓"}</span>
+                {/* Escudo */}
+                {(myth.shield ?? 0) > 0 && !myth.defeated && (
+                    <span className="absolute -top-1 -left-1 text-sm z-20">🛡️</span>
                 )}
             </div>
 
-            <p
-                className={`text-xs font-bold truncate w-20 text-center font-mono
-                ${myth.defeated ? "text-slate-600" : isActing ? "text-yellow-300" : selected ? "text-blue-300" : targeted ? "text-red-400" : "text-slate-200"}`}
-            >
-                {myth.name}
-            </p>
-            <p className="text-slate-500 text-xs font-mono">Nv.{myth.level} · {myth.speed}spd</p>
-
+            {/* Sombra elíptica debajo del sprite */}
             {!myth.defeated && (
-                <div className="w-20">
-                    <HpBar hp={myth.hp} maxHp={myth.maxHp} />
-                    <p className="text-slate-500 text-xs text-center mt-0.5 font-mono tabular-nums">
-                        {myth.hp}
-                        <span className="text-slate-700">/{myth.maxHp}</span>
+                <div
+                    className="rounded-full opacity-20 bg-black"
+                    style={{ width: spriteSize * 0.7, height: 8, marginTop: -4, filter: "blur(4px)" }}
+                />
+            )}
+
+            {/* Info: nombre + HP — compacto */}
+            <div className="flex flex-col items-center gap-0.5" style={{ width: Math.max(spriteSize, 72) }}>
+                <div className="flex items-center gap-1 justify-center">
+                    {isActing && !myth.defeated && <span className="text-yellow-400 text-xs animate-pulse">▶</span>}
+                    <p
+                        className={`text-xs font-bold truncate font-mono text-center
+                        ${myth.defeated ? "text-slate-600" : isActing ? "text-yellow-300" : targeted ? "text-red-400" : "text-white"}`}
+                        style={{ maxWidth: Math.max(spriteSize, 72) }}
+                    >
+                        {myth.name}
                     </p>
                 </div>
-            )}
 
-            {/* Buffs activos */}
-            {!myth.defeated && myth.buffs && myth.buffs.length > 0 && (
-                <div className="flex gap-0.5 flex-wrap justify-center">
-                    {myth.buffs.map((b, i) => (
-                        <span key={i} className="text-xs" title={`${b.stat.toUpperCase()} ×${b.multiplier} (${b.turnsLeft}t)`}>
-                            {b.emoji}
-                        </span>
-                    ))}
-                </div>
-            )}
+                {!myth.defeated && (
+                    <>
+                        <HpBar hp={myth.hp} maxHp={myth.maxHp} shield={myth.shield} />
+                        <p className="text-slate-500 text-[10px] font-mono tabular-nums">
+                            {myth.hp}
+                            <span className="text-slate-700">/{myth.maxHp}</span>
+                        </p>
+                    </>
+                )}
 
-            {!myth.defeated &&
-                myth.affinities?.[0] &&
-                (() => {
-                    const ac = AFFINITY_CONFIG[myth.affinities[0] as Affinity];
-                    return ac ? (
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${ac.bg} ${ac.color} font-mono`}>
-                            {ac.emoji} {myth.affinities[0]}
-                        </span>
-                    ) : null;
-                })()}
+                {/* Buffs activos */}
+                {!myth.defeated && myth.buffs && myth.buffs.length > 0 && (
+                    <div className="flex gap-0.5 flex-wrap justify-center">
+                        {myth.buffs.slice(0, 4).map((b, i) => (
+                            <span
+                                key={i}
+                                className="text-xs"
+                                title={`${b.label ?? b.stat?.toUpperCase() ?? ""} ×${b.multiplier.toFixed(1)} (${b.turnsLeft}t)`}
+                            >
+                                {b.emoji}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
 
 // ─────────────────────────────────────────
-// Prep screen — drag & drop con equipo + almacén
+// Prep screen
 // ─────────────────────────────────────────
 
 function PrepScreen({
@@ -392,7 +459,6 @@ function PrepScreen({
         const { myth, from, slotIdx } = dragRef.current;
         const ns = [...slots];
         const nb = [...bench];
-
         if (from === "bench") {
             const displaced = ns[idx];
             ns[idx] = myth;
@@ -429,12 +495,11 @@ function PrepScreen({
         <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6 overflow-auto">
             <div className="text-center">
                 <h2 className="font-mono text-xl font-black tracking-widest text-yellow-400 uppercase">
-                    ⚔️ Preparación de combate
+                    ⚔️ Preparación
                 </h2>
                 <p className="text-slate-400 text-sm mt-1">Arrastra hasta 3 Myths a los slots para combatir</p>
             </div>
 
-            {/* Slots */}
             <div className="flex gap-4">
                 {slots.map((myth, i) => (
                     <div
@@ -450,22 +515,11 @@ function PrepScreen({
                                 onDragStart={() => handleDragStart(myth, "slot", i)}
                                 className="flex flex-col items-center gap-1 cursor-grab px-2 w-full"
                             >
-                                <span className="text-4xl">{myth.art?.front ?? "❓"}</span>
+                                <MythArt art={myth.art} px={48} />
                                 <p className="font-mono text-xs text-white font-bold truncate w-full text-center">
                                     {myth.name}
                                 </p>
                                 <p className="text-slate-400 text-xs font-mono">Nv.{myth.level}</p>
-                                {myth.affinities?.[0] &&
-                                    (() => {
-                                        const ac = AFFINITY_CONFIG[myth.affinities[0] as Affinity];
-                                        return ac ? (
-                                            <span
-                                                className={`text-xs px-1.5 py-0.5 rounded-full ${ac.bg} ${ac.color} font-mono`}
-                                            >
-                                                {ac.emoji}
-                                            </span>
-                                        ) : null;
-                                    })()}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-1 opacity-25">
@@ -477,7 +531,6 @@ function PrepScreen({
                 ))}
             </div>
 
-            {/* Bench */}
             <div className="w-full max-w-2xl" onDragOver={(e) => e.preventDefault()} onDrop={handleDropBench}>
                 <p className="font-mono text-xs text-slate-500 uppercase tracking-widest mb-2 text-center">
                     — Myths disponibles —
@@ -490,9 +543,7 @@ function PrepScreen({
                     )}
                     {partyMyths.length > 0 && (
                         <div className="mb-3">
-                            <p className="font-mono text-xs text-slate-500 uppercase tracking-widest mb-2">
-                                ⚔️ Equipo <span className="text-slate-600">({partyMyths.length})</span>
-                            </p>
+                            <p className="font-mono text-xs text-slate-500 uppercase tracking-widest mb-2">⚔️ Equipo</p>
                             <div className="flex flex-wrap gap-2">
                                 {partyMyths.map((m) => (
                                     <BenchCard key={mythId(m)} myth={m} onDragStart={handleDragStart} />
@@ -503,7 +554,7 @@ function PrepScreen({
                     {storeMyths.length > 0 && (
                         <div>
                             <p className="font-mono text-xs text-slate-500 uppercase tracking-widest mb-2">
-                                📦 Almacén <span className="text-slate-600">({storeMyths.length})</span>
+                                📦 Almacén
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 {storeMyths.map((m) => (
@@ -519,11 +570,7 @@ function PrepScreen({
                 onClick={() => canStart && onStart(order)}
                 disabled={!canStart || loading}
                 className={`px-12 py-3 rounded-xl font-mono font-black text-sm tracking-widest uppercase transition-all
-                    ${
-                        canStart && !loading
-                            ? "bg-red-600 text-white hover:bg-red-500 hover:scale-105 shadow-lg shadow-red-900/50"
-                            : "bg-slate-800 text-slate-600 cursor-not-allowed"
-                    }`}
+                    ${canStart && !loading ? "bg-red-600 text-white hover:bg-red-500 hover:scale-105 shadow-lg shadow-red-900/50" : "bg-slate-800 text-slate-600 cursor-not-allowed"}`}
             >
                 {loading ? "Iniciando..." : `⚔️ Combatir (${order.length} Myth${order.length !== 1 ? "s" : ""})`}
             </button>
@@ -537,17 +584,14 @@ function BenchCard({ myth, onDragStart }: { myth: any; onDragStart: (m: any, fro
         <div
             draggable
             onDragStart={() => onDragStart(myth, "bench", -1)}
-            className="flex flex-col items-center gap-1 w-20 cursor-grab active:cursor-grabbing
-                p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-slate-500 transition-all select-none"
+            className="flex flex-col items-center gap-1 w-20 cursor-grab active:cursor-grabbing p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-slate-500 transition-all select-none"
         >
-            <span className="text-3xl">{myth.art?.front ?? "❓"}</span>
+            <MythArt art={myth.art} px={40} />
             <p className="font-mono text-xs text-white font-bold truncate w-full text-center">{myth.name}</p>
             <p className="text-slate-500 text-xs font-mono">Nv.{myth.level}</p>
-            {myth.isInParty ? (
-                <span className="text-xs text-blue-400 font-mono">equipo</span>
-            ) : (
-                <span className="text-xs text-slate-500 font-mono">almacén</span>
-            )}
+            <span className={`text-xs font-mono ${myth.isInParty ? "text-blue-400" : "text-slate-500"}`}>
+                {myth.isInParty ? "equipo" : "almacén"}
+            </span>
         </div>
     );
 }
@@ -562,7 +606,6 @@ type BattleMode = "npc" | "pvp";
 export default function BattlePage() {
     const location = useLocation();
     const navigate = useNavigate();
-
     const searchParams = new URLSearchParams(location.search);
     const initialMode: BattleMode =
         (location.state as any)?.mode === "pvp" || searchParams.get("mode") === "pvp" ? "pvp" : "npc";
@@ -579,23 +622,18 @@ export default function BattlePage() {
     const [loadingStart, setLoadingStart] = useState(false);
     const [animating, setAnimating] = useState(false);
 
-    // Sistema de turnos por SPD
-    // currentActorId = instanceId del Myth que debe actuar AHORA
     const [currentActorId, setCurrentActorId] = useState<string | null>(null);
-    // El jugador elige a qué enemigo atacar
     const [targetEnemyMythId, setTargetEnemyMythId] = useState<string | null>(null);
-    // Timer 15s
     const [timer, setTimer] = useState<number>(15);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Animaciones
     const [projectile, setProjectile] = useState<ProjectileState | null>(null);
     const [flashMap, setFlashMap] = useState<Record<string, Affinity>>({});
-    const [floatMap, setFloatMap] = useState<Record<string, { value: number; crit: boolean; mult: number; heal?: boolean }>>({});
+    const [floatMap, setFloatMap] = useState<
+        Record<string, { value: number; crit: boolean; mult: number; heal?: boolean }>
+    >({});
 
-    const [log, setLog] = useState<{ text: string; type: "normal" | "good" | "bad" | "crit" | "miss" | "system" }[]>(
-        [],
-    );
+    const [log, setLog] = useState<{ text: string; type: string }[]>([]);
     const logRef = useRef<HTMLDivElement>(null);
     const [result, setResult] = useState<{ status: "win" | "lose"; xp?: number; coins?: number } | null>(null);
     const { reload } = useTrainer();
@@ -618,26 +656,44 @@ export default function BattlePage() {
     }, []);
 
     useEffect(() => {
-        if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-    }, [log]);
+        api.creatures()
+            .then((d) => setAllMyths(d ?? []))
+            .catch(() => {});
+        api.battleNpcActive()
+            .then(async (s: any) => {
+                if (s?.status === "ongoing") {
+                    const cloned = cloneSession(s);
+                    setSession(cloned);
+                    setPhase("battle");
+                    const { actorId, isPlayer } = initTurn(cloned);
+                    if (!isPlayer && actorId) {
+                        await sleep(800);
+                        setAnimating(true);
+                        try {
+                            await handleNpcTurn(cloned, actorId);
+                        } finally {
+                            setAnimating(false);
+                        }
+                    }
+                }
+            })
+            .catch(() => {});
+    }, []);
 
-    // Inicializar estado de turno al recibir sesión
-    function initTurn(s: BattleSession) {
-        // El actor actual es el primero de la cola
+    function initTurn(s: BattleSession): { actorId: string | null; isPlayer: boolean } {
         const actorId = s.turnQueue?.[s.currentQueueIndex ?? 0] ?? null;
         setCurrentActorId(actorId);
-
-        // Si el actor es un Myth del jugador, seleccionar target por defecto
-        const isPlayerActor = s.playerTeam.some(m => m.instanceId === actorId);
-        if (isPlayerActor) {
-            const firstEnemy = s.enemyTeam.find(m => !m.defeated);
+        const isPlayer = s.playerTeam.some((m) => m.instanceId === actorId);
+        if (isPlayer) {
+            const firstEnemy = s.enemyTeam.find((m) => !m.defeated);
             if (firstEnemy) setTargetEnemyMythId(firstEnemy.instanceId);
         }
+        return { actorId, isPlayer };
     }
 
-    // Timer de 15s — solo activo cuando es turno del jugador
-    const currentActorIsPlayer = session?.playerTeam.some(m => m.instanceId === currentActorId) ?? false;
+    const currentActorIsPlayer = session?.playerTeam.some((m) => m.instanceId === currentActorId) ?? false;
 
+    // Timer — solo turno del jugador
     useEffect(() => {
         if (phase !== "battle" || animating || !currentActorIsPlayer) {
             if (timerRef.current) clearInterval(timerRef.current);
@@ -645,34 +701,34 @@ export default function BattlePage() {
         }
         setTimer(15);
         timerRef.current = setInterval(() => {
-            setTimer(t => {
+            setTimer((t) => {
                 if (t <= 1) {
                     clearInterval(timerRef.current!);
-                    // Tiempo agotado: ataque básico al primer enemigo vivo
                     handleTimerExpired();
                     return 0;
                 }
                 return t - 1;
             });
         }, 1000);
-        return () => { if (timerRef.current) clearInterval(timerRef.current!); };
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current!);
+        };
     }, [currentActorId, phase, animating]);
 
     function handleTimerExpired() {
         if (!session) return;
-        const actor = session.playerTeam.find(m => m.instanceId === currentActorId);
+        const actor = session.playerTeam.find((m) => m.instanceId === currentActorId);
         if (!actor) return;
-        // Move básico: cooldown 0 o menor power
-        const basicMove = actor.moves
-            .filter(mv => mv.power > 0 && !(actor.cooldownsLeft?.[mv.id] > 0))
-            .sort((a, b) => a.cooldown - b.cooldown)[0] ?? actor.moves[0];
-        const firstEnemy = session.enemyTeam.find(m => !m.defeated);
+        const basicMove =
+            actor.moves
+                .filter((mv) => mv.power > 0 && !(actor.cooldownsLeft?.[mv.id] > 0))
+                .sort((a, b) => a.cooldown - b.cooldown)[0] ?? actor.moves[0];
+        const firstEnemy = session.enemyTeam.find((m) => !m.defeated);
         if (!basicMove || !firstEnemy) return;
         handleMove(basicMove.id, firstEnemy.instanceId);
     }
 
-    type LogType = "normal" | "good" | "bad" | "crit" | "miss" | "system" | "status" | "heal";
-    function addLog(text: string, type: LogType = "normal") {
+    function addLog(text: string, type = "normal") {
         setLog((l) => [...l.slice(-50), { text, type }]);
     }
 
@@ -680,13 +736,153 @@ export default function BattlePage() {
         return new Promise<void>((r) => setTimeout(r, ms));
     }
 
-    async function flashAndFloat(instanceId: string, affinity: Affinity, dmg: number, crit: boolean, mult: number, heal = false) {
+    async function flashAndFloat(
+        instanceId: string,
+        affinity: Affinity,
+        dmg: number,
+        crit: boolean,
+        mult: number,
+        heal = false,
+    ) {
         setFlashMap((m) => ({ ...m, [instanceId]: affinity }));
         setFloatMap((m) => ({ ...m, [instanceId]: { value: dmg, crit, mult, heal } }));
         await sleep(600);
-        setFlashMap((m) => { const n = { ...m }; delete n[instanceId]; return n; });
+        setFlashMap((m) => {
+            const n = { ...m };
+            delete n[instanceId];
+            return n;
+        });
         await sleep(400);
-        setFloatMap((m) => { const n = { ...m }; delete n[instanceId]; return n; });
+        setFloatMap((m) => {
+            const n = { ...m };
+            delete n[instanceId];
+            return n;
+        });
+    }
+
+    // Lógica de animación compartida entre turno jugador y NPC
+    async function animateTurnAction(action: any) {
+        const direction = action.isPlayerMyth ? "ltr" : "rtl";
+        if (action.blockedByStatus) {
+            addLog(action.blockedByStatus, "status");
+        } else {
+            const logPrefix = action.isPlayerMyth ? "" : "👾 ";
+            addLog(`${logPrefix}${action.actorName} usa ${action.move} → ${action.targetName}`, "normal");
+            setProjectile({ affinity: action.moveAffinity as Affinity, direction });
+            await sleep(480);
+            setProjectile(null);
+            await sleep(80);
+
+            if (action.targetInstanceId && action.damage > 0) {
+                await flashAndFloat(
+                    action.targetInstanceId,
+                    action.moveAffinity,
+                    action.damage,
+                    action.crit,
+                    action.mult,
+                );
+            } else if (action.missed) {
+                addLog("¡Falló!", "miss");
+            }
+
+            if (action.mult >= 2) addLog(`⚡ ¡Súper eficaz! ×${action.mult}`, action.isPlayerMyth ? "good" : "bad");
+            else if (action.mult > 0 && action.mult < 1)
+                addLog(`💤 Poco eficaz ×${action.mult}`, action.isPlayerMyth ? "bad" : "good");
+            if (action.crit) addLog("💥 ¡Golpe crítico!", "crit");
+
+            if (action.statusApplied) {
+                const icon = STATUS_ICONS[action.statusApplied] ?? "⚠️";
+                addLog(`${icon} ¡${action.targetName} afectado por ${action.statusApplied}!`, "status");
+            }
+            if (action.buffApplied) {
+                const label = action.buffApplied.label ?? action.buffApplied.stat?.toUpperCase() ?? "";
+                addLog(
+                    `${action.buffApplied.emoji} ${action.actorName} ${label}`,
+                    action.isPlayerMyth ? "good" : "bad",
+                );
+            }
+            if (action.healAmount && action.healAmount > 0) {
+                await flashAndFloat(action.actorInstanceId, action.moveAffinity, action.healAmount, false, 1, true);
+                addLog(`💚 ${action.actorName} recupera ${action.healAmount} HP`, "heal");
+            }
+            if (action.effectMsgs?.length) {
+                for (const msg of action.effectMsgs) addLog(msg, "status");
+            }
+        }
+
+        if (action.statusTickDamage && action.statusTickDamage > 0) {
+            await sleep(300);
+            await flashAndFloat(action.actorInstanceId, action.moveAffinity, action.statusTickDamage, false, 1);
+            addLog(action.statusTickMsg ?? `${action.actorName} sufre daño por estado`, "status");
+        }
+    }
+
+    function finalizeTurn(
+        newSession: BattleSession,
+        nextActorId: string | null,
+        nextActorIsPlayer: boolean,
+        xpGained?: number,
+        coinsGained?: number,
+    ) {
+        setSession(newSession);
+        if (newSession.status === "win" || newSession.status === "lose") {
+            addLog(
+                newSession.status === "win" ? "🏆 ¡Victoria!" : "💀 Derrota...",
+                newSession.status === "win" ? "good" : "bad",
+            );
+            setResult({ status: newSession.status, xp: xpGained, coins: coinsGained });
+            setPhase("result");
+            window.dispatchEvent(new Event("sidebar:reload"));
+            return true; // combate terminado
+        }
+        setCurrentActorId(nextActorId);
+        if (nextActorIsPlayer) {
+            setTargetEnemyMythId((prev) => {
+                const stillAlive = newSession.enemyTeam.find((m) => m.instanceId === prev && !m.defeated);
+                return stillAlive ? prev : (newSession.enemyTeam.find((m) => !m.defeated)?.instanceId ?? null);
+            });
+        }
+        return false;
+    }
+
+    async function handleMove(moveId: string, forcedTargetId?: string) {
+        if (!session || animating) return;
+        if (timerRef.current) clearInterval(timerRef.current);
+        const resolvedTarget = forcedTargetId ?? targetEnemyMythId ?? undefined;
+        setAnimating(true);
+        try {
+            const res = await api.battleNpcTurn(session.battleId, moveId, resolvedTarget);
+            const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
+            const newSession = cloneSession(rawSession);
+            await animateTurnAction(action);
+            await sleep(150);
+            const ended = finalizeTurn(newSession, nextActorId, nextActorIsPlayer, xpGained, coinsGained);
+            if (!ended && !nextActorIsPlayer && nextActorId) {
+                await sleep(600);
+                await handleNpcTurn(newSession, nextActorId);
+            }
+        } catch (e: any) {
+            addLog(`Error: ${e.message}`, "bad");
+        } finally {
+            setAnimating(false);
+        }
+    }
+
+    async function handleNpcTurn(currentSession: BattleSession, npcActorId: string) {
+        try {
+            const res = await api.battleNpcTurn(currentSession.battleId, "__npc__", undefined);
+            const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
+            const newSession = cloneSession(rawSession);
+            await animateTurnAction(action);
+            await sleep(150);
+            const ended = finalizeTurn(newSession, nextActorId, nextActorIsPlayer, xpGained, coinsGained);
+            if (!ended && !nextActorIsPlayer && nextActorId) {
+                await sleep(600);
+                await handleNpcTurn(newSession, nextActorId);
+            }
+        } catch (e: any) {
+            addLog(`Error NPC: ${e.message}`, "bad");
+        }
     }
 
     async function handleStart(order: string[]) {
@@ -696,9 +892,19 @@ export default function BattlePage() {
             const cloned = cloneSession(s);
             setSession(cloned);
             setPhase("battle");
-            initTurn(cloned);
+            const { actorId, isPlayer } = initTurn(cloned);
             addLog("⚔️ ¡Comienza el combate!", "system");
             await reload();
+            // Si el primer turno es del NPC, ejecutarlo automáticamente
+            if (!isPlayer && actorId) {
+                await sleep(800);
+                setAnimating(true);
+                try {
+                    await handleNpcTurn(cloned, actorId);
+                } finally {
+                    setAnimating(false);
+                }
+            }
         } catch (e: any) {
             toast(e.message ?? "Error al iniciar combate", "error");
         } finally {
@@ -706,255 +912,10 @@ export default function BattlePage() {
         }
     }
 
-    async function handleMove(moveId: string, forcedTargetId?: string) {
-        if (!session || animating) return;
-        // Parar timer
-        if (timerRef.current) clearInterval(timerRef.current);
-
-        const resolvedTarget = forcedTargetId ?? targetEnemyMythId ?? undefined;
-
-        setAnimating(true);
-        try {
-            const res = await api.battleNpcTurn(session.battleId, moveId, resolvedTarget);
-            const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
-            const newSession: BattleSession = cloneSession(rawSession);
-
-            // ── Animación del turno ──
-            const direction = action.isPlayerMyth ? "ltr" : "rtl";
-
-            // Bloqueado por estado
-            if (action.blockedByStatus) {
-                addLog(action.blockedByStatus, "status");
-            } else {
-                // Log de acción
-                const logPrefix = action.isPlayerMyth ? "" : "👾 ";
-                addLog(`${logPrefix}${action.actorName} usa ${action.move} → ${action.targetName}`, "normal");
-
-                // Proyectil
-                setProjectile({ affinity: action.moveAffinity as Affinity, direction });
-                await sleep(480);
-                setProjectile(null);
-                await sleep(80);
-
-                // Flash + daño en el objetivo
-                if (action.targetInstanceId && action.damage > 0) {
-                    await flashAndFloat(
-                        action.targetInstanceId,
-                        action.moveAffinity as Affinity,
-                        action.damage,
-                        action.crit,
-                        action.mult,
-                    );
-                } else if (action.missed) {
-                    addLog("¡Falló!", "miss");
-                }
-
-                // Logs de combate
-                if (action.mult >= 2) addLog(`⚡ ¡Súper eficaz! ×${action.mult}`, "good");
-                else if (action.mult > 0 && action.mult < 1) addLog(`💤 Poco eficaz ×${action.mult}`, "bad");
-                if (action.crit) addLog("💥 ¡Golpe crítico!", "crit");
-
-                // Estado aplicado
-                if (action.statusApplied) {
-                    const icon = STATUS_ICONS[action.statusApplied] ?? "⚠️";
-                    addLog(`${icon} ¡${action.targetName} ha sido afectado por ${action.statusApplied}!`, "status");
-                }
-
-                // Buff aplicado
-                if (action.buffApplied) {
-                    addLog(`${action.buffApplied.emoji} ¡${action.actorName} subió su ${action.buffApplied.stat.toUpperCase()}!`, "good");
-                }
-
-                // Drain / heal
-                if (action.healAmount && action.healAmount > 0) {
-                    await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.healAmount, false, 1, true);
-                    addLog(`💚 ${action.actorName} recupera ${action.healAmount} HP`, "heal");
-                }
-            }
-
-            // Tick de estado al final del turno
-            if (action.statusTickDamage && action.statusTickDamage > 0) {
-                await sleep(300);
-                await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.statusTickDamage, false, 1);
-                addLog(action.statusTickMsg ?? `${action.actorName} sufre daño por estado`, "status");
-            }
-
-            // Aplicar sesión completa
-            setSession(newSession);
-            await sleep(150);
-
-            // Fin de combate
-            if (newSession.status === "win" || newSession.status === "lose") {
-                addLog(
-                    newSession.status === "win" ? "🏆 ¡Victoria!" : "💀 Derrota...",
-                    newSession.status === "win" ? "good" : "bad",
-                );
-                setResult({ status: newSession.status, xp: xpGained, coins: coinsGained });
-                setPhase("result");
-                window.dispatchEvent(new Event("sidebar:reload"));
-                return;
-            }
-
-            // Siguiente turno
-            setCurrentActorId(nextActorId);
-            if (nextActorIsPlayer) {
-                // Mantener target si sigue vivo, si no, primer enemigo vivo
-                const targetStillAlive = newSession.enemyTeam.find(
-                    m => m.instanceId === targetEnemyMythId && !m.defeated
-                );
-                if (!targetStillAlive) {
-                    const firstEnemy = newSession.enemyTeam.find(m => !m.defeated);
-                    setTargetEnemyMythId(firstEnemy?.instanceId ?? null);
-                }
-            }
-
-            // Si el siguiente es NPC, ejecutar automáticamente tras breve pausa
-            if (!nextActorIsPlayer && nextActorId) {
-                await sleep(600);
-                // El NPC elige su move automáticamente en el backend (moveId ignorado)
-                await handleNpcTurn(newSession, nextActorId);
-            }
-
-        } catch (e: any) {
-            addLog(`Error: ${e.message}`, "bad");
-        } finally {
-            setAnimating(false);
-        }
-    }
-
-    // Turno automático del NPC (encadenado si el siguiente también es NPC)
-    async function handleNpcTurn(currentSession: BattleSession, npcActorId: string) {
-        try {
-            // moveId vacío: el backend lo ignora para NPC y elige con IA
-            const res = await api.battleNpcTurn(currentSession.battleId, "__npc__", undefined);
-            const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
-            const newSession: BattleSession = cloneSession(rawSession);
-
-            if (action.blockedByStatus) {
-                addLog(action.blockedByStatus, "status");
-            } else {
-                addLog(`👾 ${action.actorName} usa ${action.move} → ${action.targetName}`, "normal");
-                setProjectile({ affinity: action.moveAffinity as Affinity, direction: "rtl" });
-                await sleep(480);
-                setProjectile(null);
-                await sleep(80);
-
-                if (action.targetInstanceId && action.damage > 0) {
-                    await flashAndFloat(
-                        action.targetInstanceId,
-                        action.moveAffinity as Affinity,
-                        action.damage,
-                        action.crit,
-                        action.mult,
-                    );
-                } else if (action.missed) {
-                    addLog("¡El rival falló!", "miss");
-                }
-
-                if (action.mult >= 2) addLog(`⚡ ¡Rival súper eficaz! ×${action.mult}`, "bad");
-                else if (action.mult > 0 && action.mult < 1) addLog(`💤 Rival poco eficaz ×${action.mult}`, "good");
-                if (action.crit) addLog("💥 ¡Crítico del rival!", "crit");
-
-                if (action.statusApplied) {
-                    const icon = STATUS_ICONS[action.statusApplied] ?? "⚠️";
-                    addLog(`${icon} ¡${action.targetName} ha sido afectado por ${action.statusApplied}!`, "status");
-                }
-                if (action.buffApplied) {
-                    addLog(`${action.buffApplied.emoji} ${action.actorName} subió su ${action.buffApplied.stat.toUpperCase()}`, "bad");
-                }
-                if (action.healAmount && action.healAmount > 0) {
-                    await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.healAmount, false, 1, true);
-                    addLog(`💚 ${action.actorName} recupera ${action.healAmount} HP`, "status");
-                }
-            }
-
-            if (action.statusTickDamage && action.statusTickDamage > 0) {
-                await sleep(300);
-                await flashAndFloat(action.actorInstanceId, action.moveAffinity as Affinity, action.statusTickDamage, false, 1);
-                addLog(action.statusTickMsg ?? "", "status");
-            }
-
-            setSession(newSession);
-            await sleep(150);
-
-            if (newSession.status === "win" || newSession.status === "lose") {
-                addLog(newSession.status === "win" ? "🏆 ¡Victoria!" : "💀 Derrota...",
-                    newSession.status === "win" ? "good" : "bad");
-                setResult({ status: newSession.status, xp: xpGained, coins: coinsGained });
-                setPhase("result");
-                window.dispatchEvent(new Event("sidebar:reload"));
-                return;
-            }
-
-            setCurrentActorId(nextActorId);
-            if (nextActorIsPlayer) {
-                const firstEnemy = newSession.enemyTeam.find(m => !m.defeated);
-                setTargetEnemyMythId(prev => {
-                    const stillAlive = newSession.enemyTeam.find(m => m.instanceId === prev && !m.defeated);
-                    return stillAlive ? prev : (firstEnemy?.instanceId ?? null);
-                });
-            }
-
-            // Si el siguiente también es NPC, encadenar
-            if (!nextActorIsPlayer && nextActorId) {
-                await sleep(600);
-                await handleNpcTurn(newSession, nextActorId);
-            }
-
-        } catch (e: any) {
-            addLog(`Error NPC: ${e.message}`, "bad");
-        }
-    }
-
-    async function handleCapture() {
-        if (!session || !targetEnemyMythId || animating) return;
-        setAnimating(true);
-        try {
-            const res = await api.battleNpcCapture(session.battleId, targetEnemyMythId);
-            if (res.success) {
-                addLog("✅ ¡Captura exitosa!", "good");
-                const ns = cloneSession(res.session);
-                setSession(ns);
-                if (ns.status === "win") {
-                    setResult({ status: "win" });
-                    setPhase("result");
-                    window.dispatchEvent(new Event("sidebar:reload"));
-                }
-            } else {
-                addLog(
-                    `❌ Captura fallida${res.counterDamage ? ` — contraataque: ${res.counterDamage} dmg` : ""}`,
-                    "bad",
-                );
-                const ns = cloneSession(res.session);
-                setSession(ns);
-                if (ns.status === "lose") {
-                    setResult({ status: "lose" });
-                    setPhase("result");
-                }
-            }
-        } catch (e: any) {
-            addLog(`Error: ${e.message}`, "bad");
-        } finally {
-            setAnimating(false);
-        }
-    }
-
-    async function handleFlee() {
-        if (!session || animating) return;
-        try {
-            await api.battleNpcFlee(session.battleId);
-            addLog("🏃 Huiste del combate", "bad");
-            setResult({ status: "lose" });
-            setPhase("result");
-        } catch (e: any) {
-            addLog(`Error: ${e.message}`, "bad");
-        }
-    }
-
-    // Variables derivadas para el render
-    const currentActor = session ? [...session.playerTeam, ...session.enemyTeam].find(m => m.instanceId === currentActorId) ?? null : null;
+    const currentActor = session
+        ? ([...session.playerTeam, ...session.enemyTeam].find((m) => m.instanceId === currentActorId) ?? null)
+        : null;
     const targetEnemy = session?.enemyTeam.find((m) => m.instanceId === targetEnemyMythId);
-    const canCapture = targetEnemy && !targetEnemy.defeated && targetEnemy.hp / targetEnemy.maxHp < 0.25 && currentActorIsPlayer;
 
     // ── PvP ──
     if (mode === "pvp") {
@@ -1079,6 +1040,10 @@ export default function BattlePage() {
                     60%     { transform:translateX(-3px) rotate(-1deg); }
                     80%     { transform:translateX(3px) rotate(1deg); }
                 }
+                @keyframes mythIdle {
+                    0%,100% { transform:translateY(0px); }
+                    50%     { transform:translateY(-4px); }
+                }
                 @keyframes logFadeIn {
                     from { opacity:0; transform:translateX(-6px); }
                     to   { opacity:1; transform:translateX(0); }
@@ -1088,56 +1053,101 @@ export default function BattlePage() {
                 .animate-float-dmg { animation: floatDmg 0.9s ease-out forwards; }
                 .animate-impact-flash { animation: impactFlash 0.55s ease-in-out; }
                 .animate-myth-shake { animation: mythShake 0.45s ease-in-out; }
+                .animate-myth-idle  { animation: mythIdle 2s ease-in-out infinite; }
                 .animate-log-in { animation: logFadeIn 0.2s ease-out both; }
+                /* ── Auras de estado ── */
+@keyframes poisonPulse {
+    0%,100% { filter: drop-shadow(0 0 4px #4ade80) drop-shadow(0 0 12px #16a34a44); }
+    50%     { filter: drop-shadow(0 0 10px #4ade80) drop-shadow(0 0 24px #16a34a88); }
+}
+@keyframes burnFlicker {
+    0%,100% { filter: drop-shadow(0 0 4px #f97316) drop-shadow(0 0 10px #ea580c66); }
+    33%     { filter: drop-shadow(0 0 8px #fb923c) drop-shadow(0 0 20px #f9731688); }
+    66%     { filter: drop-shadow(0 0 6px #ef4444) drop-shadow(0 0 16px #dc262677); }
+}
+@keyframes paralyzeZap {
+    0%,90%,100% { filter: drop-shadow(0 0 2px #fde047); opacity:1; }
+    92%         { filter: drop-shadow(0 0 12px #fde047) drop-shadow(0 0 4px #fff); opacity:0.7; }
+    95%         { filter: drop-shadow(0 0 2px #fde047); opacity:1; }
+    97%         { filter: drop-shadow(0 0 10px #fde047); opacity:0.8; }
+}
+@keyframes freezePulse {
+    0%,100% { filter: drop-shadow(0 0 6px #67e8f9) drop-shadow(0 0 16px #06b6d444); }
+    50%     { filter: drop-shadow(0 0 12px #67e8f9) drop-shadow(0 0 30px #06b6d488); }
+}
+@keyframes fearShiver {
+    0%,100% { transform:translateX(0); filter:drop-shadow(0 0 4px #a855f7); }
+    25%     { transform:translateX(-2px) rotate(-1deg); }
+    75%     { transform:translateX(2px) rotate(1deg); }
+}
+@keyframes stunSpin {
+    0%    { filter: drop-shadow(0 0 4px #fbbf24); }
+    50%   { filter: drop-shadow(0 0 10px #fbbf24) drop-shadow(0 0 20px #fbbf2466); }
+    100%  { filter: drop-shadow(0 0 4px #fbbf24); }
+}
+.aura-poison   { animation: poisonPulse 1.6s ease-in-out infinite; }
+.aura-burn     { animation: burnFlicker 0.8s ease-in-out infinite; }
+.aura-paralyze { animation: paralyzeZap 2s ease-in-out infinite; }
+.aura-freeze   { animation: freezePulse 2s ease-in-out infinite; }
+.aura-fear     { animation: fearShiver 0.4s ease-in-out infinite; }
+.aura-stun     { animation: stunSpin 1s ease-in-out infinite; }
+.aura-curse    { animation: poisonPulse 2s ease-in-out infinite; filter: hue-rotate(270deg); }
             `}</style>
 
             <div className="flex-1 flex flex-col overflow-hidden">
                 <TabBar mode={mode} onSwitch={setMode} />
 
                 <div className="flex-1 flex overflow-hidden">
-                    {/* ── Arena + controles ── */}
-                    <div className="flex-1 flex flex-col p-4 gap-3 overflow-auto min-w-0">
-                        {/* Header turno + timer */}
-                        <div className="flex items-center justify-between flex-shrink-0">
-                            <span className="font-mono text-xs text-slate-500 tracking-widest">
-                                Turno {session?.turn ?? 0}
-                            </span>
-                            {animating && (
-                                <span className="font-mono text-xs text-yellow-400 animate-pulse tracking-widest">
-                                    ⚡ Resolviendo...
-                                </span>
-                            )}
-                            {/* Timer 15s — solo cuando es turno del jugador */}
-                            {currentActorIsPlayer && !animating && (
-                                <div className={`flex items-center gap-1.5 font-mono text-xs font-black tabular-nums
-                                    ${timer <= 5 ? "text-red-400 animate-pulse" : timer <= 10 ? "text-yellow-400" : "text-slate-400"}`}>
-                                    ⏱ {timer}s
-                                    <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-1000 ease-linear
-                                                ${timer <= 5 ? "bg-red-500" : timer <= 10 ? "bg-yellow-500" : "bg-emerald-500"}`}
-                                            style={{ width: `${(timer / 15) * 100}%` }}
-                                        />
-                                    </div>
+                    {/* ── Arena principal ── */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        {/* ── Campo de batalla estilo Pokémon ── */}
+                        <div
+                            className="relative flex-1 flex flex-col justify-between px-6 py-4 overflow-hidden"
+                            style={{
+                                background:
+                                    "linear-gradient(180deg, #0a1628 0%, #0d1f3c 40%, #111827 70%, #0a0f1a 100%)",
+                                minHeight: 0,
+                            }}
+                        >
+                            {/* Suelo decorativo */}
+                            <div
+                                className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+                                style={{
+                                    background: "linear-gradient(180deg, transparent 0%, rgba(30,45,70,0.4) 100%)",
+                                }}
+                            />
+
+                            {/* Línea divisoria central sutil */}
+                            <div
+                                className="absolute left-8 right-8 pointer-events-none"
+                                style={{ top: "50%", height: 1, background: "rgba(255,255,255,0.04)" }}
+                            />
+
+                            {/* Proyectil ltr */}
+                            {projectile?.direction === "ltr" && (
+                                <div className="absolute inset-0 pointer-events-none">
+                                    <Projectile proj={projectile} />
                                 </div>
                             )}
-                        </div>
+                            {/* Proyectil rtl */}
+                            {projectile?.direction === "rtl" && (
+                                <div className="absolute inset-0 pointer-events-none">
+                                    <Projectile proj={projectile} />
+                                </div>
+                            )}
 
-                        {/* Rivales */}
-                        <div className="flex-shrink-0">
-                            <p className="font-mono text-xs text-slate-500 tracking-widest uppercase mb-2 text-center">
-                                ▲ Rivales
-                            </p>
-                            <div className="relative flex gap-4 justify-center min-h-32">
-                                {projectile?.direction === "ltr" && <Projectile proj={projectile} />}
+                            {/* ── Fila enemigos (arriba, front view) ── */}
+                            <div className="flex justify-around items-end pt-2 relative z-10">
                                 {session?.enemyTeam.map((myth) => (
-                                    <MythSlot
+                                    <ArenaMyth
                                         key={myth.instanceId}
                                         myth={myth}
+                                        side="enemy"
                                         isActing={myth.instanceId === currentActorId}
                                         targeted={myth.instanceId === targetEnemyMythId && currentActorIsPlayer}
                                         flashAffinity={flashMap[myth.instanceId]}
                                         floatingDmg={floatMap[myth.instanceId]}
+                                        spriteSize={90}
                                         onClick={() => {
                                             if (!myth.defeated && !animating && currentActorIsPlayer)
                                                 setTargetEnemyMythId(myth.instanceId);
@@ -1145,134 +1155,162 @@ export default function BattlePage() {
                                     />
                                 ))}
                             </div>
-                        </div>
 
-                        {/* Divisor VS */}
-                        <div className="flex-shrink-0 flex items-center gap-3 px-4">
-                            <div className="flex-1 h-px bg-slate-800" />
-                            <span className="text-slate-600 text-xs font-mono tracking-widest">— VS —</span>
-                            <div className="flex-1 h-px bg-slate-800" />
-                        </div>
+                            {/* ── Info turno central ── */}
+                            <div className="flex items-center justify-between px-4 py-1 relative z-10">
+                                <span className="font-mono text-xs text-slate-600 tracking-widest">
+                                    T{session?.turn ?? 0}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                    {animating && (
+                                        <span className="font-mono text-xs text-yellow-400 animate-pulse">
+                                            ⚡ Resolviendo...
+                                        </span>
+                                    )}
+                                    {currentActorIsPlayer && !animating && (
+                                        <div
+                                            className={`flex items-center gap-1.5 font-mono text-xs font-black tabular-nums
+                                            ${timer <= 5 ? "text-red-400 animate-pulse" : timer <= 10 ? "text-yellow-400" : "text-slate-400"}`}
+                                        >
+                                            ⏱ {timer}s
+                                            <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-1000 ease-linear
+                                                    ${timer <= 5 ? "bg-red-500" : timer <= 10 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                                    style={{ width: `${(timer / 15) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {currentActorIsPlayer ? (
+                                        <span className="text-yellow-300 text-xs font-mono animate-pulse">
+                                            ⚔️ {currentActor?.name} →{" "}
+                                            {targetEnemy ? `🎯 ${targetEnemy.name}` : "elige objetivo"}
+                                        </span>
+                                    ) : (
+                                        <span className="text-slate-500 text-xs font-mono animate-pulse">
+                                            👾{" "}
+                                            {session
+                                                ? ([...session.playerTeam, ...session.enemyTeam].find(
+                                                      (m) => m.instanceId === currentActorId,
+                                                  )?.name ?? "...")
+                                                : "..."}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="w-10" />
+                            </div>
 
-                        {/* Jugador */}
-                        <div className="flex-shrink-0">
-                            <p className="font-mono text-xs text-slate-500 tracking-widest uppercase mb-2 text-center">
-                                ▼ Tu equipo
-                            </p>
-                            <div className="relative flex gap-4 justify-center min-h-32">
-                                {projectile?.direction === "rtl" && <Projectile proj={projectile} />}
+                            {/* ── Fila jugador (abajo, back view) ── */}
+                            <div className="flex justify-around items-start pb-2 relative z-10">
                                 {session?.playerTeam.map((myth) => (
-                                    <MythSlot
+                                    <ArenaMyth
                                         key={myth.instanceId}
                                         myth={myth}
+                                        side="player"
                                         isActing={myth.instanceId === currentActorId}
                                         flashAffinity={flashMap[myth.instanceId]}
                                         floatingDmg={floatMap[myth.instanceId]}
+                                        spriteSize={90}
                                     />
                                 ))}
                             </div>
                         </div>
 
-                        {/* Indicador turno actual */}
-                        <div className="flex-shrink-0 flex items-center justify-center gap-4 text-xs font-mono">
-                            {currentActorIsPlayer ? (
-                                <>
-                                    <span className="text-yellow-300 animate-pulse">
-                                        ⚔️ Turno de {session?.playerTeam.find(m => m.instanceId === currentActorId)?.name ?? "..."}
-                                    </span>
-                                    <span className="text-slate-700">→ ataca →</span>
-                                    <span className={targetEnemy ? "text-red-400" : "text-slate-600"}>
-                                        {targetEnemy ? `🎯 ${targetEnemy.name}` : "Elige objetivo"}
-                                    </span>
-                                </>
-                            ) : (
-                                <span className="text-slate-500 animate-pulse">
-                                    👾 Turno de {session ? [...session.playerTeam, ...session.enemyTeam].find(m => m.instanceId === currentActorId)?.name ?? "..." : "..."}
-                                </span>
-                            )}
-                        </div>
+                        {/* ── Panel de moves — ocupa el espacio restante inferior ── */}
+                        <div
+                            className="flex-shrink-0 border-t border-slate-800 bg-[#070b14]"
+                            style={{ minHeight: 160 }}
+                        >
+                            {(() => {
+                                // Si el actor actual es del jugador y está vivo, úsalo.
+                                // Si está muerto (acaba de caer), usa el siguiente myth vivo del jugador.
+                                const actorForMoves =
+                                    currentActorIsPlayer && currentActor && !currentActor.defeated
+                                        ? currentActor
+                                        : currentActorIsPlayer
+                                          ? (session?.playerTeam.find((m) => !m.defeated) ?? null)
+                                          : null;
 
-                        {/* Moves — solo si es turno de un Myth del jugador */}
-                        <div className="flex-shrink-0">
-                            {currentActorIsPlayer && currentActor && !currentActor.defeated ? (
-                                <div className="grid grid-cols-2 gap-2">
-                                    {currentActor.moves.map((move) => {
-                                        const cfg = AFFINITY_CONFIG[move.affinity];
-                                        const onCooldown = !!(currentActor.cooldownsLeft?.[move.id] > 0);
-                                        const cdLeft = currentActor.cooldownsLeft?.[move.id] ?? 0;
-                                        const ok = !animating && !!targetEnemy && !targetEnemy.defeated && !onCooldown;
-                                        return (
-                                            <button
-                                                key={move.id}
-                                                onClick={() => ok && handleMove(move.id)}
-                                                disabled={!ok}
-                                                title={move.description}
-                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all
-                                                    ${
-                                                        ok
-                                                            ? `${cfg.bg} ${cfg.color} border-white/10 hover:border-white/25 hover:scale-[1.02] active:scale-[0.98]`
-                                                            : "bg-slate-900/40 border-slate-800 text-slate-600 cursor-not-allowed opacity-50"
-                                                    }`}
-                                            >
-                                                <span className="text-xl">{cfg.emoji}</span>
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="font-mono text-xs font-bold truncate">{move.name}</p>
-                                                    <p className="text-xs opacity-60 font-mono">
-                                                        {move.power > 0 ? `${move.power}pw` : "estado"} · {move.accuracy}%
-                                                        {move.cooldown > 0 && ` · CD${move.cooldown}`}
-                                                    </p>
-                                                    {onCooldown && (
-                                                        <p className="text-xs text-red-400 font-mono font-black">⏳ {cdLeft}t</p>
-                                                    )}
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="h-20 flex items-center justify-center">
-                                    <p className="text-slate-600 text-sm font-mono">
-                                        {animating ? "⚡ Resolviendo..." : "👾 Turno del rival..."}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Captura + Huir */}
-                        <div className="flex-shrink-0 flex gap-2 mt-1">
-                            {canCapture && (
-                                <button
-                                    onClick={handleCapture}
-                                    disabled={animating}
-                                    className="flex-1 py-2.5 rounded-xl border border-yellow-500/50 bg-yellow-500/10 text-yellow-400
-                                        font-mono font-black text-xs tracking-widest uppercase
-                                        hover:bg-yellow-500/20 transition-all disabled:opacity-40 animate-pulse"
-                                >
-                                    ◈ Capturar · {targetEnemy?.name}
-                                </button>
-                            )}
-                            <button
-                                onClick={handleFlee}
-                                disabled={animating}
-                                className="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-500
-                                    font-mono text-xs tracking-widest uppercase
-                                    hover:border-red-700/60 hover:text-red-500 transition-all disabled:opacity-40"
-                            >
-                                🏃 Huir
-                            </button>
+                                return actorForMoves ? (
+                                    <div className="p-3">
+                                        <p className="font-mono text-xs text-yellow-400 font-bold mb-2 px-1">
+                                            Moves de {actorForMoves.name}
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {actorForMoves.moves.map((move) => {
+                                                const cfg = AFFINITY_CONFIG[move.affinity];
+                                                const onCooldown = !!(actorForMoves.cooldownsLeft?.[move.id] > 0);
+                                                const cdLeft = actorForMoves.cooldownsLeft?.[move.id] ?? 0;
+                                                const ok =
+                                                    !animating && !!targetEnemy && !targetEnemy.defeated && !onCooldown;
+                                                return (
+                                                    <button
+                                                        key={move.id}
+                                                        onClick={() => ok && handleMove(move.id)}
+                                                        disabled={!ok}
+                                                        className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-all
+                                    ${
+                                        ok
+                                            ? `${cfg.bg} ${cfg.color} border-white/10 hover:border-white/30 hover:scale-[1.02] active:scale-[0.98]`
+                                            : "bg-slate-900/40 border-slate-800 text-slate-600 cursor-not-allowed opacity-50"
+                                    }`}
+                                                    >
+                                                        <span className="text-2xl mt-0.5">{cfg.emoji}</span>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2 mb-0.5">
+                                                                <p className="font-mono text-sm font-bold">
+                                                                    {move.name}
+                                                                </p>
+                                                                {onCooldown && (
+                                                                    <span className="text-xs text-red-400 font-mono font-black">
+                                                                        ⏳{cdLeft}t
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs opacity-70 font-mono mb-1">
+                                                                {move.power > 0 ? `💥 ${move.power}` : "estado"} · 🎯{" "}
+                                                                {move.accuracy}%
+                                                                {move.cooldown > 0 && ` · CD${move.cooldown}`}
+                                                            </p>
+                                                            <p className="text-xs opacity-60 leading-snug line-clamp-2">
+                                                                {move.description}
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full" style={{ minHeight: 160 }}>
+                                        <p className="text-slate-200 text-sm font-mono font-bold">
+                                            {animating
+                                                ? "⚡ Resolviendo..."
+                                                : `👾 Turno de ${
+                                                      session
+                                                          ? ([...session.playerTeam, ...session.enemyTeam].find(
+                                                                (m) => m.instanceId === currentActorId,
+                                                            )?.name ?? "rival")
+                                                          : "rival"
+                                                  }...`}
+                                        </p>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
 
                     {/* ── Log panel ── */}
-                    <div className="w-72 flex-shrink-0 border-l border-slate-800 flex flex-col overflow-hidden">
-                        <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/60 flex-shrink-0">
+                    <div className="w-64 flex-shrink-0 border-l border-slate-800 flex flex-col overflow-hidden">
+                        <div className="px-3 py-2.5 border-b border-slate-800 bg-slate-900/60 flex-shrink-0">
                             <p className="font-mono text-xs text-yellow-400 uppercase tracking-widest font-bold">
-                                📜 Registro de combate
+                                📜 Registro
                             </p>
                         </div>
                         <div
                             ref={logRef}
-                            className="flex-1 overflow-y-auto p-3 flex flex-col gap-1 scroll-smooth"
+                            className="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5 scroll-smooth"
                             style={{ scrollbarWidth: "thin", scrollbarColor: "#334155 transparent" }}
                         >
                             {log.length === 0 && (
@@ -1281,7 +1319,7 @@ export default function BattlePage() {
                                 </p>
                             )}
                             {log.map((entry, i) => (
-                                <div key={i} className="animate-log-in flex items-start gap-1.5">
+                                <div key={i} className="animate-log-in flex items-start gap-1">
                                     <span className="text-slate-700 font-mono text-xs mt-px flex-shrink-0">›</span>
                                     <p
                                         className="font-mono text-xs leading-relaxed break-words"
@@ -1301,7 +1339,7 @@ export default function BattlePage() {
                                                               ? "#fb923c"
                                                               : entry.type === "heal"
                                                                 ? "#34d399"
-                                                                : "#94a3b8",
+                                                                : "#e2e8f0",
                                         }}
                                     >
                                         {entry.text}

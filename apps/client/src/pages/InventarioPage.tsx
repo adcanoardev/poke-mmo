@@ -120,7 +120,7 @@ export default function InventarioPage() {
                     <div className="grid grid-cols-4 gap-3 h-full content-start overflow-y-auto">
                         {filtered.map((item: any) => {
                             const icon = ITEM_ICONS[item.item] ?? "📦";
-                            const color = ITEM_COLORS[item.item] ?? "#5a6a85";
+                            const color = ITEM_COLORS[item.item] ?? "#F7FFFB";
                             const name = ITEM_NAMES[item.item] ?? item.item.replace(/_/g, " ");
                             return (
                                 <div

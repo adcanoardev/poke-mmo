@@ -20,11 +20,11 @@ const RARITY_CONFIG: Record<
     COMMON: {
         label: "Común",
         color: "text-slate-300",
-        glow: "#94a3b8",
+        glow: "#F7FFFB",
         bg: "bg-slate-700/40",
         border: "border-slate-500",
         particles: 8,
-        particleColor: "#94a3b8",
+        particleColor: "#F7FFFB",
     },
     RARE: {
         label: "Raro",

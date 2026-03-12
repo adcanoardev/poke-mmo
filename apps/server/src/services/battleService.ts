@@ -12,15 +12,28 @@ export type Affinity =
     | "EMBER" | "TIDE" | "GROVE" | "VOLT" | "STONE"
     | "FROST" | "VENOM" | "ASTRAL" | "IRON" | "SHADE";
 
-export type StatusEffect = "burn" | "poison" | "freeze" | "fear" | "paralyze" | null;
+export type StatusEffect = "burn" | "poison" | "freeze" | "fear" | "paralyze" | "stun" | "curse" | null;
 
 export type MoveType = "physical" | "special" | "support";
 
+export type EffectType =
+    | "apply_status" | "drain"
+    | "boost_atk" | "boost_def" | "boost_spd" | "boost_acc"
+    | "shield" | "heal" | "regen" | "counter" | "revive"
+    | "debuff_atk" | "debuff_def" | "debuff_spd" | "debuff_acc"
+    | "debuff_heal" | "silence"
+    // aliases legacy creatures.json
+    | "buff_atk" | "buff_def";
+
+export type EffectTarget = "self" | "enemy" | "all_enemies" | "ally" | "all_allies" | "all";
+
 export interface MoveEffect {
-    type: "apply_status" | "drain" | "buff_atk" | "buff_def" | "heal";
-    status?: StatusEffect;
-    target?: "enemy" | "self";
+    type: EffectType;
+    target?: EffectTarget;
     value?: number;
+    duration?: number;
+    status?: StatusEffect;
+    chance?: number; // 0-100; omitido = 100%
 }
 
 export interface Move {
@@ -32,14 +45,16 @@ export interface Move {
     accuracy: number;
     cooldown: number;
     description: string;
-    effect: MoveEffect | null;
+    effect: MoveEffect | MoveEffect[] | null;
 }
 
 export interface Buff {
-    stat: "atk" | "def" | "spd";
-    multiplier: number;
+    type: string;      // ej: "boost_atk", "debuff_def"
+    stat?: "atk" | "def" | "spd" | "acc";
+    multiplier: number; // >1 buff, <1 debuff
     turnsLeft: number;
     emoji: string;
+    label: string;     // "⬆ATK", "⬇DEF", etc.
 }
 
 export interface BattleMyth {
@@ -60,8 +75,24 @@ export interface BattleMyth {
     statusTurnsLeft: number;         // turnos restantes del estado
     // Cooldowns: moveId → turnos restantes
     cooldownsLeft: Record<string, number>;
-    // Buffs activos
+    // Buffs/debuffs activos
     buffs: Buff[];
+    // Escudo: absorbe X daño antes de bajar HP
+    shield: number;
+    // Regen: recupera X% HP al inicio de cada turno
+    regenValue: number;   // % del maxHp
+    regenTurns: number;
+    // Counter: devuelve X% del daño recibido al atacante
+    counterValue: number; // %
+    counterTurns: number;
+    // Silenciado: solo puede usar moves con cooldown base 0
+    silenced: number;     // turnos restantes
+    // Curse: al morir el maldito, el lanzador recupera X% HP
+    cursedBy?: string;    // instanceId del lanzador
+    curseHealPct: number;
+    // debuff_heal: reduce efectividad de curas recibidas
+    debuffHealPct: number;
+    debuffHealTurns: number;
     defeated: boolean;
 }
 
@@ -158,6 +189,8 @@ function effectiveSpeed(m: BattleMyth): number {
 
 function effectiveAtk(m: BattleMyth): number {
     let atk = m.attack;
+    // fear implícito: -20% ATK
+    if (m.status === "fear") atk = Math.floor(atk * 0.8);
     for (const b of m.buffs) {
         if (b.stat === "atk") atk = Math.floor(atk * b.multiplier);
     }
@@ -170,6 +203,15 @@ function effectiveDef(m: BattleMyth): number {
         if (b.stat === "def") def = Math.floor(def * b.multiplier);
     }
     return def;
+}
+
+function effectiveAcc(m: BattleMyth): number {
+    // fear implícito: -20% ACC
+    let acc = m.status === "fear" ? 0.8 : 1.0;
+    for (const b of m.buffs) {
+        if (b.stat === "acc") acc *= b.multiplier;
+    }
+    return acc;
 }
 
 // Obtener el Myth que debe actuar ahora
@@ -212,6 +254,9 @@ function tickBuffs(session: BattleSession3v3): void {
         m.buffs = m.buffs
             .map(b => ({ ...b, turnsLeft: b.turnsLeft - 1 }))
             .filter(b => b.turnsLeft > 0);
+        tickSilence(m);
+        tickCounter(m);
+        tickDebuffHeal(m);
     }
 }
 
@@ -228,11 +273,13 @@ function isPlayerMyth(session: BattleSession3v3, instanceId: string): boolean {
 // ─────────────────────────────────────────
 
 function getBasicMove(myth: BattleMyth): Move {
-    // Primero: move con cooldown 0 disponible
+    // Primero: move con cooldown 0 disponible (silencio fuerza cooldown base 0)
+    const silenced = myth.silenced > 0;
     const available = myth.moves.filter(mv =>
         mv.type !== "support" &&
         mv.power > 0 &&
-        !(myth.cooldownsLeft[mv.id] > 0)
+        !(myth.cooldownsLeft[mv.id] > 0) &&
+        (!silenced || mv.cooldown === 0)
     );
     if (available.length > 0) {
         return available.reduce((a, b) => (a.cooldown <= b.cooldown ? a : b));
@@ -261,17 +308,19 @@ function calcDamage(
     const stabMult = isStab ? 1.5 : 1;
     const critMult = isCrit ? 1.5 : 1;
 
-    // Burn reduce el ataque físico
+    // Burn reduce el ataque físico; special usa 90% ATK
     const atkMod = (attacker.status === "burn" && move.type === "physical") ? 0.5 : 1;
+    const typeMod = move.type === "special" ? 0.9 : 1;
 
     const levelFactor = (2 * attacker.level) / 5 + 2;
-    const atk = effectiveAtk(attacker) * atkMod;
+    const atk = effectiveAtk(attacker) * atkMod * typeMod;
     const def = effectiveDef(defender);
     const baseDmg = (atk / def) * (move.power / 50) + 2;
 
     let dmg = Math.floor(levelFactor * baseDmg * stabMult * mult * critMult);
 
-    if (Math.random() > move.accuracy / 100) dmg = 0;
+    const accMult = effectiveAcc(attacker);
+    if (Math.random() > (move.accuracy / 100) * accMult) dmg = 0;
 
     return { damage: dmg, mult, crit: isCrit, stab: isStab };
 }
@@ -284,25 +333,27 @@ function calcDamage(
 function checkStatusBeforeAct(myth: BattleMyth): { canAct: boolean; statusMsg: string | null } {
     switch (myth.status) {
         case "freeze":
-            // 30% de probabilidad de descongelarse
             if (Math.random() < 0.3) {
                 myth.status = null;
                 myth.statusTurnsLeft = 0;
-                return { canAct: true, statusMsg: `${myth.name} se ha descongelado` };
+                return { canAct: true, statusMsg: `${myth.name} se descongeló` };
             }
-            return { canAct: false, statusMsg: `${myth.name} está congelado y no puede actuar` };
+            return { canAct: false, statusMsg: `❄️ ${myth.name} está congelado y no puede actuar` };
         case "paralyze":
-            // 25% de probabilidad de quedar paralizado este turno
             if (Math.random() < 0.25) {
-                return { canAct: false, statusMsg: `${myth.name} está paralizado y no puede moverse` };
+                return { canAct: false, statusMsg: `⚡ ${myth.name} está paralizado y no puede moverse` };
             }
             return { canAct: true, statusMsg: null };
         case "fear":
-            // 20% de probabilidad de no poder actuar
             if (Math.random() < 0.2) {
-                return { canAct: false, statusMsg: `${myth.name} tiene miedo y no puede actuar` };
+                return { canAct: false, statusMsg: `😨 ${myth.name} tiene miedo y no puede actuar` };
             }
             return { canAct: true, statusMsg: null };
+        case "stun":
+            // stun: pierde el turno seguro (1 turno, sin probabilidad)
+            myth.status = null;
+            myth.statusTurnsLeft = 0;
+            return { canAct: false, statusMsg: `💫 ${myth.name} está aturdido y pierde su turno` };
         default:
             return { canAct: true, statusMsg: null };
     }
@@ -311,19 +362,59 @@ function checkStatusBeforeAct(myth: BattleMyth): { canAct: boolean; statusMsg: s
 // Tick de daño por estado al FINAL del turno del Myth afectado
 function applyStatusTick(myth: BattleMyth): { damage: number; msg: string } | null {
     switch (myth.status) {
-        case "burn":
+        case "burn": {
             const burnDmg = Math.max(1, Math.floor(myth.maxHp * 0.0625));
             myth.hp = Math.max(0, myth.hp - burnDmg);
             if (myth.hp === 0) myth.defeated = true;
             return { damage: burnDmg, msg: `🔥 ${myth.name} sufre ${burnDmg} de daño por quemadura` };
-        case "poison":
+        }
+        case "poison": {
             const poisonDmg = Math.max(1, Math.floor(myth.maxHp * 0.08));
             myth.hp = Math.max(0, myth.hp - poisonDmg);
             if (myth.hp === 0) myth.defeated = true;
             return { damage: poisonDmg, msg: `☠️ ${myth.name} sufre ${poisonDmg} de daño por veneno` };
+        }
         default:
             return null;
     }
+}
+
+// Tick de regen al INICIO del turno del Myth
+function applyRegenTick(myth: BattleMyth, allMyths: BattleMyth[]): string | null {
+    if (myth.regenTurns <= 0 || myth.defeated) return null;
+    const healAmt = Math.max(1, Math.floor(myth.maxHp * myth.regenValue));
+    myth.hp = Math.min(myth.maxHp, myth.hp + healAmt);
+    myth.regenTurns--;
+    if (myth.regenTurns <= 0) myth.regenValue = 0;
+    return `♻️ ${myth.name} regenera ${healAmt} HP`;
+}
+
+// Tick de debuff_heal
+function tickDebuffHeal(myth: BattleMyth): void {
+    if (myth.debuffHealTurns > 0) {
+        myth.debuffHealTurns--;
+        if (myth.debuffHealTurns <= 0) myth.debuffHealPct = 0;
+    }
+}
+
+// Tick de silencio
+function tickSilence(myth: BattleMyth): void {
+    if (myth.silenced > 0) myth.silenced--;
+}
+
+// Tick de counter
+function tickCounter(myth: BattleMyth): void {
+    if (myth.counterTurns > 0) myth.counterTurns--;
+}
+
+// Activar curse al morir: busca al lanzador y le devuelve HP
+function applyCurseOnDeath(dead: BattleMyth, allMyths: BattleMyth[]): string | null {
+    if (!dead.cursedBy || dead.curseHealPct <= 0) return null;
+    const caster = allMyths.find(m => m.instanceId === dead.cursedBy && !m.defeated);
+    if (!caster) return null;
+    const healAmt = Math.max(1, Math.floor(dead.maxHp * dead.curseHealPct));
+    caster.hp = Math.min(caster.maxHp, caster.hp + healAmt);
+    return `💀 La maldición de ${dead.name} cura ${healAmt} HP a ${caster.name}`;
 }
 
 // Decrementar turnos de estado
@@ -346,69 +437,223 @@ interface EffectResult {
     statusApplied?: StatusEffect;
     buffApplied?: Buff;
     drain?: number;
-    logMsg: string;
+    shieldApplied?: number;
+    logMsgs: string[];
 }
 
+// Resuelve un solo efecto y lo aplica
+function applySingleEffect(
+    eff: MoveEffect,
+    attacker: BattleMyth,
+    target: BattleMyth,
+    damageDealt: number,
+    allMyths: BattleMyth[]
+): Partial<EffectResult> {
+    // Comprobar chance
+    const chance = eff.chance ?? 100;
+    if (Math.random() * 100 > chance) return {};
+
+    const dur = eff.duration ?? 3;
+    const val = eff.value ?? 25; // porcentaje por defecto
+
+    // Resolver target
+    const resolveTarget = (t?: string): BattleMyth[] => {
+        switch (t) {
+            case "self":        return [attacker];
+            case "enemy":       return [target];
+            case "all_enemies": return allMyths.filter(m => m !== attacker && !m.defeated);
+            case "ally":        return [attacker]; // en NPC battle no hay aliados reales
+            case "all_allies":  return allMyths.filter(m => m === attacker && !m.defeated);
+            case "all":         return allMyths.filter(m => !m.defeated);
+            default:            return [target];
+        }
+    };
+
+    const statusIcons: Record<string, string> = {
+        burn: "🔥", poison: "☠️", freeze: "❄️", fear: "😨", paralyze: "⚡", stun: "💫", curse: "💀"
+    };
+    const statusDurations: Record<string, number> = {
+        burn: 4, poison: 6, freeze: 2, fear: 3, paralyze: 5, stun: 1, curse: 0
+    };
+
+    switch (eff.type) {
+        // ── apply_status ───────────────────────────────────────────────────
+        case "apply_status": {
+            const st = eff.status ?? null;
+            if (!st) return {};
+            const tgts = resolveTarget(eff.target);
+            const msgs: string[] = [];
+            let applied: StatusEffect = null;
+            for (const tgt of tgts) {
+                if (tgt.status !== null) continue; // ya tiene estado
+                if (st === "curse") {
+                    tgt.cursedBy = attacker.instanceId;
+                    tgt.curseHealPct = val / 100;
+                    msgs.push(`💀 ${tgt.name} ha sido maldecido`);
+                } else {
+                    tgt.status = st;
+                    tgt.statusTurnsLeft = statusDurations[st] ?? 3;
+                    applied = st;
+                    msgs.push(`${statusIcons[st] ?? "✨"} ${tgt.name} sufre ${st}`);
+                }
+            }
+            return { statusApplied: applied ?? undefined, logMsgs: msgs };
+        }
+        // ── drain ──────────────────────────────────────────────────────────
+        case "drain": {
+            if (damageDealt <= 0) return {};
+            const drainAmt = Math.min(
+                Math.floor(damageDealt * 0.25),
+                attacker.maxHp - attacker.hp
+            );
+            if (drainAmt <= 0) return {};
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + drainAmt);
+            return { drain: drainAmt, heal: drainAmt, logMsgs: [`💚 ${attacker.name} absorbe ${drainAmt} HP`] };
+        }
+        // ── heal ───────────────────────────────────────────────────────────
+        case "heal": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            const msgs: string[] = [];
+            let total = 0;
+            for (const tgt of tgts) {
+                const eff_pct = tgt.debuffHealPct > 0 ? (1 - tgt.debuffHealPct) : 1;
+                const amt = Math.max(1, Math.floor(tgt.maxHp * (val / 100) * eff_pct));
+                tgt.hp = Math.min(tgt.maxHp, tgt.hp + amt);
+                total += amt;
+                msgs.push(`💚 ${tgt.name} recupera ${amt} HP`);
+            }
+            return { heal: total, logMsgs: msgs };
+        }
+        // ── regen ──────────────────────────────────────────────────────────
+        case "regen": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            for (const tgt of tgts) {
+                tgt.regenValue = val / 100;
+                tgt.regenTurns = dur;
+            }
+            return { logMsgs: [`♻️ ${tgts.map(t=>t.name).join(", ")} con regeneración ${dur} turnos`] };
+        }
+        // ── shield ─────────────────────────────────────────────────────────
+        case "shield": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            let total = 0;
+            for (const tgt of tgts) {
+                const shieldAmt = Math.floor(tgt.maxHp * (val / 100));
+                tgt.shield += shieldAmt;
+                total += shieldAmt;
+            }
+            return { shieldApplied: total, logMsgs: [`🛡️ ${tgts.map(t=>t.name).join(", ")} con escudo ${total}`] };
+        }
+        // ── counter ────────────────────────────────────────────────────────
+        case "counter": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            for (const tgt of tgts) {
+                tgt.counterValue = val / 100;
+                tgt.counterTurns = dur;
+            }
+            return { logMsgs: [`↩️ ${tgts.map(t=>t.name).join(", ")} con contraataque ${dur} turnos`] };
+        }
+        // ── revive ─────────────────────────────────────────────────────────
+        case "revive": {
+            const fallen = allMyths.find(m => m.defeated && m !== attacker);
+            if (!fallen) return {};
+            const reviveHp = Math.max(1, Math.floor(fallen.maxHp * (val / 100)));
+            fallen.hp = reviveHp;
+            fallen.defeated = false;
+            return { heal: reviveHp, logMsgs: [`✨ ${fallen.name} revive con ${reviveHp} HP`] };
+        }
+        // ── silence ────────────────────────────────────────────────────────
+        case "silence": {
+            const tgts = resolveTarget(eff.target ?? "enemy");
+            for (const tgt of tgts) tgt.silenced = dur;
+            return { logMsgs: [`🔇 ${tgts.map(t=>t.name).join(", ")} silenciado ${dur} turnos`] };
+        }
+        // ── debuff_heal ────────────────────────────────────────────────────
+        case "debuff_heal": {
+            const tgts = resolveTarget(eff.target ?? "enemy");
+            for (const tgt of tgts) {
+                tgt.debuffHealPct = val / 100;
+                tgt.debuffHealTurns = dur;
+            }
+            return { logMsgs: [`✂️ Curas de ${tgts.map(t=>t.name).join(", ")} reducidas ${dur} turnos`] };
+        }
+        // ── BUFFS (boost_*) ────────────────────────────────────────────────
+        case "boost_atk":
+        case "buff_atk": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            const buff: Buff = { type: "boost_atk", stat: "atk", multiplier: 1 + val/100, turnsLeft: dur, emoji: "⬆", label: "⬆ATK" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬆ATK ${tgts.map(t=>t.name).join(", ")} +${val}% ATK`] };
+        }
+        case "boost_def":
+        case "buff_def": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            const buff: Buff = { type: "boost_def", stat: "def", multiplier: 1 + val/100, turnsLeft: dur, emoji: "⬆", label: "⬆DEF" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬆DEF ${tgts.map(t=>t.name).join(", ")} +${val}% DEF`] };
+        }
+        case "boost_spd": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            const buff: Buff = { type: "boost_spd", stat: "spd", multiplier: 1 + val/100, turnsLeft: dur, emoji: "⬆", label: "⬆SPD" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬆SPD ${tgts.map(t=>t.name).join(", ")} +${val}% SPD`] };
+        }
+        case "boost_acc": {
+            const tgts = resolveTarget(eff.target ?? "self");
+            const buff: Buff = { type: "boost_acc", stat: "acc", multiplier: 1 + val/100, turnsLeft: dur, emoji: "⬆", label: "⬆ACC" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬆ACC ${tgts.map(t=>t.name).join(", ")} +${val}% ACC`] };
+        }
+        // ── DEBUFFS (debuff_*) ─────────────────────────────────────────────
+        case "debuff_atk": {
+            const tgts = resolveTarget(eff.target ?? "enemy");
+            const buff: Buff = { type: "debuff_atk", stat: "atk", multiplier: 1 - val/100, turnsLeft: dur, emoji: "⬇", label: "⬇ATK" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬇ATK ${tgts.map(t=>t.name).join(", ")} -${val}% ATK`] };
+        }
+        case "debuff_def": {
+            const tgts = resolveTarget(eff.target ?? "enemy");
+            const buff: Buff = { type: "debuff_def", stat: "def", multiplier: 1 - val/100, turnsLeft: dur, emoji: "⬇", label: "⬇DEF" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬇DEF ${tgts.map(t=>t.name).join(", ")} -${val}% DEF`] };
+        }
+        case "debuff_spd": {
+            const tgts = resolveTarget(eff.target ?? "enemy");
+            const buff: Buff = { type: "debuff_spd", stat: "spd", multiplier: 1 - val/100, turnsLeft: dur, emoji: "⬇", label: "⬇SPD" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬇SPD ${tgts.map(t=>t.name).join(", ")} -${val}% SPD`] };
+        }
+        case "debuff_acc": {
+            const tgts = resolveTarget(eff.target ?? "enemy");
+            const buff: Buff = { type: "debuff_acc", stat: "acc", multiplier: 1 - val/100, turnsLeft: dur, emoji: "⬇", label: "⬇ACC" };
+            for (const tgt of tgts) tgt.buffs.push({...buff});
+            return { buffApplied: buff, logMsgs: [`⬇ACC ${tgts.map(t=>t.name).join(", ")} -${val}% ACC`] };
+        }
+    }
+    return {};
+}
+
+// Wrapper: soporta effect como objeto o array
 function applyMoveEffect(
     attacker: BattleMyth,
     move: Move,
     target: BattleMyth,
-    damageDealt: number
+    damageDealt: number,
+    allMyths: BattleMyth[]
 ): EffectResult | null {
     if (!move.effect) return null;
-
-    const { effect } = move;
-
-    switch (effect.type) {
-        case "apply_status": {
-            const statusTarget = effect.target === "self" ? attacker : target;
-            if (statusTarget.status !== null) return null; // ya tiene estado
-            const status = effect.status ?? null;
-            statusTarget.status = status;
-            // Duración por estado
-            const durations: Record<string, number> = {
-                burn: 4, poison: 6, freeze: 3, fear: 3, paralyze: 5
-            };
-            statusTarget.statusTurnsLeft = status ? (durations[status] ?? 3) : 0;
-
-            const icons: Record<string, string> = {
-                burn: "🔥", poison: "☠️", freeze: "❄️", fear: "😨", paralyze: "⚡"
-            };
-            const icon = status ? (icons[status] ?? "✨") : "";
-            return {
-                statusApplied: status,
-                logMsg: `${icon} ${statusTarget.name} está ahora ${status}`
-            };
-        }
-        case "drain": {
-            if (damageDealt <= 0) return null;
-            const maxDrain = Math.floor(damageDealt * 0.25); // capado al 25%
-            const drainAmt = Math.min(maxDrain, attacker.maxHp - attacker.hp);
-            if (drainAmt <= 0) return null;
-            attacker.hp = Math.min(attacker.maxHp, attacker.hp + drainAmt);
-            return {
-                drain: drainAmt,
-                heal: drainAmt,
-                logMsg: `💚 ${attacker.name} absorbe ${drainAmt} HP`
-            };
-        }
-        case "buff_atk": {
-            const buff: Buff = { stat: "atk", multiplier: effect.value ?? 1.5, turnsLeft: 3, emoji: "⬆️" };
-            attacker.buffs.push(buff);
-            return { buffApplied: buff, logMsg: `⬆️ ¡ATK de ${attacker.name} aumentó!` };
-        }
-        case "buff_def": {
-            const buff: Buff = { stat: "def", multiplier: effect.value ?? 1.5, turnsLeft: 3, emoji: "🛡️" };
-            attacker.buffs.push(buff);
-            return { buffApplied: buff, logMsg: `🛡️ ¡DEF de ${attacker.name} aumentó!` };
-        }
-        case "heal": {
-            const healAmt = Math.floor(attacker.maxHp * (effect.value ?? 0.25));
-            attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
-            return { heal: healAmt, logMsg: `💚 ${attacker.name} recupera ${healAmt} HP` };
-        }
+    const effects = Array.isArray(move.effect) ? move.effect : [move.effect];
+    const result: EffectResult = { logMsgs: [] };
+    for (const eff of effects) {
+        const r = applySingleEffect(eff, attacker, target, damageDealt, allMyths);
+        if (r.heal) result.heal = (result.heal ?? 0) + r.heal;
+        if (r.statusApplied) result.statusApplied = r.statusApplied;
+        if (r.buffApplied) result.buffApplied = r.buffApplied;
+        if (r.drain) result.drain = r.drain;
+        if (r.shieldApplied) result.shieldApplied = r.shieldApplied;
+        if (r.logMsgs) result.logMsgs.push(...r.logMsgs);
     }
-    return null;
+    return result.logMsgs.length > 0 ? result : null;
 }
 
 // ─────────────────────────────────────────
@@ -416,7 +661,11 @@ function applyMoveEffect(
 // ─────────────────────────────────────────
 
 function npcChooseMove(attacker: BattleMyth, target: BattleMyth): Move {
-    const available = attacker.moves.filter(mv => !(attacker.cooldownsLeft[mv.id] > 0));
+    const silenced = attacker.silenced > 0;
+    const available = attacker.moves.filter(mv =>
+        !(attacker.cooldownsLeft[mv.id] > 0) &&
+        (!silenced || mv.cooldown === 0)
+    );
     if (available.length === 0) return getBasicMove(attacker);
 
     let best: Move = available[0];
@@ -472,6 +721,15 @@ async function buildPlayerMyth(instanceId: string, userId: string): Promise<Batt
         statusTurnsLeft: 0,
         cooldownsLeft: {},
         buffs: [],
+        shield: 0,
+        regenValue: 0,
+        regenTurns: 0,
+        counterValue: 0,
+        counterTurns: 0,
+        silenced: 0,
+        curseHealPct: 0,
+        debuffHealPct: 0,
+        debuffHealTurns: 0,
         defeated: false,
     };
 }
@@ -499,6 +757,15 @@ function buildNpcMyth(speciesId: string, level: number): BattleMyth {
         statusTurnsLeft: 0,
         cooldownsLeft: {},
         buffs: [],
+        shield: 0,
+        regenValue: 0,
+        regenTurns: 0,
+        counterValue: 0,
+        counterTurns: 0,
+        silenced: 0,
+        curseHealPct: 0,
+        debuffHealPct: 0,
+        debuffHealTurns: 0,
         defeated: false,
     };
 }
@@ -577,6 +844,10 @@ export interface TurnAction {
     buffApplied?: Buff;
     // Drain / heal
     healAmount?: number;
+    // Escudo aplicado
+    shieldApplied?: number;
+    // Mensajes de efectos (array)
+    effectMsgs?: string[];
     // Bloqueado por estado (no pudo actuar)
     blockedByStatus?: string;
 }
@@ -616,7 +887,14 @@ export async function executeTurn(
     let move: Move;
     if (actorIsPlayer) {
         // El jugador elige el move (o moveId viene del timer = básico)
-        move = actor.moves.find(mv => mv.id === moveId) ?? getBasicMove(actor);
+        const silenced = actor.silenced > 0;
+        const chosen = actor.moves.find(mv => mv.id === moveId);
+        // Si está silenciado y el move elegido tiene cooldown base > 0, forzar básico
+        if (chosen && silenced && chosen.cooldown > 0) {
+            move = getBasicMove(actor);
+        } else {
+            move = chosen ?? getBasicMove(actor);
+        }
     } else {
         // NPC: IA elige el move (ignora moveId del body)
         const playerAlive = session.playerTeam.filter(m => !m.defeated);
@@ -649,6 +927,10 @@ export async function executeTurn(
 
     const defeated: string[] = [];
 
+    // Regen tick al inicio del turno
+    const regenMsg = applyRegenTick(actor, [...session.playerTeam, ...session.enemyTeam]);
+    if (regenMsg) action.effectMsgs = [regenMsg];
+
     if (!statusCheck.canAct) {
         action.blockedByStatus = statusCheck.statusMsg ?? undefined;
     } else {
@@ -676,16 +958,32 @@ export async function executeTurn(
         action.missed = dmgResult.damage === 0 && move.accuracy < 100;
 
         if (dmgResult.damage > 0) {
-            target.hp = Math.max(0, target.hp - dmgResult.damage);
+            let dmgLeft = dmgResult.damage;
+            // Escudo absorbe primero
+            if (target.shield > 0) {
+                const absorbed = Math.min(target.shield, dmgLeft);
+                target.shield -= absorbed;
+                dmgLeft -= absorbed;
+            }
+            target.hp = Math.max(0, target.hp - dmgLeft);
             if (target.hp === 0) target.defeated = true;
+            // Counter: devuelve daño al atacante
+            if (target.counterTurns > 0 && target.counterValue > 0 && !target.defeated) {
+                const counterDmg = Math.max(1, Math.floor(dmgResult.damage * target.counterValue));
+                actor.hp = Math.max(0, actor.hp - counterDmg);
+                if (actor.hp === 0) actor.defeated = true;
+            }
         }
 
         // ── Aplicar efecto del move ──
-        const effectRes = applyMoveEffect(actor, move, target, dmgResult.damage);
+        const allMyths = [...session.playerTeam, ...session.enemyTeam];
+        const effectRes = applyMoveEffect(actor, move, target, dmgResult.damage, allMyths);
         if (effectRes) {
             if (effectRes.statusApplied) action.statusApplied = effectRes.statusApplied;
             if (effectRes.buffApplied) action.buffApplied = effectRes.buffApplied;
             if (effectRes.heal) action.healAmount = effectRes.heal;
+            if (effectRes.shieldApplied) action.shieldApplied = effectRes.shieldApplied;
+            if (effectRes.logMsgs?.length) action.effectMsgs = effectRes.logMsgs;
         }
 
         // ── Registrar cooldown del move ──
@@ -702,10 +1000,16 @@ export async function executeTurn(
     }
     tickStatus(actor);
 
-    // ── Recopilar derrotados ──
-    for (const m of [...session.playerTeam, ...session.enemyTeam]) {
+    // ── Recopilar derrotados + activar curse ──
+    const allMythsFlat = [...session.playerTeam, ...session.enemyTeam];
+    for (const m of allMythsFlat) {
         if (m.defeated && !defeated.includes(m.instanceId)) {
             defeated.push(m.instanceId);
+            const curseMsg = applyCurseOnDeath(m, allMythsFlat);
+            if (curseMsg) {
+                if (!action.effectMsgs) action.effectMsgs = [];
+                action.effectMsgs.push(curseMsg);
+            }
         }
     }
 

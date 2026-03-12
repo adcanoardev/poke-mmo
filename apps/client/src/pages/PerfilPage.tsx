@@ -56,7 +56,7 @@ const RARITY_LABELS: Record<string, string> = {
 };
 
 const RANK_LABELS = ["Novato", "Binder", "Rival", "Élite", "Maestro"];
-const RANK_COLORS = ["#5a6a85", "#4cc9f0", "#e63946", "#7b2fff", "#ffd60a"];
+const RANK_COLORS = ["#F7FFFB", "#4cc9f0", "#e63946", "#7b2fff", "#ffd60a"];
 const RANK_THRESHOLDS = [0, 100, 300, 600, 1000];
 
 function StatRow({ label, value, color = "#fff" }: { label: string; value: string | number; color?: string }) {
@@ -217,7 +217,7 @@ export default function PerfilPage() {
                                     <div className="flex-1 min-w-0">
                                         <div
                                             className="font-display font-bold text-xs truncate"
-                                            style={{ color: earned ? "#ffd60a" : "#5a6a85" }}
+                                            style={{ color: earned ? "#ffd60a" : "#F7FFFB" }}
                                         >
                                             {emblem.sanctum}
                                         </div>

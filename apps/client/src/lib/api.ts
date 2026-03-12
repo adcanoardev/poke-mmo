@@ -53,11 +53,7 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ battleId, moveId, ...(targetMythId ? { targetMythId } : {}) }),
         }),
-    battleNpcFlee: (battleId: string) =>
-        request<any>("/battle/npc/flee", { method: "POST", body: JSON.stringify({ battleId }) }),
     battleNpcActive: () => request<any>("/battle/npc/active"),
-    battleNpcCapture: (battleId: string, targetMythId: string) =>
-        request<any>("/battle/npc/capture", { method: "POST", body: JSON.stringify({ battleId, targetMythId }) }),
     battlePvp: (defenderUserId: string) =>
         request<any>("/battle/pvp", { method: "POST", body: JSON.stringify({ defenderUserId }) }),
     battleStats: () => request<any>("/battle/stats"),

@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --color-muted: #F7FFFB;   /* texto descriptivo, legible sobre fondos oscuros */
+    --color-subtle: #F7FFFB;  /* labels, placeholders, separadores, IDs decorativos */
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -32,5 +37,5 @@ body {
     border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #5a6a85;
+    background: #F7FFFB;
 }

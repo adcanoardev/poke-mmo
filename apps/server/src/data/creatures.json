@@ -5,6 +5,8 @@
         "name": "Cindor",
         "affinities": ["EMBER"],
         "rarity": "COMMON",
+        "height": 0.60,
+        "weight": 8.5,
         "description": "Pequeña bestia ígnea cuyo corazón arde como una brasa eterna nacida de las forjas volcánicas de Mythara.",
         "baseStats": {
             "hp": 85,
@@ -80,6 +82,8 @@
         "name": "Pyronox",
         "affinities": ["EMBER"],
         "rarity": "RARE",
+        "height": 0.90,
+        "weight": 12.5,
         "description": "Depredador volcánico que exhala cenizas tóxicas y llamas capaces de fundir roca en segundos.",
         "baseStats": {
             "hp": 110,
@@ -165,6 +169,8 @@
         "name": "Vulcarion",
         "affinities": ["EMBER"],
         "rarity": "EPIC",
+        "height": 1.70,
+        "weight": 68.5,
         "description": "Señor de las forjas de Mythara, un titán envuelto en magma vivo y placas de obsidiana ardiente.",
         "baseStats": {
             "hp": 120,
@@ -260,6 +266,8 @@
         "name": "Aquaffin",
         "affinities": ["TIDE"],
         "rarity": "COMMON",
+        "height": 0.7,
+        "weight": 8.0,
         "description": "Criatura acuática juguetona capaz de manipular pequeñas corrientes y salpicar con fuerza sorprendente.",
         "baseStats": {
             "hp": 80,
@@ -335,6 +343,8 @@
         "name": "Marivor",
         "affinities": ["TIDE"],
         "rarity": "RARE",
+        "height": 1.1,
+        "weight": 13.5,
         "description": "Bestia marina que crea remolinos a su alrededor y usa la presión del agua como arma devastadora.",
         "baseStats": {
             "hp": 90,
@@ -420,6 +430,8 @@
         "name": "Leviandor",
         "affinities": ["TIDE"],
         "rarity": "EPIC",
+        "height": 1.63,
+        "weight": 58.5,
         "description": "Leviatán ancestral que reina sobre las mareas de Mythara, capaz de invocar tormentas oceánicas colosales.",
         "baseStats": {
             "hp": 115,

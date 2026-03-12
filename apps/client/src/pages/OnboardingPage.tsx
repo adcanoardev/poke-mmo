@@ -191,8 +191,8 @@ export default function OnboardingPage() {
                                                   IRON: "#90a4ae",
                                                   SHADE: "#e63946",
                                               } as any
-                                          )[s.affinities[0]] ?? "#5a6a85")
-                                        : "#5a6a85";
+                                          )[s.affinities[0]] ?? "#F7FFFB")
+                                        : "#F7FFFB";
                                     return (
                                         <div
                                             key={s.id}
