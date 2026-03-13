@@ -54,11 +54,13 @@ interface BattleMyth {
     buffs: Buff[];
     shield?: number;
     silenced?: number;
+    rarity?: "COMMON" | "RARE" | "ELITE" | "LEGENDARY" | "MYTHIC";
     defeated: boolean;
 }
 
 interface BattleSession {
     battleId: string;
+    trainerId: string;          // ← ID del entrenador dueño del combate
     playerTeam: BattleMyth[];
     enemyTeam: BattleMyth[];
     turn: number;
@@ -601,11 +603,13 @@ function ImpactExplosion({
 
 interface ArenaMythProps {
     myth: BattleMyth;
-    side: "player" | "enemy"; // player = back view, enemy = front view
+    side: "player" | "enemy";
     isActing?: boolean;
     targeted?: boolean;
     flashAffinity?: Affinity | null;
     floatingDmg?: { value: number; crit: boolean; mult: number; heal?: boolean } | null;
+    supportOverlay?: { text: string; color: string; glow: string } | null;
+    koOverlay?: boolean;
     onClick?: () => void;
     spriteSize?: number;
     mythRef?: React.RefObject<HTMLDivElement | null>;
@@ -616,12 +620,15 @@ function ArenaMyth({
     side,
     isActing,
     targeted,
+    targetColor,
     flashAffinity,
     floatingDmg,
+    supportOverlay,
+    koOverlay,
     onClick,
     spriteSize = 80,
     mythRef,
-}: ArenaMythProps) {
+}: ArenaMythProps & { targetColor?: string }) {
     const cfg = flashAffinity ? AFFINITY_CONFIG[flashAffinity] : null;
     const canClick = onClick && !myth.defeated;
     const primaryAffinity = myth.affinities?.[0];
@@ -637,9 +644,9 @@ function ArenaMyth({
             className={`relative flex flex-col items-center gap-0.5 select-none ${canClick ? "cursor-pointer" : ""}`}
             onClick={canClick ? onClick : undefined}
         >
-            {/* Buffs (azul) y debuffs (amarillo) encima del sprite */}
+            {/* Buffs (azul) y debuffs (amarillo) — absolutos encima del sprite, no desplazan layout */}
             {!myth.defeated && (buffs.length > 0 || debuffs.length > 0) && (
-                <div className="flex gap-0.5 flex-wrap justify-center mb-0.5">
+                <div className="absolute flex gap-0.5 flex-wrap justify-center z-20 pointer-events-none" style={{ bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: 2 }}>
                     {buffs.map((b, i) => (
                         <span
                             key={`buff${i}`}
@@ -663,31 +670,120 @@ function ArenaMyth({
                 </div>
             )}
 
-            {/* Daño / curación flotante */}
-            {floatingDmg && (
+            {/* Daño / curación flotante — no renderizar si es +0 */}
+            {floatingDmg && (!floatingDmg.heal || floatingDmg.value > 0) && (
+                <>
+                    {/* Texto CRÍTICO — fondo blanco, texto rojo con contorno rojo oscuro */}
+                    {floatingDmg.crit && !floatingDmg.heal && (
+                        <div
+                            className="absolute z-31 pointer-events-none font-black tracking-widest uppercase animate-float-dmg"
+                            style={{
+                                top: -72,
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                fontSize: "1.45rem",
+                                color: "#cc0000",
+                                background: "white",
+                                borderRadius: 6,
+                                padding: "1px 10px 2px 10px",
+                                border: "2.5px solid #cc0000",
+                                WebkitTextStroke: "0.5px #7f0000",
+                                letterSpacing: "0.15em",
+                                whiteSpace: "nowrap",
+                                boxShadow: "0 0 16px #ff000066, 0 2px 8px rgba(0,0,0,0.7)",
+                            }}
+                        >
+                            ¡CRÍTICO!
+                        </div>
+                    )}
+                    <div
+                        className={`absolute z-30 pointer-events-none animate-float-dmg font-black tracking-tighter
+                            ${floatingDmg.heal ? "text-emerald-400" : floatingDmg.crit ? "text-red-400" : floatingDmg.mult >= 2 ? "text-orange-400" : floatingDmg.mult <= 0.5 ? "text-blue-300" : "text-white"}`}
+                        style={{
+                            top: -24,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            fontSize: floatingDmg.crit ? "2.6rem" : "1.8rem",
+                            textShadow: floatingDmg.heal
+                                ? "0 0 12px #4ade80, 0 2px 4px rgba(0,0,0,0.8)"
+                                : floatingDmg.crit
+                                  ? "0 0 20px #ff2222, 0 0 40px #ff000088, 0 2px 4px rgba(0,0,0,0.9)"
+                                  : "0 0 10px currentColor, 0 2px 4px rgba(0,0,0,0.8)",
+                            letterSpacing: "-0.02em",
+                        }}
+                    >
+                        {floatingDmg.heal ? `+${floatingDmg.value}` : floatingDmg.value > 0 ? `-${floatingDmg.value}` : "¡Fallo!"}
+                    </div>
+                </>
+            )}
+
+            {/* Support overlay — BUFF / DEBUFF / STATUS */}
+            {supportOverlay && (
                 <div
-                    className={`absolute z-30 pointer-events-none animate-float-dmg font-black tracking-tighter
-                        ${floatingDmg.heal ? "text-emerald-400" : floatingDmg.crit ? "text-yellow-300" : floatingDmg.mult >= 2 ? "text-orange-400" : floatingDmg.mult <= 0.5 ? "text-blue-300" : "text-white"}`}
+                    className="absolute z-40 pointer-events-none animate-support-overlay font-black text-center whitespace-nowrap"
                     style={{
-                        top: -24,
+                        top: -40,
                         left: "50%",
                         transform: "translateX(-50%)",
-                        fontSize: floatingDmg.crit ? "2.2rem" : "1.8rem",
-                        textShadow: floatingDmg.heal
-                            ? "0 0 12px #4ade80, 0 2px 4px rgba(0,0,0,0.8)"
-                            : floatingDmg.crit
-                              ? "0 0 16px #fbbf24, 0 0 32px #f59e0b, 0 2px 4px rgba(0,0,0,0.9)"
-                              : "0 0 10px currentColor, 0 2px 4px rgba(0,0,0,0.8)",
-                        letterSpacing: "-0.02em",
+                        fontSize: "1rem",
+                        color: supportOverlay.color,
+                        textShadow: `0 0 14px ${supportOverlay.glow}, 0 0 28px ${supportOverlay.glow}88, 0 2px 4px rgba(0,0,0,0.9)`,
+                        letterSpacing: "0.08em",
                     }}
                 >
-                    {floatingDmg.heal ? `+${floatingDmg.value}` : floatingDmg.value > 0 ? `-${floatingDmg.value}` : "¡Fallo!"}
-                    {floatingDmg.crit && !floatingDmg.heal && <span className="text-sm ml-0.5">💥</span>}
+                    {supportOverlay.text}
+                </div>
+            )}
+
+            {/* KO overlay — lanzado desde lejos, aplasta al myth */}
+            {koOverlay && (
+                <div
+                    className="absolute pointer-events-none z-50 animate-ko-overlay"
+                    style={{ top: 10, left: "50%", transform: "translateX(-50%)" }}
+                >
+                    <span
+                        className="font-black select-none block"
+                        style={{
+                            fontSize: "3.5rem",
+                            color: "#ff1111",
+                            textShadow: "0 0 40px #ff0000, 0 0 80px #ff000088, 0 0 120px #ff000044, 0 4px 12px rgba(0,0,0,1)",
+                            WebkitTextStroke: "2.5px #6f0000",
+                            letterSpacing: "0.06em",
+                            lineHeight: 1,
+                        }}
+                    >
+                        K.O.
+                    </span>
                 </div>
             )}
 
             {/* Sprite container */}
             <div className="relative flex items-end justify-center" style={{ width: spriteSize, height: spriteSize }}>
+                {/* Aura Super Saiyan — turno activo */}
+                {isActing && !myth.defeated && (
+                    <>
+                        <div className="active-aura-halo" />
+                        <div className="active-aura-ring" />
+                        {/* Partículas ascendentes */}
+                        {[...Array(5)].map((_, i) => (
+                            <div
+                                key={`ap${i}`}
+                                className="absolute pointer-events-none z-[2] rounded-full"
+                                style={{
+                                    width: 4 + (i % 3) * 2,
+                                    height: 4 + (i % 3) * 2,
+                                    bottom: 8 + i * 6,
+                                    left: "50%",
+                                    background: `rgba(${180 + i * 12}, ${210 + i * 6}, 255, 0.9)`,
+                                    boxShadow: `0 0 6px rgba(200,230,255,0.8)`,
+                                    ["--px" as any]: `${(i - 2) * 14}px`,
+                                    ["--drift" as any]: `${(i % 2 === 0 ? 1 : -1) * (4 + i * 2)}px`,
+                                    animation: `activeAuraParticle ${0.9 + i * 0.22}s ease-in ${i * 0.18}s infinite`,
+                                }}
+                            />
+                        ))}
+                    </>
+                )}
                 {/* Flash de impacto */}
                 {cfg && (
                     <div
@@ -695,16 +791,12 @@ function ArenaMyth({
                         style={{ background: `radial-gradient(circle, ${cfg.glow}66 0%, transparent 70%)` }}
                     />
                 )}
-                {/* Glow del actor activo */}
-                {isActing && !myth.defeated && (
-                    <div
-                        className="absolute inset-0 rounded-full animate-pulse pointer-events-none"
-                        style={{ background: afCfg ? `radial-gradient(circle, ${afCfg.glow}33 0%, transparent 70%)` : undefined }}
-                    />
-                )}
                 {/* Target ring */}
                 {targeted && !myth.defeated && (
-                    <div className="absolute inset-0 rounded-full border-2 border-red-400/70 animate-pulse pointer-events-none" />
+                    <div
+                        className="absolute inset-0 rounded-full border-2 animate-pulse pointer-events-none"
+                        style={{ borderColor: targetColor ?? "rgba(248,113,113,0.7)" }}
+                    />
                 )}
 
                 {myth.defeated ? (
@@ -716,6 +808,7 @@ function ArenaMyth({
                         className={[
                             cfg ? "animate-myth-shake" : isActing ? "animate-myth-idle" : "",
                             myth.status ? `aura-${myth.status}` : "",
+                            isActing && !myth.defeated ? "active-aura-glow" : "",
                         ].filter(Boolean).join(" ")}
                     />
                 )}
@@ -738,21 +831,55 @@ function ArenaMyth({
             )}
 
             {/* Info: nombre + HP */}
-            <div className="flex flex-col items-center gap-0.5" style={{ width: Math.max(spriteSize, 80) }}>
-                <div className="flex items-center gap-1 justify-center">
+            <div className="flex flex-col items-center gap-0.5" style={{ width: Math.max(spriteSize, 96) }}>
+                {/* Nombre con icono de afinidad */}
+                <div className="flex items-center gap-1 justify-center" style={{ maxWidth: Math.max(spriteSize, 96) }}>
                     {isActing && !myth.defeated && <span className="text-yellow-400 text-xs animate-pulse">▶</span>}
+                    {primaryAffinity && afCfg && (
+                        <div
+                            className="flex-shrink-0 flex items-center justify-center rounded-full font-black"
+                            title={primaryAffinity}
+                            style={{
+                                width: 16, height: 16,
+                                background: afCfg.color,
+                                boxShadow: `0 0 6px ${afCfg.glow}bb`,
+                                fontSize: "7px", color: "#fff",
+                                textShadow: "0 1px 2px rgba(0,0,0,0.9)",
+                                flexShrink: 0,
+                            }}
+                        >
+                            {primaryAffinity.slice(0, 2).toUpperCase()}
+                        </div>
+                    )}
                     <p
-                        className={`text-xs font-bold truncate font-mono text-center
+                        className={`text-xs font-bold truncate font-mono
                             ${myth.defeated ? "text-slate-600" : isActing ? "text-yellow-300" : targeted ? "text-red-400" : "text-white/90"}`}
-                        style={{ maxWidth: Math.max(spriteSize, 80) }}
+                        style={{ maxWidth: Math.max(spriteSize - 22, 58) }}
                     >
                         {myth.name}
                     </p>
                 </div>
                 {!myth.defeated && (
                     <>
-                        <HpBar hp={myth.hp} maxHp={myth.maxHp} shield={myth.shield} />
-                        {/* HP número más grande y visible */}
+                        {/* Barra de nivel + HP integrados */}
+                        <div className="flex items-center gap-1 w-full justify-center">
+                            {/* Badge de nivel — ligeramente más alto que la barra */}
+                            <div
+                                className="flex-shrink-0 flex items-center justify-center font-black font-mono rounded"
+                                style={{
+                                    width: 28, height: 18,
+                                    background: "linear-gradient(135deg, #1e3a5f 0%, #0f2340 100%)",
+                                    border: "1px solid rgba(96,165,250,0.5)",
+                                    boxShadow: "0 0 6px rgba(96,165,250,0.25)",
+                                    fontSize: "10px", color: "#93c5fd",
+                                    letterSpacing: "0.02em", flexShrink: 0,
+                                }}
+                            >
+                                {`Lv${myth.level}`}
+                            </div>
+                            <HpBar hp={myth.hp} maxHp={myth.maxHp} shield={myth.shield} />
+                        </div>
+                        {/* HP número */}
                         <p className="font-mono font-bold tabular-nums" style={{ fontSize: "0.8rem", color: "#e2e8f0", textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
                             <span style={{ fontWeight: 900 }}>{myth.hp}</span>
                             <span style={{ color: "#475569", fontWeight: 400 }}>/{myth.maxHp}</span>
@@ -920,6 +1047,49 @@ function PrepScreen({
                 {loading ? "Iniciando..." : `⚔️ Combatir (${order.length} Myth${order.length !== 1 ? "s" : ""})`}
             </button>
         </div>
+    );
+}
+
+// ─────────────────────────────────────────
+// ShootingStar — 1 estrella fugaz, posición aleatoria, cada 30-45s
+// ─────────────────────────────────────────
+
+function ShootingStar() {
+    const [key, setKey] = useState(0);
+    const [pos, setPos] = useState({ top: "8%", left: "15%" });
+
+    useEffect(() => {
+        function fire() {
+            setPos({
+                top: `${2 + Math.random() * 22}%`,
+                left: `${5 + Math.random() * 60}%`,
+            });
+            setKey((k) => k + 1);
+            // siguiente disparo entre 30 y 45 segundos
+            setTimeout(fire, 30000 + Math.random() * 15000);
+        }
+        // primer disparo entre 3 y 8 segundos tras montar
+        const t = setTimeout(fire, 3000 + Math.random() * 5000);
+        return () => clearTimeout(t);
+    }, []);
+
+    return (
+        <div
+            key={key}
+            style={{
+                position: "absolute",
+                top: pos.top,
+                left: pos.left,
+                width: 180,
+                height: 2,
+                borderRadius: 2,
+                transform: "rotate(22deg)",
+                transformOrigin: "left center",
+                background: "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 20%, rgba(255,255,255,0.95) 60%, rgba(220,240,255,1) 80%, rgba(255,255,255,0) 100%)",
+                boxShadow: "0 0 6px 2px rgba(200,230,255,0.7), 0 0 20px 4px rgba(180,210,255,0.4)",
+                animation: "shootingStar 1.1s cubic-bezier(0.4,0,0.6,1) forwards",
+            }}
+        />
     );
 }
 
@@ -1106,11 +1276,7 @@ export default function BattlePage() {
     const currentActorIdRef = useRef<string | null>(null);
     useEffect(() => { currentActorIdRef.current = currentActorId; }, [currentActorId]);
     const [targetEnemyMythId, setTargetEnemyMythId] = useState<string | null>(null);
-    const [timer, setTimer] = useState<number>(15);
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    // Token de turno: cada turno jugador recibe un ID único. El intervalo comprueba
-    // que sigue siendo válido antes de disparar — imposible auto-atacar turno pasado.
-    const timerLockRef = useRef<number>(0);
+    // (timer eliminado — el jugador elige sin límite de tiempo)
 
     const [projectile, setProjectile] = useState<ProjectileState | null>(null);
     const [flashMap, setFlashMap] = useState<Record<string, Affinity>>({});
@@ -1118,11 +1284,92 @@ export default function BattlePage() {
         Record<string, { value: number; crit: boolean; mult: number; heal?: boolean }>
     >({});
 
+    // Overlays flotantes sobre sprites
+    const [supportOverlays, setSupportOverlays] = useState<Record<string, { text: string; color: string; glow: string }>>({});
+    const [koOverlays, setKoOverlays] = useState<Record<string, boolean>>({});
+
+    function triggerKo(instanceId: string) {
+        setKoOverlays((prev) => ({ ...prev, [instanceId]: true }));
+        setTimeout(() => {
+            setKoOverlays((prev) => { const n = { ...prev }; delete n[instanceId]; return n; });
+        }, 2400);
+    }
+
+    function showSupportOverlay(instanceId: string, text: string, color: string, glow: string, duration = 1800) {
+        setSupportOverlays((prev) => ({ ...prev, [instanceId]: { text, color, glow } }));
+        setTimeout(() => {
+            setSupportOverlays((prev) => { const n = { ...prev }; delete n[instanceId]; return n; });
+        }, duration);
+    }
+
     const [log, setLog] = useState<{ text: string; type: string }[]>([]);
     const logRef = useRef<HTMLDivElement>(null);
+    // Scroll al fondo del log cada vez que llega un mensaje — estilo Twitch
+    useEffect(() => {
+        const el = logRef.current;
+        if (!el) return;
+        el.scrollTop = el.scrollHeight;
+    }, [log]);
     const [result, setResult] = useState<{ status: "win" | "lose"; xp?: number; coins?: number } | null>(null);
-    const { reload } = useTrainer();
+    const { reload, trainer } = useTrainer();
     const { toast } = useToast();
+
+    // ── Items en combate ──
+    const [showItemPanel, setShowItemPanel] = useState(false);
+    const [showAffinityModal, setShowAffinityModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<{ type: string; name: string; emoji: string; desc: string } | null>(null);
+    const [usingItem, setUsingItem] = useState(false);
+
+    // Items usables en combate — solo SPARK y GRAND_SPARK
+    const COMBAT_ITEMS = [
+        { type: "SPARK",       name: "Spark",       emoji: "✨", desc: "Cura el estado de 1 Myth" },
+        { type: "GRAND_SPARK", name: "Grand Spark", emoji: "💎", desc: "Cura todos los estados del equipo" },
+    ];
+
+    function getCombatItemCount(itemType: string): number {
+        if (!trainer?.inventory) return 0;
+        const entry = trainer.inventory.find((i: any) => i.type === itemType);
+        return entry?.quantity ?? 0;
+    }
+
+    async function handleUseItem(targetMythId: string) {
+        if (!selectedItem || !session || usingItem) return;
+        const qty = getCombatItemCount(selectedItem.type);
+        if (qty <= 0) { toast("No tienes ese objeto", "error"); return; }
+        setUsingItem(true);
+        try {
+            // TODO servidor: POST /battle/npc/use-item { battleId, itemType, targetInstanceId }
+            // Devuelve la sesión actualizada igual que battleNpcTurn
+            const res = await fetch("/api/battle/npc/use-item", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    battleId: session.battleId,
+                    itemType: selectedItem.type,
+                    targetInstanceId: targetMythId,
+                }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error ?? "Error al usar objeto");
+            }
+            const data = await res.json();
+            if (data.session) setSession(cloneSession(data.session));
+            else {
+                const updated = await api.battleNpcActive();
+                if (updated) setSession(cloneSession(updated));
+            }
+            toast(`${selectedItem.emoji} ${selectedItem.name} usado con éxito`, "success");
+            await reload();
+        } catch (e: any) {
+            toast(e.message ?? "Error al usar objeto", "error");
+        } finally {
+            setUsingItem(false);
+            setSelectedItem(null);
+            setShowItemPanel(false);
+        }
+    }
     const [turnOverlay, setTurnOverlay] = useState<string | null>(null);
 
     useEffect(() => {
@@ -1132,6 +1379,12 @@ export default function BattlePage() {
         api.battleNpcActive()
             .then(async (s: any) => {
                 if (s?.status === "ongoing") {
+                    // SECURITY: Verificar que el combate pertenece al trainer actual
+                    // Si el trainerId no coincide, ignoramos la sesión (otro usuario en el mismo browser)
+                    if (s.trainerId && trainer?.id && s.trainerId !== trainer.id) {
+                        console.warn("[BattlePage] Sesión activa de otro usuario ignorada.");
+                        return;
+                    }
                     const cloned = cloneSession(s);
                     setSession(cloned);
                     setPhase("battle");
@@ -1168,58 +1421,6 @@ export default function BattlePage() {
     useEffect(() => { currentActorIsPlayerRef.current = currentActorIsPlayer; }, [currentActorIsPlayer]);
     const animatingRef = useRef(false);
     useEffect(() => { animatingRef.current = animating; }, [animating]);
-
-    // Timer — SOLO para el turno activo del jugador.
-    // timerLockRef es un token: al cambiar de turno se pone a 0, y cualquier
-    // tick pendiente en el event loop se autodestruye sin disparar nada.
-    useEffect(() => {
-        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        if (phase !== "battle" || animating || !currentActorIsPlayer) { setTimer(15); return; }
-
-        const myToken = Date.now();
-        timerLockRef.current = myToken;
-        setTimer(15);
-
-        timerRef.current = setInterval(() => {
-            if (timerLockRef.current !== myToken) {
-                clearInterval(timerRef.current!); timerRef.current = null; return;
-            }
-            if (animatingRef.current || !currentActorIsPlayerRef.current) {
-                clearInterval(timerRef.current!); timerRef.current = null;
-                timerLockRef.current = 0; return;
-            }
-            setTimer((t) => {
-                if (t <= 1) {
-                    clearInterval(timerRef.current!); timerRef.current = null;
-                    timerLockRef.current = 0;
-                    handleTimerExpired();
-                    return 0;
-                }
-                return t - 1;
-            });
-        }, 1000);
-
-        return () => {
-            timerLockRef.current = 0;
-            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        };
-    }, [currentActorId, phase, animating, currentActorIsPlayer]);
-
-    function handleTimerExpired() {
-        const session = sessionRef.current;
-        if (!session) return;
-        // doble comprobación: solo actuar si sigue siendo turno del jugador
-        if (!currentActorIsPlayerRef.current) return;
-        const actor = session.playerTeam.find((m) => m.instanceId === currentActorIdRef.current);
-        if (!actor) return;
-        const basicMove =
-            actor.moves
-                .filter((mv) => mv.power > 0 && !(actor.cooldownsLeft?.[mv.id] > 0))
-                .sort((a, b) => a.cooldown - b.cooldown)[0] ?? actor.moves[0];
-        const firstEnemy = session.enemyTeam.find((m) => !m.defeated);
-        if (!basicMove || !firstEnemy) return;
-        handleMove(basicMove.id, firstEnemy.instanceId);
-    }
 
     function addLog(text: string, type = "normal") {
         setLog((l) => [...l.slice(-50), { text, type }]);
@@ -1280,6 +1481,33 @@ export default function BattlePage() {
     async function animateTurnAction(action: any, currentSession?: BattleSession) {
         const sessionForLookup = currentSession ?? sessionRef.current ?? session;
         const direction = action.isPlayerMyth ? "ltr" : "rtl";
+
+        const BUFF_OVERLAYS: Record<string, { text: string; color: string; glow: string }> = {
+            boost_atk:  { text: "⚔️ ATK UP!",   color: "#4ade80", glow: "#22c55e" },
+            boost_def:  { text: "🛡️ DEF UP!",   color: "#4ade80", glow: "#22c55e" },
+            boost_spd:  { text: "💨 SPD UP!",   color: "#4ade80", glow: "#22c55e" },
+            boost_acc:  { text: "🎯 ACC UP!",   color: "#4ade80", glow: "#22c55e" },
+            shield:     { text: "🛡️ BARRIER!",  color: "#60a5fa", glow: "#3b82f6" },
+            regen:      { text: "✨ REGEN!",     color: "#34d399", glow: "#10b981" },
+            heal:       { text: "💚 HEALING",   color: "#4ade80", glow: "#22c55e" },
+        };
+        const DEBUFF_OVERLAYS: Record<string, { text: string; color: string; glow: string }> = {
+            debuff_atk: { text: "⚔️ ATK DOWN!", color: "#f87171", glow: "#ef4444" },
+            debuff_def: { text: "🛡️ DEF DOWN!", color: "#f87171", glow: "#ef4444" },
+            debuff_spd: { text: "💨 SPD DOWN!", color: "#f87171", glow: "#ef4444" },
+            debuff_acc: { text: "🎯 ACC DOWN!", color: "#f87171", glow: "#ef4444" },
+            silence:    { text: "🔇 SILENCED",  color: "#94a3b8", glow: "#64748b" },
+        };
+        const STATUS_OVERLAYS: Record<string, { text: string; color: string; glow: string }> = {
+            burn:     { text: "🔥 BURN",      color: "#f97316", glow: "#f97316" },
+            poison:   { text: "☠️ POISON",    color: "#a855f7", glow: "#a855f7" },
+            freeze:   { text: "❄️ FROZEN",    color: "#67e8f9", glow: "#67e8f9" },
+            fear:     { text: "😨 FEARED",    color: "#c084fc", glow: "#a855f7" },
+            paralyze: { text: "⚡ PARALYZED", color: "#fde047", glow: "#fde047" },
+            stun:     { text: "💫 STUNNED",   color: "#fbbf24", glow: "#fbbf24" },
+            curse:    { text: "💀 CURSED",    color: "#818cf8", glow: "#818cf8" },
+        };
+
         if (action.blockedByStatus) {
             addLog(action.blockedByStatus, "status");
         } else {
@@ -1290,96 +1518,115 @@ export default function BattlePage() {
                 .find((m) => m.instanceId === action.actorInstanceId)
                 ?.moves.find((mv) => mv.name === action.move);
             const projLevel = moveObj ? getMoveLevel(moveObj) : 1;
-            // Esperar un frame para que el DOM refleje el último render antes de leer posiciones
+            const isSupport = moveObj?.type === "support" || (!action.damage && !action.missed);
+
             await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-            const positions = getProjectilePositions(action.actorInstanceId, action.targetInstanceId);
-            if (positions) {
-                const duration = Math.max(
-                    350,
-                    Math.min(
-                        650,
-                        (Math.sqrt(
-                            Math.pow(positions.toX - positions.fromX, 2) + Math.pow(positions.toY - positions.fromY, 2),
-                        ) /
-                            800) *
-                            1000,
-                    ),
-                );
-                setProjectile({
-                    affinity: action.moveAffinity as Affinity,
-                    direction,
-                    level: projLevel,
-                    ...positions,
-                });
-                await sleep(duration);
-                setProjectile(null);
-                // Mostrar explosión en la posición del objetivo
-                setExplosion({
-                    x: positions.toX,
-                    y: positions.toY,
-                    fromX: positions.fromX,
-                    fromY: positions.fromY,
-                    affinity: action.moveAffinity as Affinity,
-                    level: projLevel,
-                });
-                await sleep(projLevel === 1 ? 200 : projLevel === 2 ? 300 : 600);
+
+            if (isSupport && !action.damage) {
+                // ── MOVE DE SOPORTE ──
+                const isBeneficial = action.healAmount > 0
+                    || (action.buffApplied && action.buffApplied.multiplier > 1)
+                    || action.buffApplied?.type === "shield"
+                    || action.buffApplied?.type === "regen";
+                const isDebuff = action.statusApplied
+                    || (action.buffApplied && action.buffApplied.multiplier < 1)
+                    || action.buffApplied?.type === "silence";
+
+                if (isBeneficial) {
+                    if (action.healAmount > 0) {
+                        await flashAndFloat(action.actorInstanceId, action.moveAffinity, action.healAmount, false, 1, true);
+                    }
+                    const buffType = action.buffApplied?.type ?? (action.healAmount > 0 ? "heal" : null);
+                    const bo = buffType ? BUFF_OVERLAYS[buffType] : null;
+                    if (bo) {
+                        await showSupportOverlay(action.actorInstanceId, bo.text, bo.color, bo.glow);
+                    } else if (action.buffApplied?.multiplier > 1) {
+                        const statKey = `boost_${action.buffApplied.stat ?? "atk"}`;
+                        const so = BUFF_OVERLAYS[statKey] ?? BUFF_OVERLAYS["boost_atk"];
+                        await showSupportOverlay(action.actorInstanceId, so.text, so.color, so.glow);
+                    } else if (action.healAmount > 0) {
+                        await showSupportOverlay(action.actorInstanceId, "💚 HEALING", "#4ade80", "#22c55e");
+                    }
+                } else if (isDebuff && action.targetInstanceId) {
+                    const positions = getProjectilePositions(action.actorInstanceId, action.targetInstanceId);
+                    if (positions) {
+                        const dur = Math.max(350, Math.min(650,
+                            (Math.sqrt(Math.pow(positions.toX - positions.fromX, 2) + Math.pow(positions.toY - positions.fromY, 2)) / 800) * 1000));
+                        setProjectile({ affinity: action.moveAffinity as Affinity, direction, level: 1, ...positions });
+                        await sleep(dur);
+                        setProjectile(null);
+                        setExplosion({ x: positions.toX, y: positions.toY, fromX: positions.fromX, fromY: positions.fromY, affinity: action.moveAffinity as Affinity, level: 1 });
+                    }
+                    if (action.statusApplied) {
+                        const so = STATUS_OVERLAYS[action.statusApplied];
+                        if (so) await showSupportOverlay(action.targetInstanceId, so.text, so.color, so.glow);
+                    } else if (action.buffApplied) {
+                        const debuffType = action.buffApplied.type ?? `debuff_${action.buffApplied.stat ?? "atk"}`;
+                        const so = DEBUFF_OVERLAYS[debuffType] ?? DEBUFF_OVERLAYS[`debuff_${action.buffApplied.stat ?? "atk"}`];
+                        if (so) await showSupportOverlay(action.targetInstanceId, so.text, so.color, so.glow);
+                    }
+                }
+                await sleep(300);
             } else {
-                // Fallback si no hay refs disponibles
-                setProjectile({
-                    affinity: action.moveAffinity as Affinity,
-                    direction,
-                    level: projLevel,
-                    fromX: 0,
-                    fromY: 0,
-                    toX: 0,
-                    toY: 0,
-                });
-                await sleep(480);
-                setProjectile(null);
-                await sleep(80);
-            }
+                // ── MOVE DE DAÑO ──
+                const positions = getProjectilePositions(action.actorInstanceId, action.targetInstanceId);
+                if (positions) {
+                    const duration = Math.max(350, Math.min(650,
+                        (Math.sqrt(Math.pow(positions.toX - positions.fromX, 2) + Math.pow(positions.toY - positions.fromY, 2)) / 800) * 1000));
+                    setProjectile({ affinity: action.moveAffinity as Affinity, direction, level: projLevel, ...positions });
+                    await sleep(duration);
+                    setProjectile(null);
+                    setExplosion({ x: positions.toX, y: positions.toY, fromX: positions.fromX, fromY: positions.fromY, affinity: action.moveAffinity as Affinity, level: projLevel });
+                    await sleep(projLevel === 1 ? 200 : projLevel === 2 ? 300 : 600);
+                } else {
+                    setProjectile({ affinity: action.moveAffinity as Affinity, direction, level: projLevel, fromX: 0, fromY: 0, toX: 0, toY: 0 });
+                    await sleep(480);
+                    setProjectile(null);
+                    await sleep(80);
+                }
 
-            if (action.targetInstanceId && action.damage > 0) {
-                await flashAndFloat(
-                    action.targetInstanceId,
-                    action.moveAffinity,
-                    action.damage,
-                    action.crit,
-                    action.mult,
-                );
-            } else if (action.missed) {
-                addLog("¡Falló!", "miss");
-            }
+                if (action.targetInstanceId && action.damage > 0) {
+                    await flashAndFloat(action.targetInstanceId, action.moveAffinity, action.damage, action.crit, action.mult);
+                } else if (action.missed) {
+                    addLog("¡Falló!", "miss");
+                }
 
-            if (action.mult >= 2) addLog(`⚡ ¡Súper eficaz! ×${action.mult}`, action.isPlayerMyth ? "good" : "bad");
-            else if (action.mult > 0 && action.mult < 1)
-                addLog(`💤 Poco eficaz ×${action.mult}`, action.isPlayerMyth ? "bad" : "good");
-            if (action.crit) addLog("💥 ¡Golpe crítico!", "crit");
+                if (action.mult >= 2) addLog(`⚡ ¡Súper eficaz! ×${action.mult}`, action.isPlayerMyth ? "good" : "bad");
+                else if (action.mult > 0 && action.mult < 1)
+                    addLog(`💤 Poco eficaz ×${action.mult}`, action.isPlayerMyth ? "bad" : "good");
+                if (action.crit) addLog("💥 ¡Golpe crítico!", "crit");
 
-            if (action.statusApplied) {
-                const icon = STATUS_ICONS[action.statusApplied] ?? "⚠️";
-                addLog(`${icon} ¡${action.targetName} afectado por ${action.statusApplied}!`, "status");
-            }
-            if (action.buffApplied) {
-                const label = action.buffApplied.label ?? action.buffApplied.stat?.toUpperCase() ?? "";
-                addLog(
-                    `${action.buffApplied.emoji} ${action.actorName} ${label}`,
-                    action.isPlayerMyth ? "good" : "bad",
-                );
-            }
-            if (action.healAmount && action.healAmount > 0) {
-                await flashAndFloat(action.actorInstanceId, action.moveAffinity, action.healAmount, false, 1, true);
-                addLog(`💚 ${action.actorName} recupera ${action.healAmount} HP`, "heal");
-            }
-            if (action.effectMsgs?.length) {
-                for (const msg of action.effectMsgs) addLog(msg, "status");
+                if (action.statusApplied) {
+                    const icon = STATUS_ICONS[action.statusApplied] ?? "⚠️";
+                    addLog(`${icon} ¡${action.targetName} afectado por ${action.statusApplied}!`, "status");
+                    if (action.targetInstanceId) {
+                        const so = STATUS_OVERLAYS[action.statusApplied];
+                        if (so) showSupportOverlay(action.targetInstanceId, so.text, so.color, so.glow, 1400);
+                    }
+                }
+                if (action.buffApplied) {
+                    const label = action.buffApplied.label ?? action.buffApplied.stat?.toUpperCase() ?? "";
+                    addLog(`${action.buffApplied.emoji} ${action.actorName} ${label}`, action.isPlayerMyth ? "good" : "bad");
+                }
+                if (action.healAmount && action.healAmount > 0) {
+                    await flashAndFloat(action.actorInstanceId, action.moveAffinity, action.healAmount, false, 1, true);
+                    addLog(`💚 ${action.actorName} recupera ${action.healAmount} HP`, "heal");
+                }
+                if (action.effectMsgs?.length) {
+                    for (const msg of action.effectMsgs) addLog(msg, "status");
+                }
             }
         }
 
         if (action.statusTickDamage && action.statusTickDamage > 0) {
-            await sleep(300);
-            await flashAndFloat(action.actorInstanceId, action.moveAffinity, action.statusTickDamage, false, 1);
-            addLog(action.statusTickMsg ?? `${action.actorName} sufre daño por estado`, "status");
+            const sess = currentSession ?? sessionRef.current ?? session;
+            const actorMyth = [...(sess?.playerTeam ?? []), ...(sess?.enemyTeam ?? [])]
+                .find((m) => m.instanceId === action.actorInstanceId);
+            if (actorMyth?.status) {
+                await sleep(300);
+                await flashAndFloat(action.actorInstanceId, action.moveAffinity, action.statusTickDamage, false, 1);
+                addLog(action.statusTickMsg ?? `${action.actorName} sufre daño por estado`, "status");
+            }
         }
     }
 
@@ -1390,6 +1637,16 @@ export default function BattlePage() {
         xpGained?: number,
         coinsGained?: number,
     ) {
+        // Detectar myths recién derrotados para mostrar K.O.
+        const prev = sessionRef.current;
+        if (prev) {
+            const allPrev = [...prev.playerTeam, ...prev.enemyTeam];
+            const allNew = [...newSession.playerTeam, ...newSession.enemyTeam];
+            for (const m of allNew) {
+                const was = allPrev.find((p) => p.instanceId === m.instanceId);
+                if (was && !was.defeated && m.defeated) triggerKo(m.instanceId);
+            }
+        }
         setSession(newSession);
         if (newSession.status === "win" || newSession.status === "lose") {
             addLog(
@@ -1407,7 +1664,7 @@ export default function BattlePage() {
                 [...newSession.playerTeam, ...newSession.enemyTeam].find((m) => m.instanceId === nextActorId)?.name ??
                 "TU MYTH";
             setTurnOverlay(actorName);
-            setTimeout(() => setTurnOverlay(null), 1500);
+            setTimeout(() => setTurnOverlay(null), 3000);
         }
         if (nextActorIsPlayer) {
             setTargetEnemyMythId((prev) => {
@@ -1420,8 +1677,6 @@ export default function BattlePage() {
 
     async function handleMove(moveId: string, forcedTargetId?: string) {
         if (!session || animating) return;
-        timerLockRef.current = 0; // invalidar ANTES del clearInterval
-        if (timerRef.current) clearInterval(timerRef.current);
         const resolvedTarget = forcedTargetId ?? targetEnemyMythId ?? undefined;
         setAnimating(true);
         let chainedToNpc = false;
@@ -1434,7 +1689,7 @@ export default function BattlePage() {
             const ended = finalizeTurn(newSession, nextActorId, nextActorIsPlayer, xpGained, coinsGained);
             if (!ended && !nextActorIsPlayer && nextActorId) {
                 chainedToNpc = true;
-                await sleep(1200); // pausa visible entre ataque jugador y respuesta NPC
+                await sleep(3000); // pausa 3s entre ataque jugador y respuesta NPC
                 await handleNpcTurn(newSession, nextActorId, true);
             }
         } catch (e: any) {
@@ -1455,7 +1710,7 @@ export default function BattlePage() {
             await sleep(150);
             const ended = finalizeTurn(newSession, nextActorId, nextActorIsPlayer, xpGained, coinsGained);
             if (!ended && !nextActorIsPlayer && nextActorId) {
-                await sleep(1200); // pausa entre NPCs consecutivos
+                await sleep(1200); // pausa entre NPCs consecutivos (cadena)
                 await handleNpcTurn(newSession, nextActorId, false);
             }
         } catch (e: any) {
@@ -1519,7 +1774,7 @@ export default function BattlePage() {
                 {screenWarningOverlay}
                 <Layout sidebar={<TrainerSidebar />}>
                 <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
-                    <TabBar mode={mode} onSwitch={setMode} />
+                    <TabBar mode={mode} onSwitch={setMode} battleActive={false} />
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center max-w-sm">
                             <div className="text-6xl mb-4">⚔️</div>
@@ -1546,7 +1801,7 @@ export default function BattlePage() {
             {screenWarningOverlay}
             <Layout sidebar={<TrainerSidebar />}>
                 <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
-                    <TabBar mode={mode} onSwitch={setMode} />
+                    <TabBar mode={mode} onSwitch={setMode} battleActive={phase === "battle"} />
 
                     <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
                         {/* ── Arena principal ── */}
@@ -1564,22 +1819,36 @@ export default function BattlePage() {
                                     ].join(", "),
                                 }}
                             >
-                                {/* Estrellas */}
-                                <div className="absolute inset-0 pointer-events-none" style={{
+                                {/* Capa 1: estrellas pequeñas parpadeantes lentas */}
+                                <div className="absolute inset-0 pointer-events-none star-twinkle-slow" style={{
                                     backgroundImage: [
-                                        "radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.55) 0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 25% 8%,  rgba(255,255,255,0.4)  0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.5)  0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 55% 5%,  rgba(255,255,255,0.65) 0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 70% 18%, rgba(255,255,255,0.4)  0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 85% 10%, rgba(255,255,255,0.55) 0%, transparent 100%)",
-                                        "radial-gradient(1.5px 1.5px at 33% 12%, rgba(255,255,255,0.8) 0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 60% 25%, rgba(255,255,255,0.3)  0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 78% 7%,  rgba(255,255,255,0.5)  0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 92% 22%, rgba(255,255,255,0.35) 0%, transparent 100%)",
-                                        "radial-gradient(1px 1px at 5%  30%, rgba(255,255,255,0.3)  0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 25% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.55) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 55% 5%,  rgba(255,255,255,0.7) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 70% 18%, rgba(255,255,255,0.5) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 85% 10%, rgba(255,255,255,0.6) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 92% 22%, rgba(255,255,255,0.4) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 5%  30%, rgba(255,255,255,0.35) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 48% 14%, rgba(255,255,255,0.45) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 15% 28%, rgba(255,255,255,0.3) 0%, transparent 100%)",
                                     ].join(", "),
                                 }} />
+                                {/* Capa 2: estrellas medianas, parpadeo más rápido y desfasado */}
+                                <div className="absolute inset-0 pointer-events-none star-twinkle-fast" style={{
+                                    backgroundImage: [
+                                        "radial-gradient(1.5px 1.5px at 33% 12%, rgba(255,255,255,0.9) 0%, transparent 100%)",
+                                        "radial-gradient(1.5px 1.5px at 60% 7%,  rgba(200,220,255,0.8) 0%, transparent 100%)",
+                                        "radial-gradient(2px   2px   at 78% 16%, rgba(255,255,255,0.7) 0%, transparent 100%)",
+                                        "radial-gradient(1.5px 1.5px at 18% 9%,  rgba(220,240,255,0.85) 0%, transparent 100%)",
+                                        "radial-gradient(1px   1px   at 90% 6%,  rgba(255,255,255,0.6) 0%, transparent 100%)",
+                                        "radial-gradient(1.5px 1.5px at 44% 22%, rgba(255,240,200,0.7) 0%, transparent 100%)",
+                                    ].join(", "),
+                                }} />
+                                {/* Estrella fugaz — 1 sola, larga, brillante, aparece cada 30-45s */}
+                                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                    <ShootingStar />
+                                </div>
                                 {/* Aurora boreal */}
                                 <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
                                     height: "45%",
@@ -1642,24 +1911,24 @@ export default function BattlePage() {
                                     </div>
                                 )}
                                 {turnOverlay && (
-                                    <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+                                    <div className="absolute inset-0 flex items-center justify-center z-[300] pointer-events-none">
                                         <div
                                             className="animate-turn-overlay text-center"
                                             style={{
                                                 background:
-                                                    "linear-gradient(135deg, rgba(7,11,20,0.85) 0%, rgba(30,45,69,0.90) 100%)",
-                                                border: "2px solid rgba(253,214,10,0.6)",
-                                                borderRadius: 16,
-                                                padding: "12px 32px",
-                                                boxShadow: "0 0 40px rgba(253,214,10,0.25), 0 8px 32px rgba(0,0,0,0.6)",
+                                                    "linear-gradient(135deg, rgba(7,11,20,0.92) 0%, rgba(30,45,69,0.95) 100%)",
+                                                border: "2px solid rgba(253,214,10,0.7)",
+                                                borderRadius: 20,
+                                                padding: "18px 48px",
+                                                boxShadow: "0 0 60px rgba(253,214,10,0.35), 0 8px 40px rgba(0,0,0,0.7)",
                                             }}
                                         >
                                             <p className="font-mono text-xs text-yellow-400/70 tracking-widest uppercase mb-1">
                                                 Tu turno
                                             </p>
                                             <p
-                                                className="font-mono font-black text-2xl text-yellow-300 tracking-widest uppercase"
-                                                style={{ textShadow: "0 0 20px rgba(253,214,10,0.8)" }}
+                                                className="font-mono font-black text-3xl text-yellow-300 tracking-widest uppercase"
+                                                style={{ textShadow: "0 0 24px rgba(253,214,10,0.9), 0 0 48px rgba(253,214,10,0.5)" }}
                                             >
                                                 ⚔️ {turnOverlay}
                                             </p>
@@ -1843,6 +2112,8 @@ export default function BattlePage() {
                                                     targeted={myth.instanceId === targetEnemyMythId && currentActorIsPlayer}
                                                     flashAffinity={flashMap[myth.instanceId]}
                                                     floatingDmg={floatMap[myth.instanceId]}
+                                                    supportOverlay={supportOverlays[myth.instanceId]}
+                                                    koOverlay={!!koOverlays[myth.instanceId]}
                                                     spriteSize={spriteSize}
                                                     onClick={() => { if (!myth.defeated && !animating && currentActorIsPlayer) setTargetEnemyMythId(myth.instanceId); }}
                                                 />
@@ -1859,27 +2130,10 @@ export default function BattlePage() {
                                         <span className="font-mono font-black text-white text-base">{session?.turn ?? 0}</span>
                                     </div>
 
-                                    {/* Timer — solo visible en turno del jugador */}
+                                    {/* Indicador turno jugador — sin timer */}
                                     {currentActorIsPlayer && !animating && (
-                                        <div className="flex flex-col items-center gap-1">
-                                            <div
-                                                className={`flex items-center gap-2 px-6 py-2 rounded-2xl border backdrop-blur-md font-mono font-black tabular-nums
-                                                    ${timer <= 5 ? "border-red-500/60 bg-red-900/40 text-red-300" : timer <= 10 ? "border-yellow-500/50 bg-yellow-900/30 text-yellow-300" : "border-emerald-500/40 bg-emerald-900/20 text-emerald-300"}`}
-                                                style={{ fontSize: "1.5rem", boxShadow: timer <= 5 ? "0 0 24px rgba(239,68,68,0.4)" : timer <= 10 ? "0 0 20px rgba(250,204,21,0.3)" : "0 0 16px rgba(52,211,153,0.2)" }}
-                                            >
-                                                <span style={{ fontSize: "1.1rem" }}>⏱</span>
-                                                <span>{timer}s</span>
-                                            </div>
-                                            {/* Barra de progreso del timer */}
-                                            <div className="w-32 h-2 bg-black/40 rounded-full overflow-hidden border border-white/10">
-                                                <div
-                                                    className={`h-full rounded-full transition-all duration-1000 ease-linear ${timer <= 5 ? "bg-red-500" : timer <= 10 ? "bg-yellow-400" : "bg-emerald-400"}`}
-                                                    style={{ width: `${(timer / 15) * 100}%`, boxShadow: timer <= 5 ? "0 0 8px #ef4444" : timer <= 10 ? "0 0 8px #facc15" : "0 0 8px #4ade80" }}
-                                                />
-                                            </div>
-                                            <div className="text-xs font-mono font-bold text-yellow-300/90 tracking-wide" style={{ textShadow: "0 0 10px rgba(253,224,71,0.5)" }}>
-                                                ⚔️ {currentActor?.name} → {targetEnemy ? `🎯 ${targetEnemy.name}` : "elige objetivo"}
-                                            </div>
+                                        <div className="text-xs font-mono font-bold text-yellow-300/90 tracking-wide" style={{ textShadow: "0 0 10px rgba(253,224,71,0.5)" }}>
+                                            ⚔️ {currentActor?.name} → {targetEnemy ? `🎯 ${targetEnemy.name}` : "elige objetivo"}
                                         </div>
                                     )}
                                 </div>
@@ -1890,7 +2144,7 @@ export default function BattlePage() {
                                     // Posiciones alineadas con los círculos mágicos DOM:
                                     // left/top calibrados manualmente con el calibrador visual
                                     const leftPcts = ["21.9%", "29.9%", "16.3%"];
-                                    const topPcts  = ["37.5%", "55%", "72.5%"];
+                                    const topPcts  = ["33%", "55%", "72.5%"];
                                     const myth = phase === "prep" ? prepSlots[i] : session?.playerTeam[i];
 
                                     // Handler de drop para prep
@@ -1950,9 +2204,14 @@ export default function BattlePage() {
                                                     side="player"
                                                     mythRef={getMythRef(myth.instanceId)}
                                                     isActing={myth.instanceId === currentActorId}
+                                                    targeted={!!(selectedItem && !myth.defeated)}
+                                                    targetColor={selectedItem ? "rgba(251,191,36,0.8)" : undefined}
                                                     flashAffinity={flashMap[myth.instanceId]}
                                                     floatingDmg={floatMap[myth.instanceId]}
+                                                    supportOverlay={supportOverlays[myth.instanceId]}
+                                                    koOverlay={!!koOverlays[myth.instanceId]}
                                                     spriteSize={spriteSize}
+                                                    onClick={selectedItem && !myth.defeated ? () => handleUseItem(myth.instanceId) : undefined}
                                                 />
                                             ) : null}
                                         </div>
@@ -2068,54 +2327,446 @@ export default function BattlePage() {
                                                   ? (session?.playerTeam.find((m) => !m.defeated) ?? null)
                                                   : null;
 
+                                        const rarityClass = (r?: string) => {
+                                            switch(r) {
+                                                case "COMMON":    return "rarity-common";
+                                                case "RARE":      return "rarity-rare";
+                                                case "ELITE":     return "rarity-elite";
+                                                case "LEGENDARY": return "rarity-legendary";
+                                                case "MYTHIC":    return "rarity-mythic";
+                                                default:          return "rarity-common";
+                                            }
+                                        };
+
                                         return actorForMoves ? (
-                                            <div className="p-2">
-                                                <p className="font-mono text-xs text-yellow-400 font-bold mb-1.5 px-1">
-                                                    Moves de {actorForMoves.name}
-                                                </p>
-                                                <div className="grid grid-cols-2 gap-1.5">
-                                                    {actorForMoves.moves.map((move) => {
-                                                        const cfg = AFFINITY_CONFIG[move.affinity];
-                                                        const onCooldown = !!(actorForMoves.cooldownsLeft?.[move.id] > 0);
-                                                        const cdLeft = actorForMoves.cooldownsLeft?.[move.id] ?? 0;
-                                                        const ok =
-                                                            !animating &&
-                                                            !!targetEnemy &&
-                                                            !targetEnemy.defeated &&
-                                                            !onCooldown;
-                                                        return (
-                                                            <button
-                                                                key={move.id}
-                                                                onClick={() => ok && handleMove(move.id)}
-                                                                disabled={!ok}
-                                                                className={`flex items-start gap-2 px-3 py-2 rounded-xl border text-left transition-all
-                                                                    ${ok
-                                                                        ? `${cfg.bg} ${cfg.color} border-white/10 hover:border-white/30 hover:scale-[1.02] active:scale-[0.98]`
-                                                                        : "bg-slate-900/40 border-slate-800 text-slate-600 cursor-not-allowed opacity-50"
-                                                                    }`}
-                                                            >
-                                                                <span className="text-xl mt-0.5">{cfg.emoji}</span>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="flex items-center gap-2 mb-0.5">
-                                                                        <p className="font-mono text-sm font-bold">{move.name}</p>
-                                                                        {onCooldown && (
-                                                                            <span className="text-xs text-red-400 font-mono font-black">
-                                                                                ⏳{cdLeft}t
-                                                                            </span>
+                                            <div className="flex h-full">
+                                                {/* ── Stats del myth activo (22%) — portrait de fondo ── */}
+                                                <div className={`flex-shrink-0 border-r flex flex-col justify-between overflow-hidden relative ${rarityClass(actorForMoves.rarity)}`}
+                                                    style={{ width: "22%", minWidth: 0, borderRightColor: "rgba(30,41,59,1)" }}>
+
+                                                    {/* Portrait como fondo difuminado */}
+                                                    {actorForMoves.art?.portrait && (
+                                                        <div className="absolute inset-0 pointer-events-none z-0"
+                                                            style={{
+                                                                backgroundImage: `url(${actorForMoves.art.portrait})`,
+                                                                backgroundSize: "cover",
+                                                                backgroundPosition: "center center",
+                                                                backgroundRepeat: "no-repeat",
+                                                                imageRendering: "pixelated",
+                                                                opacity: 0.45,
+                                                                filter: "saturate(1.15)",
+                                                            }} />
+                                                    )}
+                                                    {/* Gradiente oscuro sobre la imagen */}
+                                                    <div className="absolute inset-0 pointer-events-none z-[1]"
+                                                        style={{ background: "linear-gradient(180deg, rgba(7,11,20,0.40) 0%, rgba(7,11,20,0.62) 60%, rgba(7,11,20,0.80) 100%)" }} />
+
+                                                    {/* Contenido sobre el fondo */}
+                                                    <div className="relative z-[2] flex flex-col h-full px-3 py-2 gap-1">
+
+                                                        {/* Nombre */}
+                                                        <p className="font-black leading-none truncate"
+                                                            style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.25rem", color: "#f0f8ff", letterSpacing: "0.01em", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>
+                                                            {actorForMoves.name}
+                                                        </p>
+
+                                                        {/* Nivel + afinidad en fila */}
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <div className="flex items-center justify-center font-black font-mono rounded-md px-1.5"
+                                                                style={{
+                                                                    height: 18,
+                                                                    background: "linear-gradient(135deg, #1e3a5f 0%, #0f2340 100%)",
+                                                                    border: "1px solid rgba(96,165,250,0.6)",
+                                                                    boxShadow: "0 0 8px rgba(96,165,250,0.3)",
+                                                                    fontSize: "11px", color: "#93c5fd", letterSpacing: "0.02em",
+                                                                }}>
+                                                                Lv{actorForMoves.level}
+                                                            </div>
+                                                            {(() => {
+                                                                const af = actorForMoves.affinities?.[0];
+                                                                const afCfg2 = af ? AFFINITY_CONFIG[af] : null;
+                                                                return afCfg2 ? (
+                                                                    <div className="flex items-center gap-1 rounded-full px-2"
+                                                                        style={{
+                                                                            height: 18,
+                                                                            background: `${afCfg2.glow}28`,
+                                                                            border: `1px solid ${afCfg2.glow}80`,
+                                                                            boxShadow: `0 0 8px ${afCfg2.glow}44`,
+                                                                        }}>
+                                                                        <span style={{ fontSize: "12px" }}>{afCfg2.emoji}</span>
+                                                                        <span className="font-mono font-black" style={{ fontSize: "10px", color: afCfg2.glow, letterSpacing: "0.05em" }}>
+                                                                            {afCfg2.label.toUpperCase()}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : null;
+                                                            })()}
+                                                        </div>
+
+                                                        {/* Separador */}
+                                                        <div className="h-px bg-slate-700/60 my-0.5" />
+
+                                                        {/* Stats ATK / DEF / SPD con formato base→real */}
+                                                        <div className="flex flex-col gap-1 flex-1">
+                                                            {(["attack","defense","speed"] as const).map((stat) => {
+                                                                const baseVal = actorForMoves[stat];
+                                                                const buffKey = stat === "attack" ? "atk" : stat === "defense" ? "def" : "spd";
+                                                                const buffStages = actorForMoves.buffs?.[buffKey] ?? 0;
+                                                                const buffMult = buffStages > 0 ? 1 + buffStages * 0.25 : buffStages < 0 ? 1 / (1 + Math.abs(buffStages) * 0.25) : 1;
+                                                                const realVal = Math.round(baseVal * buffMult);
+                                                                const pctDiff = buffStages !== 0 ? Math.round((buffMult - 1) * 100) : 0;
+                                                                const label = stat === "attack" ? "ATK" : stat === "defense" ? "DEF" : "SPD";
+                                                                const icon = stat === "attack" ? "⚔️" : stat === "defense" ? "🛡️" : "💨";
+                                                                return (
+                                                                    <div key={stat} className="flex items-baseline gap-1.5">
+                                                                        <span className="text-[11px] flex-shrink-0">{icon}</span>
+                                                                        <span className="font-mono text-[10px] text-slate-400 flex-shrink-0" style={{ width: 24 }}>{label}</span>
+                                                                        {pctDiff !== 0 ? (
+                                                                            <>
+                                                                                <span className="font-mono text-[11px] text-slate-400">{baseVal}</span>
+                                                                                <span className="font-mono text-[9px] text-yellow-400 font-bold">{pctDiff > 0 ? `+${pctDiff}%` : `${pctDiff}%`}</span>
+                                                                                <span className={`font-mono text-[13px] font-black ${pctDiff > 0 ? "text-emerald-400" : "text-red-400"}`}
+                                                                                    style={{ textShadow: pctDiff > 0 ? "0 0 8px rgba(74,222,128,0.5)" : "0 0 8px rgba(248,113,113,0.5)" }}>
+                                                                                    {realVal}
+                                                                                </span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="font-mono text-[13px] font-black text-white">{baseVal}</span>
                                                                         )}
                                                                     </div>
-                                                                    <p className="text-xs opacity-70 font-mono mb-0.5">
-                                                                        {move.power > 0 ? `💥 ${move.power}` : "estado"} · 🎯{" "}
-                                                                        {move.accuracy}%
-                                                                        {move.cooldown > 0 && ` · CD${move.cooldown}`}
-                                                                    </p>
-                                                                    <p className="text-xs opacity-60 leading-snug line-clamp-1">
-                                                                        {move.description}
-                                                                    </p>
-                                                                </div>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Barra HP — gruesa, full-width */}
+                                                        <div className="mt-auto pt-1">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="font-mono text-[10px] font-bold text-slate-300">HP</span>
+                                                                <span className="font-mono font-black tabular-nums"
+                                                                    style={{ fontSize: "11px", color: "#e2e8f0", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+                                                                    <span className="text-white">{actorForMoves.hp}</span>
+                                                                    <span className="text-slate-500 font-normal">/{actorForMoves.maxHp}</span>
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-3 rounded-full bg-slate-900/80 overflow-hidden w-full"
+                                                                style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.6)" }}>
+                                                                <div className="h-full rounded-full transition-all duration-300"
+                                                                    style={{
+                                                                        width: `${Math.max(0, (actorForMoves.hp / actorForMoves.maxHp) * 100)}%`,
+                                                                        background: actorForMoves.hp / actorForMoves.maxHp > 0.5
+                                                                            ? "linear-gradient(90deg, #16a34a, #4ade80)"
+                                                                            : actorForMoves.hp / actorForMoves.maxHp > 0.25
+                                                                            ? "linear-gradient(90deg, #b45309, #fbbf24)"
+                                                                            : "linear-gradient(90deg, #991b1b, #f87171)",
+                                                                        boxShadow: actorForMoves.hp / actorForMoves.maxHp > 0.5
+                                                                            ? "0 0 8px rgba(74,222,128,0.5)"
+                                                                            : actorForMoves.hp / actorForMoves.maxHp > 0.25
+                                                                            ? "0 0 8px rgba(251,191,36,0.5)"
+                                                                            : "0 0 8px rgba(248,113,113,0.5)",
+                                                                    }} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* ── Moves (75%) ── */}
+                                                <div className="flex-1 p-2 min-w-0 flex flex-col relative">
+                                                    {/* Header: título + botones OBJETOS + TABLA TIPOS */}
+                                                    <div className="flex items-center justify-between mb-1.5 px-1 gap-1">
+                                                        <p className="font-mono text-xs text-yellow-400 font-bold truncate flex-1">
+                                                            Movimientos de {actorForMoves.name}
+                                                        </p>
+                                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                                            {/* Botón OBJETOS */}
+                                                            <button
+                                                                onClick={() => { setShowItemPanel((v) => !v); setSelectedItem(null); setShowAffinityModal(false); }}
+                                                                className={`flex items-center gap-1 px-2 py-1 rounded-lg border font-mono font-black transition-all whitespace-nowrap
+                                                                    ${showItemPanel
+                                                                        ? "bg-amber-500/25 border-amber-400/70 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.2)]"
+                                                                        : "bg-slate-800/70 border-slate-700 text-slate-400 hover:border-amber-600/60 hover:text-amber-400 hover:bg-amber-900/20"
+                                                                    }`}
+                                                                style={{ fontSize: "10px", letterSpacing: "0.06em" }}
+                                                            >
+                                                                🎒 <span>OBJETOS</span>
                                                             </button>
-                                                        );
-                                                    })}
+                                                            {/* Botón TABLA DE TIPOS */}
+                                                            <button
+                                                                onClick={() => { setShowAffinityModal((v) => !v); setShowItemPanel(false); setSelectedItem(null); }}
+                                                                className={`flex items-center gap-1 px-2 py-1 rounded-lg border font-mono font-black transition-all whitespace-nowrap
+                                                                    ${showAffinityModal
+                                                                        ? "bg-indigo-500/25 border-indigo-400/70 text-indigo-300 shadow-[0_0_10px_rgba(129,140,248,0.2)]"
+                                                                        : "bg-slate-800/70 border-slate-700 text-slate-400 hover:border-indigo-600/60 hover:text-indigo-400 hover:bg-indigo-900/20"
+                                                                    }`}
+                                                                style={{ fontSize: "10px", letterSpacing: "0.06em" }}
+                                                            >
+                                                                📊 <span>TIPOS</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ── Panel de items (overlay dentro del panel de moves) ── */}
+                                                    {showItemPanel && (
+                                                        <div className="absolute inset-0 z-20 rounded-xl flex flex-col"
+                                                            style={{
+                                                                background: "rgba(7,11,20,0.97)",
+                                                                border: "1px solid rgba(251,191,36,0.3)",
+                                                                boxShadow: "0 0 30px rgba(251,191,36,0.1)",
+                                                                backdropFilter: "blur(8px)",
+                                                                top: 0, left: 0, right: 0, bottom: 0,
+                                                            }}>
+                                                            {/* Header items */}
+                                                            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 flex-shrink-0">
+                                                                <p className="font-mono text-xs text-amber-400 font-bold uppercase tracking-widest">
+                                                                    🎒 Objetos de combate
+                                                                </p>
+                                                                <button onClick={() => { setShowItemPanel(false); setSelectedItem(null); }}
+                                                                    className="text-slate-500 hover:text-white text-sm font-mono transition-colors">✕</button>
+                                                            </div>
+
+                                                            {/* Lista de items */}
+                                                            <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5 min-h-0">
+                                                                {COMBAT_ITEMS.map((item) => {
+                                                                    const qty = getCombatItemCount(item.type);
+                                                                    const isSelected = selectedItem?.type === item.type;
+                                                                    return (
+                                                                        <button
+                                                                            key={item.type}
+                                                                            disabled={qty <= 0 || animating || usingItem}
+                                                                            onClick={() => setSelectedItem(isSelected ? null : item)}
+                                                                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left transition-all
+                                                                                ${qty <= 0 || animating || usingItem
+                                                                                    ? "opacity-30 cursor-not-allowed bg-slate-900/40 border-slate-800"
+                                                                                    : isSelected
+                                                                                        ? "bg-amber-500/20 border-amber-400/70 shadow-[0_0_12px_rgba(251,191,36,0.2)]"
+                                                                                        : "bg-slate-900/60 border-slate-700 hover:border-slate-500 hover:bg-slate-800/60"
+                                                                                }`}
+                                                                        >
+                                                                            <span className="text-xl flex-shrink-0">{item.emoji}</span>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <p className="font-mono text-xs font-bold text-white truncate">{item.name}</p>
+                                                                                    <span className={`font-mono text-[10px] font-black px-1.5 rounded-full
+                                                                                        ${qty > 0 ? "bg-emerald-900/60 text-emerald-400 border border-emerald-700/50" : "bg-slate-900 text-slate-600"}`}>
+                                                                                        ×{qty}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <p className="font-mono text-[10px] text-slate-400 truncate">{item.desc}</p>
+                                                                            </div>
+                                                                            {isSelected && <span className="text-amber-400 text-sm flex-shrink-0">▶</span>}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                                {COMBAT_ITEMS.every((i) => getCombatItemCount(i.type) === 0) && (
+                                                                    <p className="text-slate-600 text-xs font-mono text-center mt-4 italic">
+                                                                        No tienes objetos de combate
+                                                                    </p>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Instrucciones de uso */}
+                                                            {selectedItem && (
+                                                                <div className="flex-shrink-0 px-3 py-2 border-t border-amber-900/40 bg-amber-900/10">
+                                                                    <p className="font-mono text-[10px] text-amber-300 text-center leading-relaxed">
+                                                                        {selectedItem.type === "GRAND_SPARK"
+                                                                            ? <>✨ Selecciona cualquier Myth tuyo para aplicar al equipo</>
+                                                                            : <>👆 Toca uno de tus Myths para curarle el estado</>
+                                                                        }
+                                                                    </p>
+                                                                    {/* Targets clickables — tu equipo */}
+                                                                    <div className="flex gap-2 mt-1.5 justify-center">
+                                                                        {session?.playerTeam.filter((m) => !m.defeated).map((m) => (
+                                                                            <button
+                                                                                key={m.instanceId}
+                                                                                onClick={() => handleUseItem(m.instanceId)}
+                                                                                disabled={usingItem}
+                                                                                className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl border border-amber-500/50 bg-amber-900/20 hover:bg-amber-800/30 hover:border-amber-400 transition-all"
+                                                                            >
+                                                                                {m.art?.portrait ? (
+                                                                                    <img src={m.art.portrait} alt={m.name}
+                                                                                        className="rounded-lg object-cover"
+                                                                                        style={{ width: 32, height: 32, imageRendering: "pixelated" }} />
+                                                                                ) : (
+                                                                                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500 text-xs">?</div>
+                                                                                )}
+                                                                                <span className="font-mono text-[9px] text-amber-300 font-bold truncate max-w-[48px]">{m.name}</span>
+                                                                                {m.status && (
+                                                                                    <span className="text-[10px]">{STATUS_ICONS[m.status]}</span>
+                                                                                )}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {/* ── Tabla de Tipos — modal fixed centrado ── */}
+                                                    {showAffinityModal && (
+                                                        <div
+                                                            className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+                                                            onClick={() => setShowAffinityModal(false)}
+                                                        >
+                                                            <div
+                                                                className="relative rounded-2xl overflow-hidden max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                                                                style={{
+                                                                    background: "rgba(7,11,20,0.97)",
+                                                                    border: "1px solid rgba(129,140,248,0.4)",
+                                                                    boxShadow: "0 0 60px rgba(129,140,248,0.15), 0 20px 60px rgba(0,0,0,0.8)",
+                                                                    backdropFilter: "blur(12px)",
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {/* Header */}
+                                                                <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 sticky top-0 bg-[#070b14]/95 backdrop-blur-sm z-10">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xl">📊</span>
+                                                                        <p className="font-black text-indigo-300 uppercase tracking-widest" style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.4rem" }}>
+                                                                            Tabla de Tipos
+                                                                        </p>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => setShowAffinityModal(false)}
+                                                                        className="text-slate-500 hover:text-white text-lg font-mono transition-colors w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-800"
+                                                                    >✕</button>
+                                                                </div>
+                                                                {/* Tabla */}
+                                                                <div className="p-4 overflow-x-auto">
+                                                                    {(() => {
+                                                                        const affinities: Affinity[] = ["EMBER","TIDE","GROVE","VOLT","STONE","FROST","VENOM","ASTRAL","IRON","SHADE"];
+                                                                        // Ventajas: [atacante][defensor] → multiplicador
+                                                                        const matchups: Record<string, Record<string, number>> = {
+                                                                            EMBER:  { GROVE: 2, FROST: 2, IRON: 0.5, TIDE: 0.5, EMBER: 0.5 },
+                                                                            TIDE:   { EMBER: 2, STONE: 2, GROVE: 0.5, VOLT: 0.5, FROST: 0.5 },
+                                                                            GROVE:  { TIDE: 2, STONE: 2, EMBER: 0.5, VENOM: 0.5, FROST: 0.5 },
+                                                                            VOLT:   { TIDE: 2, IRON: 2, GROVE: 0.5, STONE: 0.5, VOLT: 0.5 },
+                                                                            STONE:  { EMBER: 2, VOLT: 2, TIDE: 0.5, GROVE: 0.5, STONE: 0.5 },
+                                                                            FROST:  { GROVE: 2, VENOM: 2, EMBER: 0.5, TIDE: 0.5, FROST: 0.5 },
+                                                                            VENOM:  { GROVE: 2, ASTRAL: 2, FROST: 0.5, IRON: 0.5, VENOM: 0.5 },
+                                                                            ASTRAL: { SHADE: 2, VENOM: 2, IRON: 0.5, ASTRAL: 0.5 },
+                                                                            IRON:   { FROST: 2, ASTRAL: 2, EMBER: 0.5, VOLT: 0.5, IRON: 0.5 },
+                                                                            SHADE:  { ASTRAL: 2, IRON: 2, SHADE: 0.5, EMBER: 0.5 },
+                                                                        };
+                                                                        return (
+                                                                            <table className="w-full border-collapse" style={{ minWidth: 640 }}>
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th className="p-1 text-left">
+                                                                                            <span className="font-mono text-[9px] text-slate-500 uppercase tracking-wider">ATK ↓ DEF →</span>
+                                                                                        </th>
+                                                                                        {affinities.map((af) => {
+                                                                                            const c = AFFINITY_CONFIG[af];
+                                                                                            return (
+                                                                                                <th key={af} className="p-1 text-center" style={{ minWidth: 50 }}>
+                                                                                                    <div className="flex flex-col items-center gap-0.5">
+                                                                                                        <span style={{ fontSize: 20 }}>{c.emoji}</span>
+                                                                                                        <span className="font-mono font-black" style={{ fontSize: "11px", color: c.glow }}>{c.label.slice(0,4).toUpperCase()}</span>
+                                                                                                    </div>
+                                                                                                </th>
+                                                                                            );
+                                                                                        })}
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {affinities.map((atk) => {
+                                                                                        const atkCfg = AFFINITY_CONFIG[atk];
+                                                                                        return (
+                                                                                            <tr key={atk} className="border-t border-slate-800/60 hover:bg-slate-800/20 transition-colors">
+                                                                                                <td className="p-1.5 pr-3">
+                                                                                                    <div className="flex items-center gap-1.5">
+                                                                                                        <span style={{ fontSize: 20 }}>{atkCfg.emoji}</span>
+                                                                                                        <span className="font-mono font-bold" style={{ fontSize: "13px", color: atkCfg.glow }}>{atkCfg.label}</span>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                                {affinities.map((def) => {
+                                                                                                    const mult = matchups[atk]?.[def] ?? 1;
+                                                                                                    const bg = mult === 2 ? "rgba(34,197,94,0.15)" : mult === 0.5 ? "rgba(239,68,68,0.12)" : "transparent";
+                                                                                                    const border = mult === 2 ? "rgba(34,197,94,0.3)" : mult === 0.5 ? "rgba(239,68,68,0.25)" : "transparent";
+                                                                                                    const txt = mult === 2 ? "#4ade80" : mult === 0.5 ? "#f87171" : "#334155";
+                                                                                                    const label = mult === 2 ? "2×" : mult === 0.5 ? "½" : "—";
+                                                                                                    return (
+                                                                                                        <td key={def} className="p-1 text-center">
+                                                                                                            <div className="inline-flex items-center justify-center rounded font-mono font-black"
+                                                                                                                style={{
+                                                                                                                    width: 36, height: 30,
+                                                                                                                    background: bg,
+                                                                                                                    border: `1px solid ${border}`,
+                                                                                                                    fontSize: mult === 1 ? "13px" : "15px",
+                                                                                                                    color: txt,
+                                                                                                                }}>
+                                                                                                                {label}
+                                                                                                            </div>
+                                                                                                        </td>
+                                                                                                    );
+                                                                                                })}
+                                                                                            </tr>
+                                                                                        );
+                                                                                    })}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                                {/* Leyenda */}
+                                                                <div className="px-5 pb-4 flex items-center gap-4">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="w-5 h-4 rounded" style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)" }} />
+                                                                        <span className="font-mono text-[12px] text-emerald-400 font-bold">2× — Muy eficaz</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="w-5 h-4 rounded" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }} />
+                                                                        <span className="font-mono text-[12px] text-red-400 font-bold">½ — Poco eficaz</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="w-5 h-4 rounded" style={{ background: "transparent", border: "1px solid #334155" }} />
+                                                                        <span className="font-mono text-[12px] text-slate-500 font-bold">— Normal</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                        {actorForMoves.moves.map((move) => {
+                                                            const cfg = AFFINITY_CONFIG[move.affinity];
+                                                            const onCooldown = !!(actorForMoves.cooldownsLeft?.[move.id] > 0);
+                                                            const cdLeft = actorForMoves.cooldownsLeft?.[move.id] ?? 0;
+                                                            const ok =
+                                                                !animating &&
+                                                                !!targetEnemy &&
+                                                                !targetEnemy.defeated &&
+                                                                !onCooldown;
+                                                            return (
+                                                                <button
+                                                                    key={move.id}
+                                                                    onClick={() => ok && handleMove(move.id)}
+                                                                    disabled={!ok}
+                                                                    className={`flex items-start gap-1.5 px-2 py-1.5 rounded-xl border text-left transition-all
+                                                                        ${ok
+                                                                            ? `${cfg.bg} ${cfg.color} border-white/10 hover:border-white/30 hover:scale-[1.02] active:scale-[0.98]`
+                                                                            : "bg-slate-900/40 border-slate-800 text-slate-600 cursor-not-allowed opacity-50"
+                                                                        }`}
+                                                                >
+                                                                    <span className="text-lg mt-0.5">{cfg.emoji}</span>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                                                            <p className="font-mono text-xs font-bold">{move.name}</p>
+                                                                            {onCooldown && (
+                                                                                <span className="text-xs text-red-400 font-mono font-black">
+                                                                                    ⏳{cdLeft}t
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <p className="text-[10px] opacity-70 font-mono mb-0.5">
+                                                                            {move.power > 0 ? `💥 ${move.power}` : "estado"} · 🎯{" "}
+                                                                            {move.accuracy}%
+                                                                            {move.cooldown > 0 && ` · CD${move.cooldown}`}
+                                                                        </p>
+                                                                        <p className="text-[11px] leading-snug line-clamp-2" style={{ color: "rgba(255,255,255,0.82)" }}>
+                                                                            {move.description}
+                                                                        </p>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : (
@@ -2148,7 +2799,7 @@ export default function BattlePage() {
                             </div>
                             <div
                                 ref={logRef}
-                                className="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5 scroll-smooth"
+                                className="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5"
                                 style={{ scrollbarWidth: "thin", scrollbarColor: "#334155 transparent" }}
                             >
                                 {log.length === 0 && (
@@ -2208,19 +2859,30 @@ export default function BattlePage() {
 // TabBar
 // ─────────────────────────────────────────
 
-function TabBar({ mode, onSwitch }: { mode: BattleMode; onSwitch: (m: BattleMode) => void }) {
+function TabBar({ mode, onSwitch, battleActive }: { mode: BattleMode; onSwitch: (m: BattleMode) => void; battleActive?: boolean }) {
     return (
         <div className="flex border-b border-slate-800 flex-shrink-0">
-            {(["npc", "pvp"] as BattleMode[]).map((m) => (
-                <button
-                    key={m}
-                    onClick={() => onSwitch(m)}
-                    className={`px-6 py-3 font-mono text-sm tracking-widest uppercase transition-colors
-                        ${mode === m ? "text-red-400 border-b-2 border-red-500" : "text-slate-500 hover:text-slate-300"}`}
-                >
-                    {m === "npc" ? "⚔️ NPC" : "👥 PvP"}
-                </button>
-            ))}
+            {(["npc", "pvp"] as BattleMode[]).map((m) => {
+                const blocked = battleActive && m === "pvp";
+                return (
+                    <button
+                        key={m}
+                        onClick={() => { if (!blocked) onSwitch(m); }}
+                        title={blocked ? "No puedes cambiar a PvP con un combate NPC en curso" : undefined}
+                        className={`px-6 py-3 font-mono text-sm tracking-widest uppercase transition-colors relative
+                            ${mode === m
+                                ? "text-red-400 border-b-2 border-red-500"
+                                : blocked
+                                  ? "text-slate-700 cursor-not-allowed"
+                                  : "text-slate-500 hover:text-slate-300"}`}
+                    >
+                        {m === "npc" ? "⚔️ NPC" : "👥 PvP"}
+                        {blocked && (
+                            <span className="ml-1 text-xs text-slate-700">🔒</span>
+                        )}
+                    </button>
+                );
+            })}
         </div>
     );
 }

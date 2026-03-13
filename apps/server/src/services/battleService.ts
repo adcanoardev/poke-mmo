@@ -309,7 +309,7 @@ function calcDamage(
         return { damage: 0, mult: 1, crit: false, stab: false };
     }
 
-    const isCrit = Math.random() < 0.0625;
+    const isCrit = Math.random() < 0.15;
     const isStab = attacker.affinities.includes(move.affinity);
     const mult = getAffinityMultiplier(move.affinity, defender.affinities);
     const stabMult = isStab ? 1.5 : 1;
