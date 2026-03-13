@@ -941,6 +941,85 @@ function BenchCard({ myth, onDragStart }: { myth: any; onDragStart: (m: any, fro
     );
 }
 
+
+// ─────────────────────────────────────────
+// ScreenWarning — aviso pantalla pequeña / móvil
+// ─────────────────────────────────────────
+
+function ScreenWarning({ onDismiss }: { onDismiss: () => void }) {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    );
+
+    return (
+        <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+            style={{ background: "rgba(7,11,20,0.88)", backdropFilter: "blur(14px)" }}
+        >
+            <div
+                className="max-w-sm w-full rounded-2xl p-8 flex flex-col items-center gap-6 text-center"
+                style={{
+                    background: "linear-gradient(135deg, #1e2d45 0%, #162035 100%)",
+                    border: "1px solid rgba(253,224,71,0.45)",
+                    boxShadow: "0 0 0 1px rgba(253,224,71,0.08), 0 0 60px rgba(253,224,71,0.18), 0 24px 64px rgba(0,0,0,0.75)",
+                }}
+            >
+                {/* Icono */}
+                <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-4xl"
+                    style={{ background: "rgba(253,224,71,0.12)", border: "2px solid rgba(253,224,71,0.35)" }}
+                >
+                    {isMobile ? "📱" : "🖥️"}
+                </div>
+
+                {/* Título */}
+                <div className="flex flex-col gap-3">
+                    <h2 className="font-mono font-black text-xl tracking-wider uppercase" style={{ color: "#fde047" }}>
+                        {isMobile ? "Dispositivo no compatible" : "Ventana demasiado pequeña"}
+                    </h2>
+                    <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>
+                        {isMobile
+                            ? "Mythara Online está diseñado para PC. En móvil la experiencia de combate no será la óptima."
+                            : "Para jugar Mythara Online necesitas una ventana más ancha."}
+                    </p>
+                    {/* Instrucción concreta — solo escritorio */}
+                    {!isMobile && (
+                        <div
+                            className="rounded-xl px-4 py-3 text-sm font-mono leading-relaxed"
+                            style={{ background: "rgba(253,224,71,0.08)", border: "1px solid rgba(253,224,71,0.2)", color: "#fde047" }}
+                        >
+                            Maximiza la ventana del navegador<br/>
+                            <span style={{ color: "#94a3b8", fontSize: "0.75rem" }}>
+                                o pulsa <strong style={{ color: "#fde047" }}>F11</strong> para pantalla completa
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Botón — solo móvil (escritorio no tiene dismiss fácil) */}
+                {isMobile && (
+                    <button
+                        onClick={onDismiss}
+                        className="w-full py-3 rounded-xl font-mono font-black text-sm tracking-widest uppercase transition-all active:scale-95"
+                        style={{
+                            background: "linear-gradient(135deg, #fde047 0%, #f59e0b 100%)",
+                            color: "#0f172a",
+                            boxShadow: "0 0 20px rgba(253,224,71,0.35), 0 4px 12px rgba(0,0,0,0.4)",
+                        }}
+                    >
+                        Continuar de todas formas
+                    </button>
+                )}
+
+                {/* Footer */}
+                <p className="text-xs font-mono" style={{ color: "#475569" }}>
+                    {isMobile ? "La experiencia será limitada en móvil" : "El aviso desaparece al ampliar la ventana"}
+                </p>
+            </div>
+        </div>
+    );
+}
+
 // ─────────────────────────────────────────
 // Main BattlePage
 // ─────────────────────────────────────────
@@ -952,8 +1031,7 @@ export default function BattlePage() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // BUG 1 — calcula la altura real del viewport (excluye barra de Windows/nav)
-    // y la expone como --app-height para que el árbol flex no se corte.
+    // ── Altura real del viewport ──
     useEffect(() => {
         function setAppHeight() {
             document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`);
@@ -961,6 +1039,31 @@ export default function BattlePage() {
         setAppHeight();
         window.addEventListener("resize", setAppHeight);
         return () => window.removeEventListener("resize", setAppHeight);
+    }, []);
+
+    // ── Inyectar keyframes de los círculos mágicos (no dependen de Tailwind) ──
+    useEffect(() => {
+        const id = "mythara-circle-keyframes";
+        if (document.getElementById(id)) return;
+        const style = document.createElement("style");
+        style.id = id;
+        style.textContent = `
+            @keyframes circPulse { 0%,100%{opacity:0.55} 50%{opacity:1} }
+            @keyframes circSpin  { from{transform:translate(-50%,-50%) scaleY(0.38) rotate(0deg)} to{transform:translate(-50%,-50%) scaleY(0.38) rotate(360deg)} }
+        `;
+        document.head.appendChild(style);
+        return () => { document.getElementById(id)?.remove(); };
+    }, []);
+
+    // ── Aviso pantalla pequeña / móvil ──
+    const [showScreenWarning, setShowScreenWarning] = useState(false);
+    useEffect(() => {
+        const MIN_W = 1024;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile || window.innerWidth < MIN_W) setShowScreenWarning(true);
+        const onResize = () => { if (window.innerWidth < MIN_W) setShowScreenWarning(true); };
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
     }, []);
     const searchParams = new URLSearchParams(location.search);
     const initialMode: BattleMode =
@@ -994,13 +1097,20 @@ export default function BattlePage() {
     const [enemyRevealIndex, setEnemyRevealIndex] = useState<number>(-1); // cuántos enemigos se han revelado
     const [allMyths, setAllMyths] = useState<any[]>([]);
     const [session, setSession] = useState<BattleSession | null>(null);
+    const sessionRef = useRef<BattleSession | null>(null);
+    useEffect(() => { sessionRef.current = session; }, [session]);
     const [loadingStart, setLoadingStart] = useState(false);
     const [animating, setAnimating] = useState(false);
 
     const [currentActorId, setCurrentActorId] = useState<string | null>(null);
+    const currentActorIdRef = useRef<string | null>(null);
+    useEffect(() => { currentActorIdRef.current = currentActorId; }, [currentActorId]);
     const [targetEnemyMythId, setTargetEnemyMythId] = useState<string | null>(null);
     const [timer, setTimer] = useState<number>(15);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Token de turno: cada turno jugador recibe un ID único. El intervalo comprueba
+    // que sigue siendo válido antes de disparar — imposible auto-atacar turno pasado.
+    const timerLockRef = useRef<number>(0);
 
     const [projectile, setProjectile] = useState<ProjectileState | null>(null);
     const [flashMap, setFlashMap] = useState<Record<string, Affinity>>({});
@@ -1059,45 +1169,48 @@ export default function BattlePage() {
     const animatingRef = useRef(false);
     useEffect(() => { animatingRef.current = animating; }, [animating]);
 
-    // Timer — solo turno del jugador, reset limpio en cada cambio de actor
+    // Timer — SOLO para el turno activo del jugador.
+    // timerLockRef es un token: al cambiar de turno se pone a 0, y cualquier
+    // tick pendiente en el event loop se autodestruye sin disparar nada.
     useEffect(() => {
-        // Limpiar siempre el intervalo anterior
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
-        // Solo arrancar si es turno del jugador y no estamos animando
-        if (phase !== "battle" || animating || !currentActorIsPlayer) return;
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        if (phase !== "battle" || animating || !currentActorIsPlayer) { setTimer(15); return; }
 
+        const myToken = Date.now();
+        timerLockRef.current = myToken;
         setTimer(15);
+
         timerRef.current = setInterval(() => {
-            // Doble comprobación dentro del intervalo para evitar disparos acumulados
+            if (timerLockRef.current !== myToken) {
+                clearInterval(timerRef.current!); timerRef.current = null; return;
+            }
             if (animatingRef.current || !currentActorIsPlayerRef.current) {
-                clearInterval(timerRef.current!);
-                timerRef.current = null;
-                return;
+                clearInterval(timerRef.current!); timerRef.current = null;
+                timerLockRef.current = 0; return;
             }
             setTimer((t) => {
                 if (t <= 1) {
-                    clearInterval(timerRef.current!);
-                    timerRef.current = null;
+                    clearInterval(timerRef.current!); timerRef.current = null;
+                    timerLockRef.current = 0;
                     handleTimerExpired();
                     return 0;
                 }
                 return t - 1;
             });
         }, 1000);
+
         return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-                timerRef.current = null;
-            }
+            timerLockRef.current = 0;
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
         };
-    }, [currentActorId, phase, animating]);
+    }, [currentActorId, phase, animating, currentActorIsPlayer]);
 
     function handleTimerExpired() {
+        const session = sessionRef.current;
         if (!session) return;
-        const actor = session.playerTeam.find((m) => m.instanceId === currentActorId);
+        // doble comprobación: solo actuar si sigue siendo turno del jugador
+        if (!currentActorIsPlayerRef.current) return;
+        const actor = session.playerTeam.find((m) => m.instanceId === currentActorIdRef.current);
         if (!actor) return;
         const basicMove =
             actor.moves
@@ -1164,18 +1277,21 @@ export default function BattlePage() {
     }
 
     // Lógica de animación compartida entre turno jugador y NPC
-    async function animateTurnAction(action: any) {
+    async function animateTurnAction(action: any, currentSession?: BattleSession) {
+        const sessionForLookup = currentSession ?? sessionRef.current ?? session;
         const direction = action.isPlayerMyth ? "ltr" : "rtl";
         if (action.blockedByStatus) {
             addLog(action.blockedByStatus, "status");
         } else {
             const logPrefix = action.isPlayerMyth ? "" : "👾 ";
             addLog(`${logPrefix}${action.actorName} usa ${action.move} → ${action.targetName}`, "normal");
-            const moveObj = (session?.playerTeam ?? [])
-                .concat(session?.enemyTeam ?? [])
+            const moveObj = (sessionForLookup?.playerTeam ?? [])
+                .concat(sessionForLookup?.enemyTeam ?? [])
                 .find((m) => m.instanceId === action.actorInstanceId)
                 ?.moves.find((mv) => mv.name === action.move);
             const projLevel = moveObj ? getMoveLevel(moveObj) : 1;
+            // Esperar un frame para que el DOM refleje el último render antes de leer posiciones
+            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
             const positions = getProjectilePositions(action.actorInstanceId, action.targetInstanceId);
             if (positions) {
                 const duration = Math.max(
@@ -1304,26 +1420,29 @@ export default function BattlePage() {
 
     async function handleMove(moveId: string, forcedTargetId?: string) {
         if (!session || animating) return;
+        timerLockRef.current = 0; // invalidar ANTES del clearInterval
         if (timerRef.current) clearInterval(timerRef.current);
         const resolvedTarget = forcedTargetId ?? targetEnemyMythId ?? undefined;
         setAnimating(true);
+        let chainedToNpc = false;
         try {
             const res = await api.battleNpcTurn(session.battleId, moveId, resolvedTarget);
             const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
             const newSession = cloneSession(rawSession);
-            await animateTurnAction(action);
+            await animateTurnAction(action, newSession);
             await sleep(150);
             const ended = finalizeTurn(newSession, nextActorId, nextActorIsPlayer, xpGained, coinsGained);
             if (!ended && !nextActorIsPlayer && nextActorId) {
-                await sleep(600);
+                chainedToNpc = true;
+                await sleep(1200); // pausa visible entre ataque jugador y respuesta NPC
                 await handleNpcTurn(newSession, nextActorId, true);
             }
         } catch (e: any) {
             addLog(`Error: ${e.message}`, "bad");
         } finally {
-            // Solo reseteamos aquí si el siguiente es jugador.
-            // Si encadenamos NPC, handleNpcTurn tiene su propio finally.
-            setAnimating(false);
+            // setAnimating(false) solo si NO encadenamos NPC
+            // (handleNpcTurn lo hace en su propio finally con isRoot=true)
+            if (!chainedToNpc) setAnimating(false);
         }
     }
 
@@ -1332,11 +1451,11 @@ export default function BattlePage() {
             const res = await api.battleNpcTurn(currentSession.battleId, "__npc__", undefined);
             const { session: rawSession, action, nextActorId, nextActorIsPlayer, xpGained, coinsGained } = res;
             const newSession = cloneSession(rawSession);
-            await animateTurnAction(action);
+            await animateTurnAction(action, newSession);
             await sleep(150);
             const ended = finalizeTurn(newSession, nextActorId, nextActorIsPlayer, xpGained, coinsGained);
             if (!ended && !nextActorIsPlayer && nextActorId) {
-                await sleep(600);
+                await sleep(1200); // pausa entre NPCs consecutivos
                 await handleNpcTurn(newSession, nextActorId, false);
             }
         } catch (e: any) {
@@ -1389,9 +1508,16 @@ export default function BattlePage() {
     // Sprites fijos a 110px — caben las 2 filas + panel de moves sin scroll en pantallas ~728px de alto
     const spriteSize = 110;
 
+    // ── Overlay de pantalla — fixed, siempre encima de todo ──
+    const screenWarningOverlay = showScreenWarning
+        ? <ScreenWarning onDismiss={() => setShowScreenWarning(false)} />
+        : null;
+
     if (mode === "pvp") {
         return (
-            <Layout sidebar={<TrainerSidebar />}>
+            <>
+                {screenWarningOverlay}
+                <Layout sidebar={<TrainerSidebar />}>
                 <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
                     <TabBar mode={mode} onSwitch={setMode} />
                     <div className="flex-1 flex items-center justify-center">
@@ -1410,12 +1536,14 @@ export default function BattlePage() {
                     </div>
                 </div>
             </Layout>
+            </>
         );
     }
 
     // ── Arena + Prep integrada ──
     return (
         <>
+            {screenWarningOverlay}
             <Layout sidebar={<TrainerSidebar />}>
                 <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
                     <TabBar mode={mode} onSwitch={setMode} />
@@ -1423,14 +1551,83 @@ export default function BattlePage() {
                     <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
                         {/* ── Arena principal ── */}
                         <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
-                            {/* ── Campo de batalla ── */}
+                            {/* ── Campo de batalla — fondo CSS puro ── */}
                             <div
                                 className="relative flex-1 overflow-hidden"
                                 style={{
-                                    background: "url('https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/battlemaps/mainbg3v3.avif') center/cover no-repeat",
                                     minHeight: 0,
+                                    background: [
+                                        "radial-gradient(ellipse 80% 40% at 50% 110%, #1a2744 0%, transparent 70%)",
+                                        "radial-gradient(ellipse 60% 30% at 20% 100%, #0d1f3c 0%, transparent 60%)",
+                                        "radial-gradient(ellipse 60% 30% at 80% 100%, #1a0d2e 0%, transparent 60%)",
+                                        "linear-gradient(180deg, #060c1a 0%, #0b1628 35%, #0f1e38 60%, #162240 100%)",
+                                    ].join(", "),
                                 }}
                             >
+                                {/* Estrellas */}
+                                <div className="absolute inset-0 pointer-events-none" style={{
+                                    backgroundImage: [
+                                        "radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.55) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 25% 8%,  rgba(255,255,255,0.4)  0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.5)  0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 55% 5%,  rgba(255,255,255,0.65) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 70% 18%, rgba(255,255,255,0.4)  0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 85% 10%, rgba(255,255,255,0.55) 0%, transparent 100%)",
+                                        "radial-gradient(1.5px 1.5px at 33% 12%, rgba(255,255,255,0.8) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 60% 25%, rgba(255,255,255,0.3)  0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 78% 7%,  rgba(255,255,255,0.5)  0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 92% 22%, rgba(255,255,255,0.35) 0%, transparent 100%)",
+                                        "radial-gradient(1px 1px at 5%  30%, rgba(255,255,255,0.3)  0%, transparent 100%)",
+                                    ].join(", "),
+                                }} />
+                                {/* Aurora boreal */}
+                                <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
+                                    height: "45%",
+                                    background: [
+                                        "radial-gradient(ellipse 50% 60% at 35% 0%, rgba(32,180,120,0.16) 0%, transparent 70%)",
+                                        "radial-gradient(ellipse 40% 50% at 65% 0%, rgba(100,60,200,0.13) 0%, transparent 70%)",
+                                        "radial-gradient(ellipse 30% 40% at 80% 0%, rgba(60,140,220,0.10) 0%, transparent 70%)",
+                                    ].join(", "),
+                                }} />
+                                {/* Grid perspectiva — líneas convergentes al horizonte */}
+                                <div className="absolute bottom-0 left-0 right-0 overflow-hidden pointer-events-none" style={{ height: "68%" }}>
+                                    <svg width="100%" height="100%" viewBox="0 0 800 300" preserveAspectRatio="none">
+                                        <line x1="400" y1="0" x2="0"   y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="115" y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="230" y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="345" y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="400" y2="300" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="455" y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="570" y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="685" y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="400" y1="0" x2="800" y2="300" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                                        <line x1="0" y1="80"  x2="800" y2="80"  stroke="rgba(255,255,255,0.025)" strokeWidth="1"/>
+                                        <line x1="0" y1="150" x2="800" y2="150" stroke="rgba(255,255,255,0.03)"  strokeWidth="1"/>
+                                        <line x1="0" y1="220" x2="800" y2="220" stroke="rgba(255,255,255,0.035)" strokeWidth="1"/>
+                                    </svg>
+                                </div>
+                                {/* Gradiente de suelo */}
+                                <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{
+                                    height: "72%",
+                                    background: "linear-gradient(180deg, transparent 0%, rgba(12,22,45,0.55) 40%, rgba(10,18,38,0.82) 70%, rgba(8,14,30,0.95) 100%)",
+                                }} />
+                                {/* Pilares laterales */}
+                                <div className="absolute bottom-0 pointer-events-none" style={{ left:"2%", width:"5.5%", height:"54%", background:"linear-gradient(180deg,rgba(20,35,65,0) 0%,rgba(15,28,55,0.75) 40%,rgba(10,20,42,1) 100%)", borderTop:"1px solid rgba(255,255,255,0.05)" }}/>
+                                <div className="absolute bottom-0 pointer-events-none" style={{ right:"2%", width:"5.5%", height:"54%", background:"linear-gradient(180deg,rgba(20,35,65,0) 0%,rgba(15,28,55,0.75) 40%,rgba(10,20,42,1) 100%)", borderTop:"1px solid rgba(255,255,255,0.05)" }}/>
+                                {/* Antorchas */}
+                                <div className="absolute pointer-events-none" style={{ top:"41%", left:"5.2%", width:5, height:5, borderRadius:"50%", background:"#f97316", boxShadow:"0 0 14px 5px rgba(249,115,22,0.5)", animation:"mythIdle 1.5s ease-in-out infinite" }}/>
+                                <div className="absolute pointer-events-none" style={{ top:"41%", right:"5.2%", width:5, height:5, borderRadius:"50%", background:"#f97316", boxShadow:"0 0 14px 5px rgba(249,115,22,0.5)", animation:"mythIdle 1.5s ease-in-out infinite 0.7s" }}/>
+                                {/* Niebla lateral */}
+                                <div className="absolute inset-y-0 left-0 pointer-events-none" style={{ width:"10%", background:"linear-gradient(90deg,rgba(6,12,26,0.65) 0%,transparent 100%)" }}/>
+                                <div className="absolute inset-y-0 right-0 pointer-events-none" style={{ width:"10%", background:"linear-gradient(270deg,rgba(10,6,22,0.65) 0%,transparent 100%)" }}/>
+                                {/* Grietas del suelo */}
+                                <div className="absolute inset-0 pointer-events-none" style={{ opacity:0.06 }}>
+                                    <svg width="100%" height="100%" viewBox="0 0 800 480">
+                                        <path d="M400,180 L418,238 L392,298 L408,378" stroke="white" strokeWidth="1.5" fill="none"/>
+                                        <path d="M382,202 L352,258 L372,318" stroke="white" strokeWidth="1" fill="none"/>
+                                        <path d="M418,202 L448,268 L432,338" stroke="white" strokeWidth="1" fill="none"/>
+                                    </svg>
+                                </div>
                                 {/* Overlay de preparación — texto central */}
                                 {phase === "prep" && (
                                     <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
@@ -1560,34 +1757,80 @@ export default function BattlePage() {
                                         </div>
                                     </div>
                                 )}
-                                {/* Suelo decorativo */}
-                                <div
-                                    className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-                                    style={{ background: "linear-gradient(180deg, transparent 0%, rgba(30,45,70,0.4) 100%)" }}
-                                />
-                                {/* Línea divisoria vertical central sutil */}
-                                <div
-                                    className="absolute top-8 bottom-8 pointer-events-none"
-                                    style={{ left: "50%", width: 1, background: "rgba(255,255,255,0.04)" }}
-                                />
+                                {/* Divisor central sutil */}
+                                <div className="absolute top-8 bottom-8 pointer-events-none" style={{ left:"50%", width:1, background:"linear-gradient(180deg,transparent 0%,rgba(255,255,255,0.05) 50%,transparent 100%)" }}/>
+
+                                {/* ── Círculos mágicos + sombras de suelo ──
+                                    Posiciones: top/left en % del campo → sprite siempre centrado
+                                    Tamaño crece de atrás (pequeño) a delante (grande) = perspectiva
+                                    scaleY(0.38) en el círculo y sombra → ilusión de plano horizontal */}
+                                {[
+                                    // [left%, top%, size%, side] — calibrados con el calibrador visual
+                                    ["21.9%","37.5%","13%","player"],  // P slot 0 — fondo
+                                    ["29.9%","55%",  "19%","player"],  // P slot 1 — centro avanzado
+                                    ["16.3%","72.5%","24%","player"],  // P slot 2 — delante
+                                    ["78%",  "37.2%","13%","enemy"],   // E slot 0 — fondo
+                                    ["69.4%","55%",  "19%","enemy"],   // E slot 1 — centro avanzado
+                                    ["83.6%","73%",  "24%","enemy"],   // E slot 2 — delante
+                                ].map(([l, t, sz, side], ci) => {
+                                    const isPlayer = side === "player";
+                                    const color = isPlayer ? "#22d3ee" : "#f87171";
+                                    const shadowSize = `calc(${sz} + 2%)`;
+                                    return (
+                                        <React.Fragment key={`circle-${ci}`}>
+                                            {/* Sombra de suelo */}
+                                            <div className="absolute pointer-events-none" style={{
+                                                left: l, top: t,
+                                                width: shadowSize, paddingBottom: shadowSize,
+                                                borderRadius: "50%",
+                                                transform: "translate(-50%,-50%) scaleY(0.38)",
+                                                background: "radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 45%, transparent 72%)",
+                                                filter: "blur(5px)",
+                                                zIndex: 1,
+                                            }}/>
+                                            {/* Círculo mágico */}
+                                            <div className="absolute pointer-events-none" style={{
+                                                left: l, top: t,
+                                                width: sz, paddingBottom: sz,
+                                                borderRadius: "50%",
+                                                transform: "translate(-50%,-50%) scaleY(0.38)",
+                                                zIndex: 2,
+                                            }}>
+                                                {/* Relleno glow */}
+                                                <div style={{ position:"absolute", inset:0, borderRadius:"50%", background:`radial-gradient(circle, ${color}22 0%, transparent 70%)` }}/>
+                                                {/* Anillo exterior — pulsa */}
+                                                <div style={{ position:"absolute", inset:0, borderRadius:"50%", border:`2px solid ${color}`, opacity:0.55, boxShadow:`0 0 10px ${color}44`, animation:"circPulse 3s ease-in-out infinite" }}/>
+                                                {/* Anillo interior — gira */}
+                                                <div style={{ position:"absolute", top:"12%", left:"12%", right:"12%", bottom:"12%", borderRadius:"50%", border:`1px solid ${color}`, opacity:0.35, animation:"circSpin 8s linear infinite" }}/>
+                                                {/* Runas SVG */}
+                                                <svg style={{ position:"absolute", inset:0, opacity:0.22 }} viewBox="0 0 100 100">
+                                                    <line x1="50" y1="10" x2="50" y2="90" stroke={color} strokeWidth="1.5"/>
+                                                    <line x1="10" y1="50" x2="90" y2="50" stroke={color} strokeWidth="1.5"/>
+                                                    <line x1="22" y1="22" x2="78" y2="78" stroke={color} strokeWidth="0.8"/>
+                                                    <line x1="78" y1="22" x2="22" y2="78" stroke={color} strokeWidth="0.8"/>
+                                                    <circle cx="50" cy="50" r="22" stroke={color} strokeWidth="0.8" fill="none"/>
+                                                </svg>
+                                            </div>
+                                        </React.Fragment>
+                                    );
+                                })}
 
                                 {/* Proyectil */}
                                 {projectile && <Projectile proj={projectile} />}
 
                                 {/* ── Enemigos (derecha) — posiciones según círculos del mapa ── */}
-                                {/* idx=0: arriba-derecha pegado a la pared; idx=1: medio avanzado al centro; idx=2: abajo-derecha */}
+                                {/* idx=0: fondo-der; idx=1: centro avanzado; idx=2: delante-der */}
                                 {(phase === "prep" ? [null, null, null] : (session?.enemyTeam ?? [null,null,null])).map((myth: any, idx: number) => {
-                                    // Posiciones X: 0=pegado derecha, 1=más al centro, 2=pegado derecha
-                                    const xOffsets = ["right-6", "right-24", "right-6"];
-                                    // Posiciones Y en % del campo
-                                    const yPcts = ["15%", "45%", "75%"];
+                                    // left/top calibrados manualmente con el calibrador visual
+                                    const leftPcts = ["78%", "69.4%", "83.6%"];
+                                    const topPcts  = ["37.2%", "55%", "73%"];
                                     const isPrepSlot = phase === "prep" || !myth;
                                     const revealed = myth && (idx < enemyRevealIndex);
                                     return (
                                         <div
                                             key={myth ? myth.instanceId : `eslot-${idx}`}
-                                            className={`absolute ${xOffsets[idx]} z-10`}
-                                            style={{ top: yPcts[idx], transform: "translateY(-50%)", opacity: isPrepSlot ? 0.2 : (revealed ? 1 : 0), animation: (!isPrepSlot && revealed) ? `enemyLand 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards` : undefined }}
+                                            className="absolute z-10"
+                                            style={{ left: leftPcts[idx], top: topPcts[idx], transform: "translate(-50%,-50%)", opacity: isPrepSlot ? 0.2 : (revealed ? 1 : 0), animation: (!isPrepSlot && revealed) ? `enemyLand 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards` : undefined }}
                                         >
                                             {isPrepSlot ? (
                                                 <div className="rounded-full border-2 border-dashed border-red-500/50" style={{ width: spriteSize, height: spriteSize, background: "rgba(239,68,68,0.05)" }} />
@@ -1644,9 +1887,10 @@ export default function BattlePage() {
                                 {/* ── Jugador (izquierda) — posiciones según círculos del mapa ── */}
                                 {/* idx=0: arriba-izq; idx=1: medio más al centro; idx=2: abajo-izq */}
                                 {[0, 1, 2].map((i) => {
-                                    // X: 0=pegado izquierda, 1=avanzado hacia el centro, 2=pegado izquierda
-                                    const xOffsets = ["left-6", "left-24", "left-6"];
-                                    const yPcts = ["15%", "45%", "75%"];
+                                    // Posiciones alineadas con los círculos mágicos DOM:
+                                    // left/top calibrados manualmente con el calibrador visual
+                                    const leftPcts = ["21.9%", "29.9%", "16.3%"];
+                                    const topPcts  = ["37.5%", "55%", "72.5%"];
                                     const myth = phase === "prep" ? prepSlots[i] : session?.playerTeam[i];
 
                                     // Handler de drop para prep
@@ -1670,8 +1914,8 @@ export default function BattlePage() {
                                     return (
                                         <div
                                             key={i}
-                                            className={`absolute ${xOffsets[i]} z-10`}
-                                            style={{ top: yPcts[i], transform: "translateY(-50%)" }}
+                                            className="absolute z-10"
+                                            style={{ left: leftPcts[i], top: topPcts[i], transform: "translate(-50%,-50%)" }}
                                             onDragOver={phase === "prep" ? (e) => e.preventDefault() : undefined}
                                             onDrop={phase === "prep" ? handleDrop : undefined}
                                         >
