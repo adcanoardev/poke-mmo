@@ -790,13 +790,13 @@
     },
     {
         "id": "004",
-        "slug": "voltusk",
-        "name": "Voltusk",
+        "slug": "volspike",
+        "name": "Volspike",
         "affinities": ["VOLT"],
         "rarity": "COMMON",
         "height": 0.5,
         "weight": 7.0,
-        "description": "Pequeña bestia eléctrica con colmillos cargados de energía estática y reflejos extremadamente rápidos.",
+        "description": "Pequeña bestia eléctrica con pinchos cargados de energía estática y reflejos extremadamente rápidos.",
         "baseStats": {
             "hp": 72,
             "atk": 50,
@@ -806,13 +806,13 @@
             "critDamage": 142
         },
         "art": {
-            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/voltusk_portrait.png",
-            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/voltusk_front.png",
-            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/voltusk_back.png"
+            "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/volspike_portrait.png",
+            "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/volspike_front.png",
+            "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/004/volspike_back.png"
         },
         "moves": [
             {
-                "id": "voltusk_dash",
+                "id": "volspike_dash",
                 "name": "Dash",
                 "affinity": "VOLT",
                 "type": "physical",
@@ -823,7 +823,7 @@
                 "description": "Ataca con garras chispeantes a velocidad fulgurante."
             },
             {
-                "id": "voltusk_trueno",
+                "id": "volspike_trueno",
                 "name": "Trueno",
                 "affinity": "VOLT",
                 "type": "special",
@@ -839,7 +839,7 @@
                 "description": "Dispara un rayo cegador que puede paralizar al objetivo."
             },
             {
-                "id": "voltusk_pulso",
+                "id": "volspike_pulso",
                 "name": "Pulso",
                 "affinity": "VOLT",
                 "type": "support",
@@ -855,7 +855,7 @@
                 "description": "Acelera su flujo eléctrico incrementando notablemente su velocidad."
             },
             {
-                "id": "voltusk_gran_puno_rayo",
+                "id": "volspike_gran_puno_rayo",
                 "name": "Gran Puño Rayo",
                 "affinity": "VOLT",
                 "type": "physical",
@@ -896,7 +896,7 @@
                 },
                 "moves": [
                     {
-                        "id": "voltusk_dash",
+                        "id": "volspike_dash",
                         "name": "Dash",
                         "affinity": "VOLT",
                         "type": "physical",
@@ -981,7 +981,7 @@
                 },
                 "moves": [
                     {
-                        "id": "voltusk_dash",
+                        "id": "volspike_dash",
                         "name": "Dash",
                         "affinity": "VOLT",
                         "type": "physical",
@@ -1065,7 +1065,7 @@
         "slug": "dureth",
         "name": "Dureth",
         "affinities": ["STONE"],
-        "rarity": "COMMON",
+        "rarity": "RARE",
         "height": 0.7,
         "weight": 28.0,
         "description": "Pequeño gólem de piedra que absorbe impactos con su cuerpo pétreo y responde con golpes aplastantes.",
@@ -1518,8 +1518,8 @@
                 "slug": "borelith",
                 "name": "Borelith",
                 "affinities": ["FROST", "SHADE"],
-                "height": 1.7,
-                "weight": 82.0,
+                "height": 1.9,
+                "weight": 162.0,
                 "description": "El espectro del invierno eterno. Borelith existe en la frontera entre el hielo y la oscuridad, drenando el calor vital de sus enemigos.",
                 "baseStats": {
                     "hp": 145,
@@ -1900,7 +1900,7 @@
         "slug": "pyrath",
         "name": "Pyrath",
         "affinities": ["EMBER"],
-        "rarity": "COMMON",
+        "rarity": "RARE",
         "height": 0.55,
         "weight": 9.0,
         "description": "Serpiente ígnea nacida en grietas volcánicas que desliza su cuerpo incandescente dejando rastros de fuego.",
@@ -1981,7 +1981,7 @@
         "distortion": [
             {
                 "triggerTurn": 3,
-                "rarity": "RARE",
+                "rarity": "EPIC",
                 "slug": "pyraveth",
                 "name": "Pyraveth",
                 "affinities": ["EMBER"],
@@ -2074,7 +2074,7 @@
             },
             {
                 "triggerTurn": 6,
-                "rarity": "EPIC",
+                "rarity": "ELITE",
                 "slug": "ignaroth",
                 "name": "Ignaroth",
                 "affinities": ["EMBER", "VENOM"],
@@ -2345,7 +2345,7 @@
             },
             {
                 "triggerTurn": 7,
-                "rarity": "ELITE",
+                "rarity": "EPIC",
                 "slug": "venoxis",
                 "name": "Venoxis",
                 "affinities": ["VENOM", "SHADE"],
@@ -2460,10 +2460,10 @@
         "slug": "astryn",
         "name": "Astryn",
         "affinities": ["ASTRAL"],
-        "rarity": "COMMON",
+        "rarity": "RARE",
         "height": 0.5,
         "weight": 0.0,
-        "description": "Espíritu astral con forma de zorro que deja un rastro de estrellas a su paso y puede predecir los movimientos del rival.",
+        "description": "Espíritu astral que deja un rastro de estrellas a su paso y puede predecir los movimientos del rival.",
         "baseStats": {
             "hp": 70,
             "atk": 52,
@@ -2542,7 +2542,7 @@
         "distortion": [
             {
                 "triggerTurn": 3,
-                "rarity": "RARE",
+                "rarity": "EPIC",
                 "slug": "stellaris",
                 "name": "Stellaris",
                 "affinities": ["ASTRAL"],
@@ -2644,7 +2644,7 @@
             },
             {
                 "triggerTurn": 6,
-                "rarity": "EPIC",
+                "rarity": "ELITE",
                 "slug": "cosmoryn",
                 "name": "Cosmoryn",
                 "affinities": ["ASTRAL", "SHADE"],
@@ -2750,8 +2750,8 @@
         "name": "Umbrix",
         "affinities": ["SHADE"],
         "rarity": "COMMON",
-        "height": 0.45,
-        "weight": 5.0,
+        "height": 0.75,
+        "weight": 9.0,
         "description": "Criatura de sombras que se desliza entre la penumbra, atacando desde ángulos imposibles.",
         "baseStats": {
             "hp": 72,
@@ -2833,8 +2833,8 @@
                 "slug": "noctyra",
                 "name": "Noctyra",
                 "affinities": ["SHADE"],
-                "height": 1.0,
-                "weight": 14.0,
+                "height": 1.2,
+                "weight": 39.0,
                 "description": "Predadora nocturna capaz de devorar la luz. Sus garras atraviesan las barreras dimensionales.",
                 "baseStats": {
                     "hp": 95,
@@ -2920,7 +2920,7 @@
                 "name": "Umbrion",
                 "affinities": ["SHADE", "VENOM"],
                 "height": 1.6,
-                "weight": 38.0,
+                "weight": 68.0,
                 "description": "Entidad nacida de la oscuridad pura que devora la luz y la esperanza. Su presencia envenena el alma de quienes la contemplan.",
                 "baseStats": {
                     "hp": 125,
@@ -3602,7 +3602,7 @@
         "name": "Mirelurk",
         "affinities": ["TIDE"],
         "rarity": "RARE",
-        "height": 1.1,
+        "height": 0.8,
         "weight": 48.0,
         "description": "Acechador de marismas con caparazón reforzado que emerge sin previo aviso de las aguas fangosas.",
         "baseStats": {
@@ -3887,7 +3887,7 @@
         "rarity": "RARE",
         "height": 0.9,
         "weight": 25.0,
-        "description": "Depredador vegetal cubierto de espinas venenosas. Sus zarcillos pueden inmovilizar a una presa en segundos.",
+        "description": "Criatura vegetal cubierta de espinas venenosas. Sus zarcillos pueden inmovilizar a una presa en segundos.",
         "baseStats": {
             "hp": 98,
             "atk": 72,

@@ -21,7 +21,7 @@ export type EffectType =
     | "boost_atk" | "boost_def" | "boost_spd" | "boost_acc"
     | "shield" | "heal" | "regen" | "counter" | "revive"
     | "debuff_atk" | "debuff_def" | "debuff_spd" | "debuff_acc"
-    | "debuff_heal" | "silence"
+    | "debuff_heal" | "silence" | "dispel" | "cleanse"
     // aliases legacy creatures.json
     | "buff_atk" | "buff_def";
 
@@ -96,6 +96,10 @@ export interface BattleMyth {
     // debuff_heal: reduce efectividad de curas recibidas
     debuffHealPct: number;
     debuffHealTurns: number;
+    // Turno en el que este Myth distorsiona (null si no hay distorsión pendiente)
+    distortionTriggerTurn: number | null;
+    // Rareza de la forma actual (se actualiza al distorsionar)
+    rarity: string;
     defeated: boolean;
 }
 
@@ -194,18 +198,24 @@ function effectiveAtk(m: BattleMyth): number {
     let atk = m.attack;
     // fear implícito: -20% ATK
     if (m.status === "fear") atk = Math.floor(atk * 0.8);
+    // Acumular multiplicadores de buffs ATK, capeados a ±50%
+    let atkMult = 1;
     for (const b of m.buffs) {
-        if (b.stat === "atk") atk = Math.floor(atk * b.multiplier);
+        if (b.stat === "atk") atkMult *= b.multiplier;
     }
-    return atk;
+    atkMult = Math.max(0.5, Math.min(1.5, atkMult));
+    return Math.floor(atk * atkMult);
 }
 
 function effectiveDef(m: BattleMyth): number {
     let def = m.defense;
+    // Acumular multiplicadores de buffs DEF, capeados a ±50%
+    let defMult = 1;
     for (const b of m.buffs) {
-        if (b.stat === "def") def = Math.floor(def * b.multiplier);
+        if (b.stat === "def") defMult *= b.multiplier;
     }
-    return def;
+    defMult = Math.max(0.5, Math.min(1.5, defMult));
+    return Math.floor(def * defMult);
 }
 
 function effectiveAcc(m: BattleMyth): number {
@@ -312,11 +322,11 @@ function calcDamage(
         return { damage: 0, mult: 1, crit: false, stab: false };
     }
 
-    const isCrit = Math.random() < 0.15;
+    const isCrit = Math.random() < attacker.critChance / 100;
     const isStab = attacker.affinities.includes(move.affinity);
     const mult = getAffinityMultiplier(move.affinity, defender.affinities);
     const stabMult = isStab ? 1.5 : 1;
-    const critMult = isCrit ? 1.5 : 1;
+    const critMult = isCrit ? attacker.critDamage / 100 : 1;
 
     // Burn reduce el ataque físico; special usa 90% ATK
     const atkMod = (attacker.status === "burn" && move.type === "physical") ? 0.5 : 1;
@@ -457,10 +467,17 @@ function applySingleEffect(
     attacker: BattleMyth,
     target: BattleMyth,
     damageDealt: number,
-    allMyths: BattleMyth[]
+    allMyths: BattleMyth[],
+    moveAffinity?: Affinity
 ): Partial<EffectResult> {
-    // Comprobar chance
-    const chance = eff.chance ?? 100;
+    // Comprobar chance, con modificador de afinidad para apply_status
+    let chance = eff.chance ?? 100;
+    if (eff.type === "apply_status" && moveAffinity) {
+        const affinityMult = getAffinityMultiplier(moveAffinity, target.affinities);
+        if (affinityMult >= 2) chance *= 1.3;
+        else if (affinityMult <= 0.5) chance *= 0.6;
+        // neutro (1): sin cambio
+    }
     if (Math.random() * 100 > chance) return {};
 
     const dur = eff.duration ?? 3;
@@ -483,7 +500,7 @@ function applySingleEffect(
         burn: "🔥", poison: "☠️", freeze: "❄️", fear: "😨", paralyze: "⚡", stun: "💫", curse: "💀"
     };
     const statusDurations: Record<string, number> = {
-        burn: 4, poison: 6, freeze: 2, fear: 3, paralyze: 5, stun: 1, curse: 0
+        burn: 4, poison: 5, freeze: 2, fear: 3, paralyze: 3, stun: 1, curse: 0
     };
 
     switch (eff.type) {
@@ -639,6 +656,33 @@ function applySingleEffect(
             for (const tgt of tgts) tgt.buffs.push({ ...buff });
             return { buffApplied: buff, logMsgs: [`⬇ACC ${tgts.map(t => t.name).join(", ")} -${val}% ACC`] };
         }
+        // ── dispel ─────────────────────────────────────────────────────────
+        case "dispel": {
+            // Elimina todos los buffs activos del/los objetivos (enemigos)
+            const tgts = resolveTarget(eff.target ?? "all_enemies");
+            const msgs: string[] = [];
+            for (const tgt of tgts) {
+                const hadBuffs = tgt.buffs.some(b => b.multiplier > 1);
+                tgt.buffs = tgt.buffs.filter(b => b.multiplier <= 1); // elimina solo buffs positivos
+                if (hadBuffs) msgs.push(`✨ Buffs de ${tgt.name} eliminados`);
+            }
+            return { logMsgs: msgs };
+        }
+        // ── cleanse ────────────────────────────────────────────────────────
+        case "cleanse": {
+            // Limpia estado negativo y debuffs activos del/los aliados
+            const tgts = resolveTarget(eff.target ?? "self");
+            const msgs: string[] = [];
+            for (const tgt of tgts) {
+                const hadStatus = tgt.status !== null;
+                const hadDebuffs = tgt.buffs.some(b => b.multiplier < 1);
+                tgt.status = null;
+                tgt.statusTurnsLeft = 0;
+                tgt.buffs = tgt.buffs.filter(b => b.multiplier >= 1); // elimina solo debuffs
+                if (hadStatus || hadDebuffs) msgs.push(`🌿 ${tgt.name} purificado`);
+            }
+            return { logMsgs: msgs };
+        }
     }
     return {};
 }
@@ -655,7 +699,7 @@ function applyMoveEffect(
     const effects = Array.isArray(move.effect) ? move.effect : [move.effect];
     const result: EffectResult = { logMsgs: [] };
     for (const eff of effects) {
-        const r = applySingleEffect(eff, attacker, target, damageDealt, allMyths);
+        const r = applySingleEffect(eff, attacker, target, damageDealt, allMyths, move.affinity);
         if (r.heal) result.heal = (result.heal ?? 0) + r.heal;
         if (r.statusApplied) result.statusApplied = r.statusApplied;
         if (r.buffApplied) result.buffApplied = r.buffApplied;
@@ -714,6 +758,10 @@ async function buildPlayerMyth(instanceId: string, userId: string): Promise<Batt
     const species = getCreature(inst.speciesId);
     if (!species) throw new Error(`Especie no encontrada: ${inst.speciesId}`);
 
+    // Primer triggerTurn de distorsión de esta especie (null si no tiene)
+    const firstDistortion = (species as any).distortion?.[0] ?? null;
+    const distortionTriggerTurn: number | null = firstDistortion?.triggerTurn ?? null;
+
     return {
         instanceId: inst.id,
         speciesId: inst.speciesId,
@@ -743,6 +791,8 @@ async function buildPlayerMyth(instanceId: string, userId: string): Promise<Batt
         curseHealPct: 0,
         debuffHealPct: 0,
         debuffHealTurns: 0,
+        distortionTriggerTurn,
+        rarity: (species as any).rarity ?? "COMMON",
         defeated: false,
     };
 }
@@ -752,6 +802,9 @@ function buildNpcMyth(speciesId: string, level: number): BattleMyth {
     if (!species) throw new Error(`Especie NPC no encontrada: ${speciesId}`);
 
     const scale = (base: number) => Math.floor(base * (1 + (level - 1) * 0.08));
+
+    const firstDistortion = (species as any).distortion?.[0] ?? null;
+    const distortionTriggerTurn: number | null = firstDistortion?.triggerTurn ?? null;
 
     return {
         instanceId: `npc_${speciesId}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -782,6 +835,8 @@ function buildNpcMyth(speciesId: string, level: number): BattleMyth {
         curseHealPct: 0,
         debuffHealPct: 0,
         debuffHealTurns: 0,
+        distortionTriggerTurn,
+        rarity: (species as any).rarity ?? "COMMON",
         defeated: false,
     };
 }
@@ -818,7 +873,7 @@ export async function startNpcBattle(userId: string, order: string[]): Promise<B
         userId,
         playerTeam,
         enemyTeam,
-        turn: 0,
+        turn: 1,
         turnQueue: [],
         currentQueueIndex: 0,
         status: "ongoing",
@@ -877,6 +932,115 @@ export interface TurnResult {
     defeated: string[];
     xpGained?: number;
     coinsGained?: number;
+    // true cuando el actor del jugador distorsionó este turno — el move NO se ejecutó,
+    // el frontend debe mostrar el overlay y devolver el control al jugador
+    distorted?: boolean;
+}
+
+// ─────────────────────────────────────────
+// DISTORSIÓN — transformación automática
+// ─────────────────────────────────────────
+
+function applyDistortion(myth: BattleMyth, currentTurn: number): string | null {
+    const species = (creaturesData as any[]).find(c => c.id === myth.speciesId);
+    if (!species?.distortion?.length) return null;
+
+    // Buscar la forma de distorsión que se activa en este turno exacto
+    const form = species.distortion.find((d: any) => d.triggerTurn === currentTurn);
+    if (!form) return null;
+
+    // Guardar cooldowns actuales por moveId antes de transformar
+    const oldCooldowns = { ...myth.cooldownsLeft };
+
+    // IDs de los moves que se heredan (Slot 0 siempre, Slot 1 en D2 si existe en D1)
+    const oldMoveIds = myth.moves.map((mv: Move) => mv.id);
+
+    // Escalar stats base de la nueva forma por nivel del Myth
+    const scale = (base: number) => Math.floor(base * (1 + (myth.level - 1) * 0.08));
+    const bs = form.baseStats;
+
+    // HP: heredar porcentaje
+    const hpPct = myth.maxHp > 0 ? myth.hp / myth.maxHp : 1;
+    const newMaxHp = scale(bs.hp * 2 + 10);
+    myth.hp = Math.max(1, Math.floor(newMaxHp * hpPct));
+    myth.maxHp = newMaxHp;
+
+    myth.name = form.name;
+    myth.speciesId = form.slug;
+    myth.affinities = form.affinities as Affinity[];
+    myth.rarity = form.rarity ?? myth.rarity;
+    myth.attack = scale(bs.atk);
+    myth.defense = scale(bs.def);
+    myth.speed = scale(bs.spd);
+    myth.critChance = bs.critChance ?? myth.critChance;
+    myth.critDamage = bs.critDamage ?? myth.critDamage;
+    myth.moves = form.moves as Move[];
+    myth.art = {
+        portrait: `https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/${species.id}/${form.slug}_portrait.png`,
+        front:    `https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/${species.id}/${form.slug}_front.png`,
+        back:     `https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/${species.id}/${form.slug}_back.png`,
+    };
+
+    // Reconstruir cooldownsLeft: transferir cooldowns de moves heredados
+    const newCooldowns: Record<string, number> = {};
+    for (const newMove of myth.moves) {
+        // Si el nuevo move tiene el mismo id que uno viejo → hereda su cooldown
+        if (oldMoveIds.includes(newMove.id) && oldCooldowns[newMove.id]) {
+            newCooldowns[newMove.id] = oldCooldowns[newMove.id];
+        }
+    }
+    myth.cooldownsLeft = newCooldowns;
+
+    // Actualizar el trigger al siguiente form de distorsión (si existe), o null
+    const distortionForms = species.distortion as any[];
+    const currentFormIndex = distortionForms.findIndex((d: any) => d.triggerTurn === currentTurn);
+    const nextForm = distortionForms[currentFormIndex + 1] ?? null;
+    myth.distortionTriggerTurn = nextForm?.triggerTurn ?? null;
+
+    return `🌀 ¡${myth.name} ha distorsionado!`;
+}
+
+// ─────────────────────────────────────────
+// BEGIN TURN — llamado por el frontend al inicio del turno del jugador
+// Resuelve distorsión ANTES de que el jugador elija move
+// ─────────────────────────────────────────
+
+export interface BeginTurnResult {
+    session: BattleSession3v3;
+    distorted: boolean;
+    distortionMsg?: string;
+    actorInstanceId: string;
+    actorName: string;
+}
+
+export async function beginTurn(userId: string, battleId: string): Promise<BeginTurnResult> {
+    const session = getSession3v3(battleId);
+    if (!session || session.userId !== userId) throw new Error("Sesión no encontrada");
+    if (session.status !== "ongoing") throw new Error("El combate ya ha finalizado");
+
+    const actor = getCurrentActor(session);
+    if (!actor) throw new Error("No hay actor en la cola");
+
+    const actorIsPlayer = isPlayerMyth(session, actor.instanceId);
+    if (!actorIsPlayer) {
+        // No es turno del jugador — no hacer nada
+        return { session, distorted: false, actorInstanceId: actor.instanceId, actorName: actor.name };
+    }
+
+    // Comprobar distorsión antes de que el jugador elija
+    const distortionMsg = applyDistortion(actor, session.turn);
+    if (distortionMsg) {
+        setSession(session);
+        return {
+            session,
+            distorted: true,
+            distortionMsg,
+            actorInstanceId: actor.instanceId,
+            actorName: actor.name,
+        };
+    }
+
+    return { session, distorted: false, actorInstanceId: actor.instanceId, actorName: actor.name };
 }
 
 // ─────────────────────────────────────────
@@ -942,6 +1106,17 @@ export async function executeTurn(
     };
 
     const defeated: string[] = [];
+
+    // ── Distorsión del NPC: comprobar trigger al inicio del turno ──
+    // (Para el jugador, la distorsión ya se resolvió en beginTurn antes de elegir move)
+    if (!actorIsPlayer) {
+        const distortionMsg = applyDistortion(actor, session.turn);
+        if (distortionMsg) {
+            action.actorName = actor.name;
+            action.effectMsgs = [distortionMsg];
+            // NPC sigue ejecutando con los moves de la nueva forma
+        }
+    }
 
     // Regen tick al inicio del turno
     const regenMsg = applyRegenTick(actor, [...session.playerTeam, ...session.enemyTeam]);
