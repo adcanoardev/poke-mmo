@@ -294,10 +294,8 @@ html, body, #root {
 
 /* ── ULTIMATE keyframes ── */
 @keyframes ultimateFlash {
-    0%   { background: rgba(255,255,255,0); }
-    15%  { background: rgba(255,255,255,0.7); }
-    40%  { background: rgba(255,255,255,0.15); }
-    100% { background: rgba(255,255,255,0); }
+    /* Sin flash blanco — solo se usa vignette de color ahora */
+    0%,100% { opacity: 0; }
 }
 @keyframes ultimateShockwave {
     0%   { transform:scale(0.1); opacity:1; }

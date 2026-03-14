@@ -7,6 +7,7 @@ interface TrainerContextValue {
     tokens: any;
     fragments: number;
     reload: () => void;
+    reset: () => void;
 }
 
 const TrainerContext = createContext<TrainerContextValue>({
@@ -14,6 +15,7 @@ const TrainerContext = createContext<TrainerContextValue>({
     tokens: null,
     fragments: 0,
     reload: () => {},
+    reset: () => {},
 });
 
 export function TrainerProvider({ children }: { children: React.ReactNode }) {
@@ -32,6 +34,12 @@ export function TrainerProvider({ children }: { children: React.ReactNode }) {
         } catch {}
     }, []);
 
+    const reset = useCallback(() => {
+        setTrainer(null);
+        setTokens(null);
+        setFragments(0);
+    }, []);
+
     useEffect(() => {
         load();
         const interval = setInterval(load, 30_000);
@@ -43,7 +51,7 @@ export function TrainerProvider({ children }: { children: React.ReactNode }) {
     }, [load]);
 
     return (
-        <TrainerContext.Provider value={{ trainer, tokens, fragments, reload: load }}>
+        <TrainerContext.Provider value={{ trainer, tokens, fragments, reload: load, reset }}>
             {children}
         </TrainerContext.Provider>
     );

@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef, createContext, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { api } from "../lib/api";
+import { useTrainer } from "../context/TrainerContext";
 
 const NAV = [
     { icon: "🏡", label: "Posada", path: "/" },
@@ -128,114 +130,6 @@ function getCell(atk: Affinity, def: Affinity): number {
     return AFFINITY_CHART[atk]?.[def] ?? 1;
 }
 
-// ─────────────────────────────────────────
-// AffinityTableModal
-// ─────────────────────────────────────────
-
-function AffinityTableModal({ onClose }: { onClose: () => void }) {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-            {/* Panel */}
-            <div
-                className="relative z-10 bg-bg border border-border rounded-2xl overflow-hidden
-                    w-full max-w-2xl max-h-screen flex flex-col shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
-                    <div>
-                        <h2 className="font-display font-black text-base text-yellow tracking-widest uppercase">
-                            📊 Tabla de Afinidades
-                        </h2>
-                        <p className="text-muted text-xs mt-0.5">Fila = Ataque · Columna = Defensor</p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-muted hover:text-white transition-colors text-lg leading-none"
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                {/* Legend */}
-                <div className="flex gap-4 px-5 py-2 border-b border-border/50 flex-shrink-0">
-                    <span className="flex items-center gap-1.5 text-xs font-display">
-                        <span className="w-5 h-5 rounded bg-green-500/30 border border-green-500/50 flex items-center justify-center text-green-400 font-black text-xs">
-                            2
-                        </span>
-                        <span className="text-muted">Muy eficaz</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs font-display">
-                        <span className="w-5 h-5 rounded bg-white/5 border border-border flex items-center justify-center text-muted text-xs">
-                            1
-                        </span>
-                        <span className="text-muted">Normal</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs font-display">
-                        <span className="w-5 h-5 rounded bg-red/20 border border-red/40 flex items-center justify-center text-red font-black text-xs">
-                            ½
-                        </span>
-                        <span className="text-muted">Poco eficaz</span>
-                    </span>
-                </div>
-
-                {/* Table — scrollable */}
-                <div className="overflow-auto flex-1 p-3">
-                    <table className="border-collapse text-xs w-full">
-                        <thead>
-                            <tr>
-                                <th className="w-10 h-8" />
-                                {AFFINITIES.map((def) => (
-                                    <th key={def} className="w-9 h-8 text-center">
-                                        <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-base">{AFFINITY_EMOJI[def]}</span>
-                                        </div>
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {AFFINITIES.map((atk) => (
-                                <tr key={atk}>
-                                    <td className="pr-1 py-0.5">
-                                        <div className="flex items-center gap-1 justify-end">
-                                            <span className="text-sm">{AFFINITY_EMOJI[atk]}</span>
-                                            <span className="text-muted font-display text-xs hidden sm:block w-14 text-right truncate">
-                                                {AFFINITY_LABEL[atk]}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    {AFFINITIES.map((def) => {
-                                        const val = getCell(atk, def);
-                                        return (
-                                            <td key={def} className="py-0.5 px-0.5 text-center">
-                                                <div
-                                                    className={`w-8 h-7 mx-auto rounded flex items-center justify-center font-display font-black text-xs
-                                                    ${
-                                                        val === 2
-                                                            ? "bg-green-500/25 text-green-400 border border-green-500/40"
-                                                            : val === 0.5
-                                                              ? "bg-red/20 text-red border border-red/30"
-                                                              : "bg-white/4 text-muted/50"
-                                                    }`}
-                                                >
-                                                    {val === 2 ? "×2" : val === 0.5 ? "½" : "·"}
-                                                </div>
-                                            </td>
-                                        );
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 // ─────────────────────────────────────────
 // Layout
@@ -248,9 +142,39 @@ interface Props {
 
 export default function Layout({ children, sidebar }: Props) {
     const { user, logout } = useAuth();
+    const { reset: resetTrainer } = useTrainer();
     const navigate = useNavigate();
     const location = useLocation();
-    const [showAffinity, setShowAffinity] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [logoutLoading, setLogoutLoading] = useState(false);
+
+    const handleLogoutClick = () => {
+        if (localStorage.getItem("mythara_battle_active") === "1") {
+            setShowLogoutConfirm(true);
+        } else {
+            resetTrainer();
+            logout();
+        }
+    };
+
+    const handleLogoutConfirm = async () => {
+        setLogoutLoading(true);
+        try {
+            const session = await api.battleNpcActive();
+            if (session?.battleId || session?.id) {
+                const battleId = session.battleId ?? session.id;
+                await api.battleNpcForfeit(battleId);
+            }
+        } catch (_) {
+            // Si falla, seguimos con el logout igualmente
+        } finally {
+            localStorage.removeItem("mythara_battle_active");
+            setLogoutLoading(false);
+            setShowLogoutConfirm(false);
+            resetTrainer();
+            logout();
+        }
+    };
 
     // Toast state
     const [toasts, setToasts] = useState<Toast[]>([]);
@@ -274,6 +198,17 @@ export default function Layout({ children, sidebar }: Props) {
             Object.values(timersRef.current).forEach(clearTimeout);
         };
     }, []);
+
+    // Escape cierra cualquier modal abierto
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                if (showLogoutConfirm && !logoutLoading) setShowLogoutConfirm(false);
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [showLogoutConfirm, logoutLoading]);
 
     return (
         <ToastContext.Provider value={{ toast: addToast }}>
@@ -338,7 +273,7 @@ export default function Layout({ children, sidebar }: Props) {
                             {user?.username}
                         </span>
                         <button
-                            onClick={logout}
+                            onClick={handleLogoutClick}
                             className="px-3 py-1 border border-border rounded-lg text-muted text-xs font-display tracking-widest uppercase hover:border-red hover:text-red transition-all"
                         >
                             Salir
@@ -376,23 +311,40 @@ export default function Layout({ children, sidebar }: Props) {
                     <main className="flex-1 overflow-hidden flex flex-col relative">
                         {children}
 
-                        {/* Botón flotante tabla de afinidades */}
-                        <button
-                            onClick={() => setShowAffinity(true)}
-                            title="Tabla de afinidades"
-                            className="absolute bottom-4 right-4 z-30
-                            w-10 h-10 rounded-full border border-border bg-card
-                            flex items-center justify-center text-lg
-                            hover:border-yellow/50 hover:bg-yellow/10 hover:scale-110
-                            transition-all duration-200 shadow-lg shadow-black/40"
-                        >
-                            📊
-                        </button>
                     </main>
                 </div>
 
-                {/* Affinity modal */}
-                {showAffinity && <AffinityTableModal onClose={() => setShowAffinity(false)} />}
+                {/* Logout confirmation modal */}
+                {showLogoutConfirm && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                        onClick={() => { if (!logoutLoading) setShowLogoutConfirm(false); }}>
+                        <div className="bg-card border border-border rounded-xl p-6 w-80 flex flex-col gap-4 shadow-2xl"
+                            onClick={e => e.stopPropagation()}>
+                            <h2 className="font-display text-base tracking-widest text-yellow uppercase text-center">
+                                ⚠️ Combate activo
+                            </h2>
+                            <p className="text-sm text-muted text-center leading-relaxed">
+                                Si cierras sesión ahora, el combate actual se registrará como <span className="text-red font-semibold">derrota</span>. ¿Seguro que quieres salir?
+                            </p>
+                            <div className="flex gap-3 mt-1">
+                                <button
+                                    onClick={() => setShowLogoutConfirm(false)}
+                                    disabled={logoutLoading}
+                                    className="flex-1 py-2 rounded-lg border border-border text-muted text-xs font-display tracking-widest uppercase hover:bg-white/5 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleLogoutConfirm}
+                                    disabled={logoutLoading}
+                                    className="flex-1 py-2 rounded-lg border border-red bg-red/10 text-red text-xs font-display tracking-widest uppercase hover:bg-red/20 transition-all disabled:opacity-50"
+                                >
+                                    {logoutLoading ? "Saliendo..." : "Salir y perder"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Toasts — fuera del div principal para no ser afectados por overflow:hidden */}

@@ -59,7 +59,8 @@ export interface Buff {
 
 export interface BattleMyth {
     instanceId: string;
-    speciesId: string;
+    speciesId: string;      // cambia tras cada distorsión (slug de la forma actual)
+    baseSpeciesId: string;  // ID numérico original ("001"…"050") — NUNCA cambia
     name: string;
     level: number;
     hp: number;
@@ -82,6 +83,7 @@ export interface BattleMyth {
     buffs: Buff[];
     // Escudo: absorbe X daño antes de bajar HP
     shield: number;
+    shieldTurns: number;  // turnos restantes del escudo (0 = sin escudo)
     // Regen: recupera X% HP al inicio de cada turno
     regenValue: number;   // % del maxHp
     regenTurns: number;
@@ -100,6 +102,8 @@ export interface BattleMyth {
     distortionTriggerTurn: number | null;
     // Turno en que empezó la forma actual (1 para la forma base, triggerTurn anterior tras distorsionar)
     distortionFormStartTurn: number;
+    // Rareza de la siguiente forma de distorsión (null si es la forma final)
+    nextFormRarity: string | null;
     // Rareza de la forma actual (se actualiza al distorsionar)
     rarity: string;
     defeated: boolean;
@@ -279,6 +283,7 @@ function tickBuffs(session: BattleSession3v3): void {
         tickSilence(m);
         tickCounter(m);
         tickDebuffHeal(m);
+        // tickShield is called per-actor at end of each actor's turn, not per-round
     }
 }
 
@@ -429,6 +434,17 @@ function tickCounter(myth: BattleMyth): void {
     if (myth.counterTurns > 0) myth.counterTurns--;
 }
 
+// Tick de escudo: decrementa turnos y lo limpia al expirar
+function tickShield(myth: BattleMyth): void {
+    if (myth.shieldTurns > 0) {
+        myth.shieldTurns--;
+        if (myth.shieldTurns <= 0) {
+            myth.shield = 0;
+            myth.shieldTurns = 0;
+        }
+    }
+}
+
 // Activar curse al morir: busca al lanzador y le devuelve HP
 function applyCurseOnDeath(dead: BattleMyth, allMyths: BattleMyth[]): string | null {
     if (!dead.cursedBy || dead.curseHealPct <= 0) return null;
@@ -460,6 +476,7 @@ interface EffectResult {
     buffApplied?: Buff;
     drain?: number;
     shieldApplied?: number;
+    areaTargetIds?: string[];   // IDs de todos los targets cuando el efecto es de área
     logMsgs: string[];
 }
 
@@ -470,6 +487,7 @@ function applySingleEffect(
     target: BattleMyth,
     damageDealt: number,
     allMyths: BattleMyth[],
+    playerTeam: BattleMyth[],
     moveAffinity?: Affinity
 ): Partial<EffectResult> {
     // Comprobar chance, con modificador de afinidad para apply_status
@@ -486,17 +504,23 @@ function applySingleEffect(
     const val = eff.value ?? 25; // porcentaje por defecto
 
     // Resolver target
+    const attackerIsPlayer = playerTeam.some(m => m.instanceId === attacker.instanceId);
     const resolveTarget = (t?: string): BattleMyth[] => {
         switch (t) {
             case "self": return [attacker];
             case "enemy": return [target];
-            case "all_enemies": return allMyths.filter(m => m !== attacker && !m.defeated);
-            case "ally": return [attacker]; // en NPC battle no hay aliados reales
-            case "all_allies": return allMyths.filter(m => m === attacker && !m.defeated);
+            case "all_enemies": return attackerIsPlayer
+                ? allMyths.filter(m => !playerTeam.some(p => p.instanceId === m.instanceId) && !m.defeated)
+                : playerTeam.filter(m => !m.defeated);
+            case "ally":
+            case "all_allies": return attackerIsPlayer
+                ? playerTeam.filter(m => !m.defeated)
+                : allMyths.filter(m => !playerTeam.some(p => p.instanceId === m.instanceId) && !m.defeated);
             case "all": return allMyths.filter(m => !m.defeated);
             default: return [target];
         }
     };
+    const isAreaTarget = (t?: string) => t === "all_enemies" || t === "all_allies" || t === "all";
 
     const statusIcons: Record<string, string> = {
         burn: "🔥", poison: "☠️", freeze: "❄️", fear: "😨", paralyze: "⚡", stun: "💫", curse: "💀"
@@ -526,7 +550,12 @@ function applySingleEffect(
                     msgs.push(`${statusIcons[st] ?? "✨"} ${tgt.name} sufre ${st}`);
                 }
             }
-            return { statusApplied: applied ?? undefined, logMsgs: msgs };
+            const area = isAreaTarget(eff.target);
+            return {
+                statusApplied: applied ?? undefined,
+                areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined,
+                logMsgs: msgs,
+            };
         }
         // ── drain ──────────────────────────────────────────────────────────
         case "drain": {
@@ -569,9 +598,15 @@ function applySingleEffect(
             for (const tgt of tgts) {
                 const shieldAmt = Math.floor(tgt.maxHp * (val / 100));
                 tgt.shield += shieldAmt;
+                tgt.shieldTurns = 2;
                 total += shieldAmt;
             }
-            return { shieldApplied: total, logMsgs: [`🛡️ ${tgts.map(t => t.name).join(", ")} con escudo ${total}`] };
+            const area = isAreaTarget(eff.target ?? "self");
+            return {
+                shieldApplied: total,
+                areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined,
+                logMsgs: [`🛡️ ${tgts.map(t => t.name).join(", ")} con escudo ${total}`],
+            };
         }
         // ── counter ────────────────────────────────────────────────────────
         case "counter": {
@@ -615,7 +650,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "boost_atk" && b.type !== "buff_atk");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬆ATK ${tgts.map(t => t.name).join(", ")} +${val}% ATK`] };
+            const area = isAreaTarget(eff.target ?? "self");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬆ATK ${tgts.map(t => t.name).join(", ")} +${val}% ATK`] };
         }
         case "boost_def":
         case "buff_def": {
@@ -625,7 +661,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "boost_def" && b.type !== "buff_def");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬆DEF ${tgts.map(t => t.name).join(", ")} +${val}% DEF`] };
+            const area = isAreaTarget(eff.target ?? "self");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬆DEF ${tgts.map(t => t.name).join(", ")} +${val}% DEF`] };
         }
         case "boost_spd": {
             const tgts = resolveTarget(eff.target ?? "self");
@@ -634,7 +671,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "boost_spd");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬆SPD ${tgts.map(t => t.name).join(", ")} +${val}% SPD`] };
+            const area = isAreaTarget(eff.target ?? "self");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬆SPD ${tgts.map(t => t.name).join(", ")} +${val}% SPD`] };
         }
         case "boost_acc": {
             const tgts = resolveTarget(eff.target ?? "self");
@@ -643,7 +681,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "boost_acc");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬆ACC ${tgts.map(t => t.name).join(", ")} +${val}% ACC`] };
+            const area = isAreaTarget(eff.target ?? "self");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬆ACC ${tgts.map(t => t.name).join(", ")} +${val}% ACC`] };
         }
         // ── DEBUFFS (debuff_*) — máx 1 del mismo tipo por target ─────────────
         // El debuff siempre calcula su multiplier sobre el stat BASE (val es % fijo del stat base).
@@ -656,7 +695,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "debuff_atk");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬇ATK ${tgts.map(t => t.name).join(", ")} -${val}% ATK`] };
+            const area = isAreaTarget(eff.target ?? "enemy");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬇ATK ${tgts.map(t => t.name).join(", ")} -${val}% ATK`] };
         }
         case "debuff_def": {
             const tgts = resolveTarget(eff.target ?? "enemy");
@@ -665,7 +705,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "debuff_def");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬇DEF ${tgts.map(t => t.name).join(", ")} -${val}% DEF`] };
+            const area = isAreaTarget(eff.target ?? "enemy");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬇DEF ${tgts.map(t => t.name).join(", ")} -${val}% DEF`] };
         }
         case "debuff_spd": {
             const tgts = resolveTarget(eff.target ?? "enemy");
@@ -674,7 +715,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "debuff_spd");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬇SPD ${tgts.map(t => t.name).join(", ")} -${val}% SPD`] };
+            const area = isAreaTarget(eff.target ?? "enemy");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬇SPD ${tgts.map(t => t.name).join(", ")} -${val}% SPD`] };
         }
         case "debuff_acc": {
             const tgts = resolveTarget(eff.target ?? "enemy");
@@ -683,7 +725,8 @@ function applySingleEffect(
                 tgt.buffs = tgt.buffs.filter(b => b.type !== "debuff_acc");
                 tgt.buffs.push({ ...buff });
             }
-            return { buffApplied: buff, logMsgs: [`⬇ACC ${tgts.map(t => t.name).join(", ")} -${val}% ACC`] };
+            const area = isAreaTarget(eff.target ?? "enemy");
+            return { buffApplied: buff, areaTargetIds: area ? tgts.map(t => t.instanceId) : undefined, logMsgs: [`⬇ACC ${tgts.map(t => t.name).join(", ")} -${val}% ACC`] };
         }
         // ── dispel ─────────────────────────────────────────────────────────
         case "dispel": {
@@ -722,18 +765,20 @@ function applyMoveEffect(
     move: Move,
     target: BattleMyth,
     damageDealt: number,
-    allMyths: BattleMyth[]
+    allMyths: BattleMyth[],
+    playerTeam: BattleMyth[]
 ): EffectResult | null {
     if (!move.effect) return null;
     const effects = Array.isArray(move.effect) ? move.effect : [move.effect];
     const result: EffectResult = { logMsgs: [] };
     for (const eff of effects) {
-        const r = applySingleEffect(eff, attacker, target, damageDealt, allMyths, move.affinity);
+        const r = applySingleEffect(eff, attacker, target, damageDealt, allMyths, playerTeam, move.affinity);
         if (r.heal) result.heal = (result.heal ?? 0) + r.heal;
         if (r.statusApplied) result.statusApplied = r.statusApplied;
         if (r.buffApplied) result.buffApplied = r.buffApplied;
         if (r.drain) result.drain = r.drain;
         if (r.shieldApplied) result.shieldApplied = r.shieldApplied;
+        if (r.areaTargetIds?.length) result.areaTargetIds = r.areaTargetIds;
         if (r.logMsgs) result.logMsgs.push(...r.logMsgs);
     }
     return result.logMsgs.length > 0 ? result : null;
@@ -789,11 +834,13 @@ async function buildPlayerMyth(instanceId: string, userId: string): Promise<Batt
 
     // Primer triggerTurn de distorsión de esta especie (null si no tiene)
     const firstDistortion = (species as any).distortion?.[0] ?? null;
+    const secondDistortion = (species as any).distortion?.[1] ?? null;
     const distortionTriggerTurn: number | null = firstDistortion?.triggerTurn ?? null;
 
     return {
         instanceId: inst.id,
         speciesId: inst.speciesId,
+        baseSpeciesId: inst.speciesId,
         name: species.name,
         level: inst.level,
         hp: inst.hp,
@@ -812,6 +859,7 @@ async function buildPlayerMyth(instanceId: string, userId: string): Promise<Batt
         cooldownsLeft: {},
         buffs: [],
         shield: 0,
+        shieldTurns: 0,
         regenValue: 0,
         regenTurns: 0,
         counterValue: 0,
@@ -822,6 +870,7 @@ async function buildPlayerMyth(instanceId: string, userId: string): Promise<Batt
         debuffHealTurns: 0,
         distortionTriggerTurn,
         distortionFormStartTurn: 1,
+        nextFormRarity: firstDistortion?.rarity ?? null,
         rarity: (species as any).rarity ?? "COMMON",
         defeated: false,
     };
@@ -839,6 +888,7 @@ function buildNpcMyth(speciesId: string, level: number): BattleMyth {
     return {
         instanceId: `npc_${speciesId}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         speciesId,
+        baseSpeciesId: speciesId,
         name: species.name,
         level,
         hp: scale(species.baseStats.hp * 2 + 10),
@@ -857,6 +907,7 @@ function buildNpcMyth(speciesId: string, level: number): BattleMyth {
         cooldownsLeft: {},
         buffs: [],
         shield: 0,
+        shieldTurns: 0,
         regenValue: 0,
         regenTurns: 0,
         counterValue: 0,
@@ -867,6 +918,7 @@ function buildNpcMyth(speciesId: string, level: number): BattleMyth {
         debuffHealTurns: 0,
         distortionTriggerTurn,
         distortionFormStartTurn: 1,
+        nextFormRarity: firstDistortion?.rarity ?? null,
         rarity: (species as any).rarity ?? "COMMON",
         defeated: false,
     };
@@ -948,6 +1000,8 @@ export interface TurnAction {
     healAmount?: number;
     // Escudo aplicado
     shieldApplied?: number;
+    // IDs de todos los targets en moves de área (all_enemies / all_allies / all)
+    allTargetInstanceIds?: string[];
     // Mensajes de efectos (array)
     effectMsgs?: string[];
     // Bloqueado por estado (no pudo actuar)
@@ -976,7 +1030,7 @@ function applyDistortion(myth: BattleMyth, currentTurn: number): string | null {
     // ⚠️ Nunca distorsionar un myth derrotado — un golpe letal no puede ser anulado por la distorsión
     if (myth.defeated || myth.hp <= 0) return null;
 
-    const species = (creaturesData as any[]).find(c => c.id === myth.speciesId);
+    const species = (creaturesData as any[]).find(c => c.id === myth.baseSpeciesId);
     if (!species?.distortion?.length) return null;
 
     // Buscar la forma de distorsión que se activa en este turno exacto
@@ -1032,6 +1086,7 @@ function applyDistortion(myth: BattleMyth, currentTurn: number): string | null {
     myth.distortionTriggerTurn = nextForm?.triggerTurn ?? null;
     // El inicio de la nueva forma es el turno actual (justo después de distorsionar)
     myth.distortionFormStartTurn = currentTurn;
+    myth.nextFormRarity = nextForm?.rarity ?? null;
 
     return `🌀 ¡${myth.name} ha distorsionado!`;
 }
@@ -1204,12 +1259,13 @@ export async function executeTurn(
 
         // ── Aplicar efecto del move ──
         const allMyths = [...session.playerTeam, ...session.enemyTeam];
-        const effectRes = applyMoveEffect(actor, move, target, dmgResult.damage, allMyths);
+        const effectRes = applyMoveEffect(actor, move, target, dmgResult.damage, allMyths, session.playerTeam);
         if (effectRes) {
             if (effectRes.statusApplied) action.statusApplied = effectRes.statusApplied;
             if (effectRes.buffApplied) action.buffApplied = effectRes.buffApplied;
             if (effectRes.heal) action.healAmount = effectRes.heal;
             if (effectRes.shieldApplied) action.shieldApplied = effectRes.shieldApplied;
+            if (effectRes.areaTargetIds?.length) action.allTargetInstanceIds = effectRes.areaTargetIds;
             if (effectRes.logMsgs?.length) action.effectMsgs = effectRes.logMsgs;
         }
 
@@ -1226,6 +1282,7 @@ export async function executeTurn(
         action.statusTickMsg = tick.msg;
     }
     tickStatus(actor);
+    tickShield(actor); // shield decrements once per actor turn, not per round
 
     // ── Recopilar derrotados + activar curse ──
     const allMythsFlat = [...session.playerTeam, ...session.enemyTeam];
