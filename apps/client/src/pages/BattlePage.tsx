@@ -80,7 +80,7 @@ function cloneSession(s: any): BattleSession {
     return JSON.parse(JSON.stringify(s));
 }
 
-const CDN = "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@24610227fc0b43065f06902c0825f413a668f66d";
+const CDN = "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@7613486785dc2b2089f6d345e1281e9316c1d982";
 
 // Iconos de estado — WebP 64×64, fondo transparente
 const STATUS_ICON_URLS: Record<string, string> = {
@@ -117,16 +117,16 @@ const STATUS_LOG_COLORS: Record<string, string> = {
 
 // Iconos de afinidad — WebP, fondo transparente
 const AFFINITY_ICON_URLS: Record<string, string> = {
-    STONE:  `${CDN}/affinity/stone_affinity.webp`,
-    IRON:   `${CDN}/affinity/iron_affinity.webp`,
-    FROST:  `${CDN}/affinity/frost_affinity.webp`,
-    GROVE:  `${CDN}/affinity/grove_affinity.webp`,
-    ASTRAL: `${CDN}/affinity/astral_affinity.webp`,
-    EMBER:  `${CDN}/affinity/ember_affinity.webp`,
-    VENOM:  `${CDN}/affinity/venom_affinity.webp`,
-    TIDE:   `${CDN}/affinity/tide_affinity.webp`,
-    SHADE:  `${CDN}/affinity/shade_affinity.webp`,
-    VOLT:   `${CDN}/affinity/volt_affinity.webp`,
+    STONE:  `${CDN}/affinity/stone_affinity_icon.webp`,
+    IRON:   `${CDN}/affinity/iron_affinity_icon.webp`,
+    FROST:  `${CDN}/affinity/frost_affinity_icon.webp`,
+    GROVE:  `${CDN}/affinity/grove_affinity_icon.webp`,
+    ASTRAL: `${CDN}/affinity/astral_affinity_icon.webp`,
+    EMBER:  `${CDN}/affinity/ember_affinity_icon.webp`,
+    VENOM:  `${CDN}/affinity/venom_affinity_icon.webp`,
+    TIDE:   `${CDN}/affinity/tide_affinity_icon.webp`,
+    SHADE:  `${CDN}/affinity/shade_affinity_icon.webp`,
+    VOLT:   `${CDN}/affinity/volt_affinity_icon.webp`,
 };
 
 // Componente de icono de estado: imagen CDN con fallback emoji
@@ -913,11 +913,16 @@ function DistortionBar({
                     animation: "distortMaxShimmer 3s ease infinite, distortMaxGlow 2.2s ease-in-out infinite",
                     border: "1px solid #a855f788",
                     display: "flex", alignItems: "center", justifyContent: "center",
+                    position: "relative",
                 }}>
                     <span style={{
                         fontSize: "9px", fontFamily: "monospace", fontWeight: 900,
                         letterSpacing: "0.16em",
                         animation: "distortMaxText 2.2s ease-in-out infinite",
+                        position: "absolute",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        whiteSpace: "nowrap",
                     }}>✦ DIST MAX ✦</span>
                 </div>
             </div>
@@ -1187,176 +1192,6 @@ function ArenaMyth({
                 </div>
             )}
 
-            {/* Status effect overlay — al aplicar o tick, CSS puro sin emojis */}
-            {statusEffectOverlays[myth.instanceId] && !myth.defeated && (() => {
-                const st = statusEffectOverlays[myth.instanceId];
-                const sz = spriteSize;
-                const cx = sz / 2;
-
-                if (st === "burn") return (
-                    <div className="absolute inset-0 pointer-events-none z-30" style={{ animation: "burnApply 1.6s ease-out forwards" }}>
-                        {[0,1,2,3,4].map(i => {
-                            const x = 15 + (i * 17);
-                            const delay = i * 0.12;
-                            const h = 30 + (i % 3) * 15;
-                            return (
-                                <div key={i} className="absolute" style={{
-                                    left: `${x}%`, bottom: "5%",
-                                    width: 8 + (i%2)*4, height: h,
-                                    background: `linear-gradient(180deg, #fff200 0%, #ff6b00 40%, #ff4500 80%, transparent 100%)`,
-                                    borderRadius: "50% 50% 20% 20%",
-                                    transformOrigin: "bottom center",
-                                    animation: `burnFlameRise ${0.5 + delay}s ease-out ${delay}s forwards, burnFlameFlicker 0.2s ease-in-out ${delay}s infinite`,
-                                    filter: "blur(1px)",
-                                    opacity: 0.9,
-                                }} />
-                            );
-                        })}
-                    </div>
-                );
-
-                if (st === "poison") return (
-                    <div className="absolute inset-0 pointer-events-none z-30">
-                        {[0,1,2,3,4,5].map(i => {
-                            const x = 10 + (i * 14);
-                            const delay = i * 0.1;
-                            const bs = 6 + (i%3)*4;
-                            return (
-                                <div key={i} className="absolute rounded-full" style={{
-                                    left: `${x}%`, bottom: `${15 + (i%2)*10}%`,
-                                    width: bs, height: bs,
-                                    background: "radial-gradient(circle at 35% 30%, #bbf7d0, #4ade80)",
-                                    border: "1px solid #4ade8088",
-                                    animation: `poisonBubbleRise ${0.6 + delay}s ease-out ${delay}s forwards, poisonBubblePop 0.2s ease-out ${0.4 + delay}s forwards`,
-                                    boxShadow: "0 0 6px #4ade8066",
-                                }} />
-                            );
-                        })}
-                    </div>
-                );
-
-                if (st === "paralyze") return (
-                    <div className="absolute inset-0 pointer-events-none z-30" style={{ animation: "paralyzeShake 0.5s ease-in-out 0.1s 2" }}>
-                        {[0,1,2].map(i => {
-                            const y = 20 + i * 25;
-                            const delay = i * 0.08;
-                            return (
-                                <div key={i} className="absolute" style={{
-                                    left: "5%", top: `${y}%`,
-                                    width: "90%", height: 3,
-                                    background: `linear-gradient(90deg, transparent, #fde047, #ffffff, #fde047, transparent)`,
-                                    boxShadow: "0 0 8px #fde047, 0 0 16px #fde04766",
-                                    animation: `paralyzeZigzag ${0.4 + delay}s ease-out ${delay}s forwards`,
-                                    clipPath: "polygon(0% 50%, 8% 0%, 16% 50%, 24% 0%, 32% 50%, 40% 0%, 48% 50%, 56% 0%, 64% 50%, 72% 0%, 80% 50%, 88% 0%, 100% 50%, 88% 100%, 80% 50%, 72% 100%, 64% 50%, 56% 100%, 48% 50%, 40% 100%, 32% 50%, 24% 100%, 16% 50%, 8% 100%, 0% 50%)",
-                                }} />
-                            );
-                        })}
-                    </div>
-                );
-
-                if (st === "freeze") return (
-                    <div className="absolute inset-0 pointer-events-none z-30">
-                        {/* Overlay helado */}
-                        <div className="absolute inset-0 rounded" style={{
-                            background: "radial-gradient(circle, rgba(125,211,252,0.25) 0%, rgba(56,189,248,0.15) 60%, transparent 100%)",
-                            animation: "freezeOverlay 1.2s ease-out forwards",
-                        }} />
-                        {/* Cristales desde los bordes */}
-                        {[0,1,2,3,4,5].map(i => {
-                            const angle = (i / 6) * 360;
-                            const fromEdge = i % 2 === 0;
-                            return (
-                                <div key={i} className="absolute" style={{
-                                    left: "50%", top: fromEdge ? "0%" : "90%",
-                                    marginLeft: -2,
-                                    width: 4, height: 20 + (i%3)*12,
-                                    background: `linear-gradient(${fromEdge ? 180 : 0}deg, #ffffff 0%, #bae6fd 50%, #7dd3fc 100%)`,
-                                    boxShadow: "0 0 6px #7dd3fc",
-                                    transformOrigin: fromEdge ? "top center" : "bottom center",
-                                    transform: `rotate(${angle * 0.25}deg)`,
-                                    animation: `freezeCrystalGrow ${0.35 + i*0.05}s ease-out ${i*0.06}s forwards`,
-                                    borderRadius: "2px 2px 0 0",
-                                }} />
-                            );
-                        })}
-                    </div>
-                );
-
-                if (st === "fear") return (
-                    <div className="absolute inset-0 pointer-events-none z-30" style={{ animation: "fearShrink 0.8s ease-in-out 2" }}>
-                        {/* Espiral giratoria */}
-                        <div className="absolute" style={{
-                            left: "50%", top: "50%",
-                            marginLeft: -cx * 0.8, marginTop: -cx * 0.8,
-                            width: cx * 1.6, height: cx * 1.6,
-                            border: "2px solid #c084fc",
-                            borderRadius: "50%",
-                            borderStyle: "dashed",
-                            boxShadow: "0 0 12px #a855f766",
-                            animation: "fearSpiral 1.0s ease-out forwards",
-                        }} />
-                        <div className="absolute" style={{
-                            left: "50%", top: "50%",
-                            marginLeft: -cx * 0.55, marginTop: -cx * 0.55,
-                            width: cx * 1.1, height: cx * 1.1,
-                            border: "1.5px solid #a855f7",
-                            borderRadius: "50%",
-                            borderStyle: "dotted",
-                            animation: "fearSpiral 0.8s ease-out 0.15s forwards",
-                        }} />
-                    </div>
-                );
-
-                if (st === "stun") return (
-                    <div className="absolute pointer-events-none z-30" style={{
-                        left: "50%", top: -16,
-                        width: 0, height: 0,
-                        animation: "stunFadeInOut 1.8s ease-out forwards",
-                    }}>
-                        {[0,1,2].map(i => (
-                            <div key={i} className="absolute" style={{
-                                width: 8, height: 8,
-                                marginLeft: -4, marginTop: -4,
-                                background: i === 0 ? "#fde047" : i === 1 ? "#facc15" : "#fbbf24",
-                                borderRadius: "50% 50% 40% 40%",
-                                boxShadow: `0 0 8px ${i === 0 ? "#fde047" : "#facc15"}`,
-                                transformOrigin: "0 0",
-                                animation: i === 0 ? "stunOrbit1 0.7s linear infinite" : i === 1 ? "stunOrbit2 0.7s linear infinite" : "stunOrbit3 0.7s linear infinite",
-                            }} />
-                        ))}
-                    </div>
-                );
-
-                if (st === "curse") return (
-                    <div className="absolute inset-0 pointer-events-none z-30">
-                        {/* Aura oscura */}
-                        <div className="absolute inset-0 rounded" style={{
-                            background: "radial-gradient(circle, rgba(124,58,237,0.35) 0%, rgba(76,29,149,0.2) 60%, transparent 100%)",
-                            animation: "curseAura 1.4s ease-out forwards",
-                        }} />
-                        {/* Tentáculos */}
-                        {[0,1,2,3].map(i => {
-                            const angles = ["0deg","90deg","180deg","270deg"];
-                            return (
-                                <div key={i} className="absolute" style={{
-                                    left: "50%", top: "50%",
-                                    marginLeft: -cx * 0.6, marginTop: -1.5,
-                                    width: cx * 1.2, height: 3,
-                                    background: `linear-gradient(90deg, transparent, #7c3aed, #a855f7, transparent)`,
-                                    borderRadius: 2,
-                                    transformOrigin: `${cx * 0.6}px center`,
-                                    ["--angle" as any]: angles[i],
-                                    transform: `rotate(${angles[i]})`,
-                                    animation: `curseTentacle ${0.6 + i*0.1}s ease-in-out ${i*0.1}s forwards`,
-                                    boxShadow: "0 0 8px #a855f7",
-                                } as React.CSSProperties} />
-                            );
-                        })}
-                    </div>
-                );
-
-                return null;
-            })()}
 
             {/* Status blocked overlay — pierde turno por estado */}
             {statusBlockedOverlays[myth.instanceId] && (() => {
@@ -1382,25 +1217,69 @@ function ArenaMyth({
                 );
             })()}
 
-            {/* KO overlay — lanzado desde lejos, aplasta al myth */}
+            {/* Muerte — explosión blanca CSS + aura lila */}
             {koOverlay && (
-                <div
-                    className="absolute pointer-events-none z-50 animate-ko-overlay"
-                    style={{ top: 10, left: "50%", transform: "translateX(-50%)" }}
-                >
-                    <span
-                        className="font-black select-none block"
-                        style={{
-                            fontSize: "3.5rem",
-                            color: "#ff1111",
-                            textShadow: "0 0 40px #ff0000, 0 0 80px #ff000088, 0 0 120px #ff000044, 0 4px 12px rgba(0,0,0,1)",
-                            WebkitTextStroke: "2.5px #6f0000",
-                            letterSpacing: "0.06em",
-                            lineHeight: 1,
-                        }}
-                    >
-                        K.O.
-                    </span>
+                <div className="absolute inset-0 pointer-events-none z-50">
+                    {/* Burst radial blanco — onda expansiva */}
+                    {[0,1,2].map(i => (
+                        <div key={i} className="absolute rounded-full" style={{
+                            left: "50%", top: "40%",
+                            width: spriteSize * (0.6 + i * 0.5),
+                            height: spriteSize * (0.6 + i * 0.5),
+                            marginLeft: -spriteSize * (0.3 + i * 0.25),
+                            marginTop: -spriteSize * (0.3 + i * 0.25),
+                            border: `${3 - i}px solid ${i === 0 ? "#ffffff" : i === 1 ? "#e9d5ff" : "#a855f7"}`,
+                            boxShadow: i === 0 ? "0 0 20px #ffffff, 0 0 40px #ffffff88" : `0 0 12px #a855f7${i === 1 ? "88" : "44"}`,
+                            animation: `deathRing ${0.5 + i * 0.15}s ease-out ${i * 0.08}s forwards`,
+                        }} />
+                    ))}
+                    {/* Partículas lilas dispersándose */}
+                    {Array.from({ length: 12 }, (_, i) => {
+                        const angle = (i / 12) * Math.PI * 2;
+                        const dist = spriteSize * (0.5 + (i % 3) * 0.2);
+                        return (
+                            <div key={i} className="absolute rounded-full" style={{
+                                left: "50%", top: "40%",
+                                width: 4 + (i % 4) * 3,
+                                height: 4 + (i % 4) * 3,
+                                marginLeft: -2, marginTop: -2,
+                                background: i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? "#c084fc" : "#a855f7",
+                                boxShadow: `0 0 8px ${i % 3 === 0 ? "#ffffff" : "#a855f7"}`,
+                                animation: `deathParticle 0.9s ease-out ${i * 0.04}s forwards`,
+                                ["--dx" as any]: `${Math.cos(angle) * dist}px`,
+                                ["--dy" as any]: `${Math.sin(angle) * dist}px`,
+                            } as React.CSSProperties} />
+                        );
+                    })}
+                    {/* Flash blanco central */}
+                    <div className="absolute rounded-full" style={{
+                        left: "50%", top: "40%",
+                        width: spriteSize * 1.4, height: spriteSize * 1.4,
+                        marginLeft: -spriteSize * 0.7, marginTop: -spriteSize * 0.7,
+                        background: "radial-gradient(circle, #ffffff99 0%, #c084fc44 40%, transparent 70%)",
+                        animation: "deathFlash 0.6s ease-out forwards",
+                    }} />
+                    {/* Aura lila flotante — persiste */}
+                    <div className="absolute" style={{
+                        left: "50%", top: "30%",
+                        width: spriteSize * 1.1, height: spriteSize * 1.1,
+                        marginLeft: -spriteSize * 0.55, marginTop: -spriteSize * 0.55,
+                        animation: "deathAura 3s ease-out 0.4s forwards",
+                        background: "radial-gradient(circle, #a855f722 0%, transparent 70%)",
+                        borderRadius: "50%",
+                    }}>
+                        {/* Partículas lilas flotantes que se quedan */}
+                        {Array.from({ length: 6 }, (_, i) => (
+                            <div key={i} className="absolute rounded-full" style={{
+                                width: 4, height: 4,
+                                left: `${20 + i * 13}%`,
+                                bottom: `${10 + (i % 3) * 15}%`,
+                                background: i % 2 === 0 ? "#c084fc" : "#a855f7",
+                                boxShadow: "0 0 6px #a855f7",
+                                animation: `deathFloat ${1.5 + i * 0.3}s ease-in-out ${0.5 + i * 0.15}s infinite alternate`,
+                            }} />
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -1431,6 +1310,178 @@ function ArenaMyth({
                         ))}
                     </>
                 )}
+                {/* Status effect overlay — sobre el sprite */}
+{/* Status effect overlay — al aplicar o tick, CSS puro sin emojis */}
+                {statusEffectOverlays[myth.instanceId] && !myth.defeated && (() => {
+                    const st = statusEffectOverlays[myth.instanceId];
+                    const sz = spriteSize;
+                    const cx = sz / 2;
+
+                    if (st === "burn") return (
+                        <div className="absolute inset-0 pointer-events-none z-30" style={{ animation: "burnApply 1.6s ease-out forwards" }}>
+                            {[0,1,2,3,4].map(i => {
+                                const x = 15 + (i * 17);
+                                const delay = i * 0.12;
+                                const h = 30 + (i % 3) * 15;
+                                return (
+                                    <div key={i} className="absolute" style={{
+                                        left: `${x}%`, bottom: "5%",
+                                        width: 8 + (i%2)*4, height: h,
+                                        background: `linear-gradient(180deg, #fff200 0%, #ff6b00 40%, #ff4500 80%, transparent 100%)`,
+                                        borderRadius: "50% 50% 20% 20%",
+                                        transformOrigin: "bottom center",
+                                        animation: `burnFlameRise ${0.5 + delay}s ease-out ${delay}s forwards, burnFlameFlicker 0.2s ease-in-out ${delay}s infinite`,
+                                        filter: "blur(1px)",
+                                        opacity: 0.9,
+                                    }} />
+                                );
+                            })}
+                        </div>
+                    );
+
+                    if (st === "poison") return (
+                        <div className="absolute inset-0 pointer-events-none z-30">
+                            {[0,1,2,3,4,5].map(i => {
+                                const x = 10 + (i * 14);
+                                const delay = i * 0.1;
+                                const bs = 6 + (i%3)*4;
+                                return (
+                                    <div key={i} className="absolute rounded-full" style={{
+                                        left: `${x}%`, bottom: `${15 + (i%2)*10}%`,
+                                        width: bs, height: bs,
+                                        background: "radial-gradient(circle at 35% 30%, #bbf7d0, #4ade80)",
+                                        border: "1px solid #4ade8088",
+                                        animation: `poisonBubbleRise ${0.6 + delay}s ease-out ${delay}s forwards, poisonBubblePop 0.2s ease-out ${0.4 + delay}s forwards`,
+                                        boxShadow: "0 0 6px #4ade8066",
+                                    }} />
+                                );
+                            })}
+                        </div>
+                    );
+
+                    if (st === "paralyze") return (
+                        <div className="absolute inset-0 pointer-events-none z-30" style={{ animation: "paralyzeShake 0.5s ease-in-out 0.1s 2" }}>
+                            {[0,1,2].map(i => {
+                                const y = 20 + i * 25;
+                                const delay = i * 0.08;
+                                return (
+                                    <div key={i} className="absolute" style={{
+                                        left: "5%", top: `${y}%`,
+                                        width: "90%", height: 3,
+                                        background: `linear-gradient(90deg, transparent, #fde047, #ffffff, #fde047, transparent)`,
+                                        boxShadow: "0 0 8px #fde047, 0 0 16px #fde04766",
+                                        animation: `paralyzeZigzag ${0.4 + delay}s ease-out ${delay}s forwards`,
+                                        clipPath: "polygon(0% 50%, 8% 0%, 16% 50%, 24% 0%, 32% 50%, 40% 0%, 48% 50%, 56% 0%, 64% 50%, 72% 0%, 80% 50%, 88% 0%, 100% 50%, 88% 100%, 80% 50%, 72% 100%, 64% 50%, 56% 100%, 48% 50%, 40% 100%, 32% 50%, 24% 100%, 16% 50%, 8% 100%, 0% 50%)",
+                                    }} />
+                                );
+                            })}
+                        </div>
+                    );
+
+                    if (st === "freeze") return (
+                        <div className="absolute inset-0 pointer-events-none z-30">
+                            {/* Overlay helado */}
+                            <div className="absolute inset-0 rounded" style={{
+                                background: "radial-gradient(circle, rgba(125,211,252,0.25) 0%, rgba(56,189,248,0.15) 60%, transparent 100%)",
+                                animation: "freezeOverlay 1.2s ease-out forwards",
+                            }} />
+                            {/* Cristales desde los bordes */}
+                            {[0,1,2,3,4,5].map(i => {
+                                const angle = (i / 6) * 360;
+                                const fromEdge = i % 2 === 0;
+                                return (
+                                    <div key={i} className="absolute" style={{
+                                        left: "50%", top: fromEdge ? "0%" : "90%",
+                                        marginLeft: -2,
+                                        width: 4, height: 20 + (i%3)*12,
+                                        background: `linear-gradient(${fromEdge ? 180 : 0}deg, #ffffff 0%, #bae6fd 50%, #7dd3fc 100%)`,
+                                        boxShadow: "0 0 6px #7dd3fc",
+                                        transformOrigin: fromEdge ? "top center" : "bottom center",
+                                        transform: `rotate(${angle * 0.25}deg)`,
+                                        animation: `freezeCrystalGrow ${0.35 + i*0.05}s ease-out ${i*0.06}s forwards`,
+                                        borderRadius: "2px 2px 0 0",
+                                    }} />
+                                );
+                            })}
+                        </div>
+                    );
+
+                    if (st === "fear") return (
+                        <div className="absolute inset-0 pointer-events-none z-30" style={{ animation: "fearShrink 0.8s ease-in-out 2" }}>
+                            {/* Espiral giratoria */}
+                            <div className="absolute" style={{
+                                left: "50%", top: "50%",
+                                marginLeft: -cx * 0.8, marginTop: -cx * 0.8,
+                                width: cx * 1.6, height: cx * 1.6,
+                                border: "2px solid #c084fc",
+                                borderRadius: "50%",
+                                borderStyle: "dashed",
+                                boxShadow: "0 0 12px #a855f766",
+                                animation: "fearSpiral 1.0s ease-out forwards",
+                            }} />
+                            <div className="absolute" style={{
+                                left: "50%", top: "50%",
+                                marginLeft: -cx * 0.55, marginTop: -cx * 0.55,
+                                width: cx * 1.1, height: cx * 1.1,
+                                border: "1.5px solid #a855f7",
+                                borderRadius: "50%",
+                                borderStyle: "dotted",
+                                animation: "fearSpiral 0.8s ease-out 0.15s forwards",
+                            }} />
+                        </div>
+                    );
+
+                    if (st === "stun") return (
+                        <div className="absolute pointer-events-none z-30" style={{
+                            left: "50%", top: -16,
+                            width: 0, height: 0,
+                            animation: "stunFadeInOut 1.8s ease-out forwards",
+                        }}>
+                            {[0,1,2].map(i => (
+                                <div key={i} className="absolute" style={{
+                                    width: 8, height: 8,
+                                    marginLeft: -4, marginTop: -4,
+                                    background: i === 0 ? "#fde047" : i === 1 ? "#facc15" : "#fbbf24",
+                                    borderRadius: "50% 50% 40% 40%",
+                                    boxShadow: `0 0 8px ${i === 0 ? "#fde047" : "#facc15"}`,
+                                    transformOrigin: "0 0",
+                                    animation: i === 0 ? "stunOrbit1 0.7s linear infinite" : i === 1 ? "stunOrbit2 0.7s linear infinite" : "stunOrbit3 0.7s linear infinite",
+                                }} />
+                            ))}
+                        </div>
+                    );
+
+                    if (st === "curse") return (
+                        <div className="absolute inset-0 pointer-events-none z-30">
+                            {/* Aura oscura */}
+                            <div className="absolute inset-0 rounded" style={{
+                                background: "radial-gradient(circle, rgba(124,58,237,0.35) 0%, rgba(76,29,149,0.2) 60%, transparent 100%)",
+                                animation: "curseAura 1.4s ease-out forwards",
+                            }} />
+                            {/* Tentáculos */}
+                            {[0,1,2,3].map(i => {
+                                const angles = ["0deg","90deg","180deg","270deg"];
+                                return (
+                                    <div key={i} className="absolute" style={{
+                                        left: "50%", top: "50%",
+                                        marginLeft: -cx * 0.6, marginTop: -1.5,
+                                        width: cx * 1.2, height: 3,
+                                        background: `linear-gradient(90deg, transparent, #7c3aed, #a855f7, transparent)`,
+                                        borderRadius: 2,
+                                        transformOrigin: `${cx * 0.6}px center`,
+                                        ["--angle" as any]: angles[i],
+                                        transform: `rotate(${angles[i]})`,
+                                        animation: `curseTentacle ${0.6 + i*0.1}s ease-in-out ${i*0.1}s forwards`,
+                                        boxShadow: "0 0 8px #a855f7",
+                                    } as React.CSSProperties} />
+                                );
+                            })}
+                        </div>
+                    );
+
+                    return null;
+                })()}
+
                 {/* Flash de impacto */}
                 {cfg && (
                     <div
@@ -1474,7 +1525,7 @@ function ArenaMyth({
                 )}
 
                 {myth.defeated ? (
-                    <span className="text-4xl opacity-30">💀</span>
+                    <div style={{ width: spriteSize, height: spriteSize }} />
                 ) : (
                     <>
                         <MythArt
@@ -1506,23 +1557,14 @@ function ArenaMyth({
                 {/* Nombre con icono de afinidad */}
                 <div className="flex items-center gap-1 justify-center" style={{ maxWidth: Math.max(spriteSize, 96) }}>
                     {isActing && !myth.defeated && <span className="text-yellow-400 animate-pulse" style={{ fontSize: "13px" }}>▶</span>}
-                    {myth.affinities?.length > 0 && (
+                    {myth.affinities?.length > 0 && !myth.defeated && (
                         <div className="flex-shrink-0 flex items-center gap-0.5">
                             {myth.affinities.slice(0, 2).map((aff, ai) => {
                                 const ac = AFFINITY_CONFIG[aff as Affinity];
                                 if (!ac) return null;
                                 return (
-                                    <div key={ai}
-                                        title={aff}
-                                        style={{
-                                            width: 20, height: 20, borderRadius: "50%",
-                                            background: `${ac.glow}33`,
-                                            border: `1.5px solid ${ac.glow}88`,
-                                            boxShadow: `0 0 6px ${ac.glow}66`,
-                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                            flexShrink: 0,
-                                        }}>
-                                        <AffinityIcon affinity={aff} size={14} />
+                                    <div key={ai} title={aff} style={{ flexShrink: 0, lineHeight: 0 }}>
+                                        <AffinityIcon affinity={aff} size={18} />
                                     </div>
                                 );
                             })}
@@ -1586,7 +1628,7 @@ function ArenaMyth({
                                 onClick={(e) => { e.stopPropagation(); setShowPop(v => !v); }}
                                 style={{
                                     flexShrink: 0,
-                                    height: 30, width: 20,
+                                    height: 30, width: 14,
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                     background: showPop ? "#334155" : "#1e293b",
                                     border: "1px solid #475569",
@@ -1623,7 +1665,7 @@ function ArenaMyth({
                                         position: "fixed",
                                         top: "50%", left: "50%",
                                         transform: "translate(-50%, -50%)",
-                                        width: 340,
+                                        width: 400,
                                         maxHeight: "80vh",
                                         overflowY: "auto",
                                         zIndex: 9999,
@@ -1710,8 +1752,8 @@ function ArenaMyth({
                                         ].map(({ icon, label, val }) => (
                                             <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                                                 <span style={{ fontSize: "11px", flexShrink: 0 }}>{icon}</span>
-                                                <span style={{ fontSize: "8px", fontFamily: "monospace", color: "#475569", width: 34, flexShrink: 0 }}>{label}</span>
-                                                <span style={{ fontSize: "11px", fontFamily: "monospace", fontWeight: 900, color: "#cbd5e1" }}>{val}</span>
+                                                <span style={{ fontSize: "9px", fontFamily: "monospace", color: "#94a3b8", width: 36, flexShrink: 0 }}>{label}</span>
+                                                <span style={{ fontSize: "12px", fontFamily: "monospace", fontWeight: 900, color: "#f1f5f9" }}>{val}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -1754,15 +1796,15 @@ function ArenaMyth({
                             {/* Lv badge */}
                             <div
                                 style={{
-                                    flexShrink: 0, height: 30, minWidth: 34,
+                                    flexShrink: 0, height: 30, minWidth: 20,
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                     background: "#1d4ed8",
                                     border: "1px solid #3b82f6",
                                     borderLeft: "none", borderRight: "none",
-                                    fontSize: "11px", color: "#ffffff",
+                                    fontSize: "10px", color: "#ffffff",
                                     fontFamily: "monospace", fontWeight: 900,
-                                    letterSpacing: "0.02em",
-                                    paddingLeft: 4, paddingRight: 4,
+                                    letterSpacing: "0.01em",
+                                    paddingLeft: 3, paddingRight: 3,
                                 }}
                             >
                                 {`Lv${myth.level}`}
@@ -1810,22 +1852,20 @@ function ArenaMyth({
                         {/* Estado alterado — fila propia debajo de la barra de distorsión */}
                         {myth.status && (() => {
                             const sc = STATUS_LOG_COLORS[myth.status] ?? "#94a3b8";
-                            const shortLabel: Record<string, string> = { burn:"BURN", poison:"VENENO", paralyze:"PARÁL.", freeze:"CONG.", fear:"MIEDO", stun:"STUN", curse:"MALDIC." };
                             return (
-                                <div style={{ width: "100%", marginTop: 3 }}>
+                                <div style={{ width: "100%", marginTop: 2, display: "flex", gap: 3, flexWrap: "wrap" }}>
                                     <div style={{
-                                        display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                                        background: `${sc}18`, border: `1px solid ${sc}44`,
+                                        display: "inline-flex", alignItems: "center", gap: 4,
+                                        background: `${sc}ee`,
+                                        border: `1px solid ${sc}`,
                                         borderRadius: 5, padding: "2px 6px",
-                                        boxShadow: `0 0 6px ${sc}33`,
+                                        boxShadow: `0 0 8px ${sc}66`,
+                                        flexShrink: 0,
                                     }}>
-                                        <StatusIcon status={myth.status} size={14} />
-                                        <span style={{ fontSize: "9px", fontFamily: "monospace", fontWeight: 900, color: sc, letterSpacing: "0.06em", lineHeight: 1 }}>
-                                            {shortLabel[myth.status] ?? myth.status.toUpperCase()}
-                                        </span>
+                                        <StatusIcon status={myth.status} size={16} />
                                         {myth.statusTurnsLeft > 0 && (
-                                            <span style={{ fontSize: "8px", fontFamily: "monospace", color: sc, opacity: 0.7, lineHeight: 1 }}>
-                                                {myth.statusTurnsLeft}t
+                                            <span style={{ fontSize: "10px", fontFamily: "monospace", fontWeight: 900, color: "#ffffff", lineHeight: 1, textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}>
+                                                {myth.statusTurnsLeft}
                                             </span>
                                         )}
                                     </div>
@@ -2480,20 +2520,19 @@ export default function BattlePage() {
             } catch (_) {
                 // Si falla la llamada (ej: ya terminó), seguimos igualmente
             }
-            // 2. Limpiar estado local completamente
+            // 2. Capturar destino ANTES de limpiar el estado
+            const dest = pendingNavRef.current;
+            pendingNavRef.current = null;
+            // 3. Limpiar estado local completamente
             battleLockedRef.current = false;
             localStorage.removeItem("mythara_battle_active");
             setSession(null);
-            setPhase("prepare");
-            setSelectedMythIds([]);
-            setEnemyTargetId(null);
-            // 3. Navegar al destino pendiente o quedarse en /battle (pantalla preparación)
-            const dest = pendingNavRef.current;
-            pendingNavRef.current = null;
+            setPhase("prep");
+            // 4. Navegar al destino pendiente
             if (dest && dest !== "/battle") {
+                // Restaurar pushState antes de navegar para que react-router funcione
                 navigate(dest);
             }
-            // Si no había destino o era /battle, se queda en /battle mostrando la preparación
         } else {
             pendingNavRef.current = null;
         }
@@ -3393,119 +3432,181 @@ export default function BattlePage() {
                                         </div>
                                     </div>
                                 )}
-                                {turnOverlay && (
+                                {turnOverlay && (() => {
+                                    // Obtener afinidad del myth activo para colorear el borde
+                                    const turnMyth = session?.playerTeam.find(m => m.name === turnOverlay && !m.defeated)
+                                        ?? session?.playerTeam.find(m => !m.defeated);
+                                    const turnAff = turnMyth?.affinities?.[0];
+                                    const turnCfg = turnAff ? AFFINITY_CONFIG[turnAff] : null;
+                                    const glowColor = turnCfg?.glow ?? "#fde047";
+                                    const glowRgb = turnCfg?.glowRgb ?? "253,224,71";
+                                    return (
                                     <div className="absolute inset-0 flex items-center justify-center z-[300] pointer-events-none">
-                                        <div
-                                            className="animate-turn-overlay text-center"
-                                            style={{
-                                                background: "linear-gradient(135deg, rgba(7,11,20,0.94) 0%, rgba(25,40,65,0.96) 100%)",
-                                                border: "1.5px solid rgba(253,224,71,0.55)",
-                                                borderRadius: 24,
-                                                padding: "20px 56px 18px",
-                                                boxShadow: [
-                                                    "0 0 0 1px rgba(253,224,71,0.08)",
-                                                    "0 0 40px rgba(253,224,71,0.22)",
-                                                    "0 0 100px rgba(253,224,71,0.08)",
-                                                    "0 16px 60px rgba(0,0,0,0.75)",
-                                                    "inset 0 1px 0 rgba(255,255,255,0.06)",
-                                                ].join(", "),
-                                            }}
-                                        >
-                                            {/* Número de turno pequeño arriba */}
+                                        <div className="animate-turn-overlay text-center" style={{
+                                            background: `linear-gradient(135deg, rgba(7,11,20,0.96) 0%, rgba(15,22,40,0.98) 100%)`,
+                                            border: `1.5px solid ${glowColor}88`,
+                                            borderTop: `3px solid ${glowColor}`,
+                                            borderRadius: 20,
+                                            padding: "18px 52px 16px",
+                                            boxShadow: [
+                                                `0 0 0 1px ${glowColor}11`,
+                                                `0 0 30px ${glowColor}33`,
+                                                `0 0 80px ${glowColor}11`,
+                                                "0 16px 60px rgba(0,0,0,0.8)",
+                                                `inset 0 1px 0 rgba(${glowRgb},0.08)`,
+                                            ].join(", "),
+                                            backdropFilter: "blur(8px)",
+                                            minWidth: 240,
+                                        }}>
+                                            {/* Línea decorativa con turno */}
                                             <div className="flex items-center justify-center gap-2 mb-2">
-                                                <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, rgba(253,224,71,0.3))" }} />
-                                                <span className="font-mono text-[10px] text-yellow-400/50 tracking-[0.25em] uppercase">
+                                                <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${glowColor}44)` }} />
+                                                <span style={{ fontFamily: "monospace", fontSize: "9px", color: `${glowColor}99`, letterSpacing: "0.25em", textTransform: "uppercase" }}>
                                                     Turno {session?.turn ?? ""}
                                                 </span>
-                                                <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, rgba(253,224,71,0.3), transparent)" }} />
+                                                <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${glowColor}44, transparent)` }} />
                                             </div>
                                             {/* Label */}
-                                            <p className="font-mono text-[11px] text-yellow-400/60 tracking-[0.2em] uppercase mb-1.5">
+                                            <p style={{ fontFamily: "monospace", fontSize: "10px", color: `${glowColor}99`, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>
                                                 Tu turno
                                             </p>
-                                            {/* Nombre del myth */}
-                                            <p
-                                                className="font-black tracking-wide uppercase"
-                                                style={{
+                                            {/* Icono + nombre */}
+                                            <div className="flex items-center justify-center gap-3">
+                                                {turnMyth && (
+                                                    <div style={{
+                                                        width: 32, height: 32, borderRadius: "50%",
+                                                        background: `${glowColor}22`,
+                                                        border: `1.5px solid ${glowColor}66`,
+                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                        boxShadow: `0 0 10px ${glowColor}44`,
+                                                    }}>
+                                                        {turnAff && <AffinityIcon affinity={turnAff} size={20} />}
+                                                    </div>
+                                                )}
+                                                <p className="font-black tracking-wide uppercase" style={{
                                                     fontFamily: "'Rajdhani', sans-serif",
-                                                    fontSize: "2rem",
-                                                    color: "#fde047",
-                                                    textShadow: "0 0 20px rgba(253,224,71,0.85), 0 0 45px rgba(253,224,71,0.40), 0 2px 8px rgba(0,0,0,0.9)",
+                                                    fontSize: "1.8rem",
+                                                    color: glowColor,
+                                                    textShadow: `0 0 20px ${glowColor}cc, 0 0 45px ${glowColor}55, 0 2px 8px rgba(0,0,0,0.9)`,
                                                     letterSpacing: "0.06em",
                                                     lineHeight: 1.1,
-                                                }}
-                                            >
-                                                ⚔️ {turnOverlay}
-                                            </p>
+                                                }}>
+                                                    {turnOverlay}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
+                                    );
+                                })()}
                                 {phase === "result" && result && (
-                                    <div
-                                        className="absolute inset-0 z-50 pointer-events-auto flex items-center justify-center"
-                                        style={{ background: "rgba(4,8,16,0.75)", backdropFilter: "blur(2px)" }}
-                                    >
-                                        <div
-                                            className={`text-center pointer-events-auto ${result.status === "win" ? "animate-victory-in" : "animate-defeat-in"} animate-result-glow`}
-                                            style={
-                                                {
-                                                    padding: "32px 48px",
-                                                    borderRadius: 24,
-                                                    border:
-                                                        result.status === "win"
-                                                            ? "2px solid rgba(253,214,10,0.7)"
-                                                            : "2px solid rgba(230,57,70,0.7)",
-                                                    background:
-                                                        result.status === "win"
-                                                            ? "linear-gradient(135deg, rgba(7,11,20,0.95) 0%, rgba(40,30,5,0.97) 100%)"
-                                                            : "linear-gradient(135deg, rgba(7,11,20,0.95) 0%, rgba(40,5,10,0.97) 100%)",
-                                                    "--glow":
-                                                        result.status === "win"
-                                                            ? "rgba(253,214,10,0.4)"
-                                                            : "rgba(230,57,70,0.4)",
-                                                    "--glow2":
-                                                        result.status === "win"
-                                                            ? "rgba(253,214,10,0.15)"
-                                                            : "rgba(230,57,70,0.15)",
-                                                } as React.CSSProperties
-                                            }
-                                        >
-                                            <p className="font-mono text-6xl mb-3">
-                                                {result.status === "win" ? "🏆" : "💀"}
-                                            </p>
-                                            <h2
-                                                className="font-mono font-black tracking-widest uppercase mb-4"
+                                    <div className="absolute inset-0 z-50 pointer-events-auto flex items-center justify-center"
+                                        style={{
+                                            background: result.status === "win"
+                                                ? "radial-gradient(ellipse at center, rgba(40,30,5,0.88) 0%, rgba(4,8,16,0.95) 70%)"
+                                                : "radial-gradient(ellipse at center, rgba(40,5,10,0.92) 0%, rgba(4,8,16,0.97) 70%)",
+                                            animation: result.status === "lose" ? "defeatVignette 2s ease-in-out infinite" : undefined,
+                                        }}>
+
+                                        {/* VICTORIA — estrellas CSS flotantes */}
+                                        {result.status === "win" && Array.from({ length: 18 }, (_, i) => {
+                                            const colors = ["#ffd60a","#ffb700","#ffd60a","#fff7ae","#ffffff","#fbbf24"];
+                                            const col = colors[i % colors.length];
+                                            const size = 4 + (i % 5) * 4;
+                                            const sx = (((i * 137.5) % 200) - 100);
+                                            const sy = -(60 + (i % 4) * 30);
+                                            const sr = (i * 47) % 360;
+                                            const delay = (i * 0.12) % 1.8;
+                                            const dur = 1.5 + (i % 3) * 0.5;
+                                            return (
+                                                <div key={i} className="absolute pointer-events-none" style={{
+                                                    left: "50%", top: "40%",
+                                                    width: size, height: size,
+                                                    marginLeft: -size/2, marginTop: -size/2,
+                                                    background: col,
+                                                    borderRadius: i % 3 === 0 ? "50%" : "2px",
+                                                    boxShadow: `0 0 ${size*2}px ${col}`,
+                                                    transform: `rotate(${sr}deg)`,
+                                                    animation: `victoryStar ${dur}s ease-out ${delay}s infinite`,
+                                                    ["--sx" as any]: `${sx}px`,
+                                                    ["--sy" as any]: `${sy}px`,
+                                                    ["--sr" as any]: `${sr}deg`,
+                                                } as React.CSSProperties} />
+                                            );
+                                        })}
+
+                                        {/* Modal principal */}
+                                        <div className="text-center pointer-events-auto relative"
+                                            style={{
+                                                padding: "40px 56px",
+                                                borderRadius: 24,
+                                                border: result.status === "win"
+                                                    ? "2px solid rgba(253,214,10,0.65)"
+                                                    : "2px solid rgba(230,57,70,0.65)",
+                                                background: result.status === "win"
+                                                    ? "linear-gradient(160deg, rgba(7,11,20,0.97) 0%, rgba(35,25,5,0.98) 100%)"
+                                                    : "linear-gradient(160deg, rgba(7,11,20,0.97) 0%, rgba(35,5,8,0.98) 100%)",
+                                                animation: result.status === "win"
+                                                    ? "victoryModalIn 0.55s cubic-bezier(0.34,1.56,0.64,1) forwards, victoryGlow 2.5s ease-in-out 0.5s infinite"
+                                                    : "defeatModalIn 0.7s cubic-bezier(0.22,1,0.36,1) forwards",
+                                                minWidth: 340,
+                                                boxShadow: result.status === "win"
+                                                    ? "0 0 80px rgba(253,214,10,0.2), 0 32px 80px rgba(0,0,0,0.8)"
+                                                    : "0 0 80px rgba(230,57,70,0.2), 0 32px 80px rgba(0,0,0,0.9)",
+                                            }}>
+
+                                            {/* Título — VICTORIA cae desde arriba, DERROTA aparece con glitch */}
+                                            <h2 className="font-black uppercase mb-2 pointer-events-none"
                                                 style={{
-                                                    fontSize: "3rem",
+                                                    fontFamily: "'Rajdhani', sans-serif",
+                                                    fontSize: "4rem",
+                                                    letterSpacing: "0.1em",
+                                                    lineHeight: 1,
                                                     color: result.status === "win" ? "#ffd60a" : "#e63946",
-                                                    textShadow:
-                                                        result.status === "win"
-                                                            ? "0 0 30px rgba(253,214,10,0.9), 0 0 60px rgba(253,214,10,0.5)"
-                                                            : "0 0 30px rgba(230,57,70,0.9), 0 0 60px rgba(230,57,70,0.5)",
-                                                }}
-                                            >
+                                                    textShadow: result.status === "win"
+                                                        ? "0 0 40px rgba(253,214,10,1), 0 0 80px rgba(253,214,10,0.6), 0 4px 16px rgba(0,0,0,1)"
+                                                        : "0 0 40px rgba(230,57,70,1), 0 0 80px rgba(230,57,70,0.6), 0 4px 16px rgba(0,0,0,1)",
+                                                    WebkitTextStroke: result.status === "win" ? "1px rgba(253,214,10,0.3)" : "1px rgba(230,57,70,0.3)",
+                                                    animation: result.status === "win"
+                                                        ? "victoryTitleDrop 0.65s cubic-bezier(0.34,1.56,0.64,1) 0.1s forwards"
+                                                        : "defeatIn 0.8s ease-out forwards, defeatGlitch 3s ease-in-out 1.5s infinite",
+                                                    opacity: 0,
+                                                }}>
                                                 {result.status === "win" ? "¡VICTORIA!" : "DERROTA..."}
                                             </h2>
-                                            {result.status === "win" && (
+
+                                            {/* Subtítulo */}
+                                            <p className="font-mono text-sm mb-6"
+                                                style={{ color: result.status === "win" ? "#fbbf24" : "#f87171", opacity: 0.8, letterSpacing: "0.2em" }}>
+                                                {result.status === "win" ? "— COMBATE GANADO —" : "— COMBATE PERDIDO —"}
+                                            </p>
+
+                                            {/* Recompensas (victoria) */}
+                                            {result.status === "win" && (result.xp || result.coins) && (
                                                 <div className="flex gap-4 justify-center mb-6">
                                                     {result.xp && (
-                                                        <div className="px-4 py-2 rounded-lg border border-blue-500/40 bg-blue-500/10">
-                                                            <p className="font-mono font-black text-xl text-blue-300">
-                                                                +{result.xp}
-                                                            </p>
-                                                            <p className="text-slate-500 text-xs font-mono">XP</p>
+                                                        <div style={{
+                                                            padding: "10px 20px", borderRadius: 10,
+                                                            border: "1px solid rgba(99,102,241,0.5)",
+                                                            background: "rgba(99,102,241,0.12)",
+                                                        }}>
+                                                            <p className="font-mono font-black text-2xl text-indigo-300">+{result.xp}</p>
+                                                            <p className="text-slate-400 text-xs font-mono tracking-widest">XP</p>
                                                         </div>
                                                     )}
                                                     {result.coins && (
-                                                        <div className="px-4 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                                                            <p className="font-mono font-black text-xl text-yellow-300">
-                                                                +{result.coins}
-                                                            </p>
-                                                            <p className="text-slate-500 text-xs font-mono">Monedas</p>
+                                                        <div style={{
+                                                            padding: "10px 20px", borderRadius: 10,
+                                                            border: "1px solid rgba(251,191,36,0.5)",
+                                                            background: "rgba(251,191,36,0.1)",
+                                                        }}>
+                                                            <p className="font-mono font-black text-2xl text-yellow-300">+{result.coins}</p>
+                                                            <p className="text-slate-400 text-xs font-mono tracking-widest">MONEDAS</p>
                                                         </div>
                                                     )}
                                                 </div>
                                             )}
+
+                                            {/* Botones */}
                                             <div className="flex gap-3 justify-center">
                                                 <button
                                                     onClick={() => {
@@ -3517,15 +3618,42 @@ export default function BattlePage() {
                                                         setPrepSearch("");
                                                         setEnemyRevealIndex(-1);
                                                     }}
-                                                    className="px-6 py-2.5 rounded-xl bg-red-700 text-white font-mono font-black text-sm tracking-widest uppercase hover:bg-red-600 transition-all"
+                                                    style={{
+                                                        padding: "10px 24px", borderRadius: 12,
+                                                        background: result.status === "win"
+                                                            ? "linear-gradient(135deg, #b45309, #d97706)"
+                                                            : "linear-gradient(135deg, #7f1d1d, #991b1b)",
+                                                        border: result.status === "win"
+                                                            ? "1px solid rgba(251,191,36,0.6)"
+                                                            : "1px solid rgba(248,113,113,0.6)",
+                                                        color: "#ffffff", fontFamily: "monospace",
+                                                        fontWeight: 900, fontSize: "13px",
+                                                        letterSpacing: "0.12em", textTransform: "uppercase",
+                                                        cursor: "pointer", transition: "all 0.15s",
+                                                        boxShadow: result.status === "win"
+                                                            ? "0 0 16px rgba(217,119,6,0.4)"
+                                                            : "0 0 16px rgba(153,27,27,0.4)",
+                                                    }}
+                                                    onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.04)")}
+                                                    onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
                                                 >
-                                                    ⚔️ Revancha
+                                                    ⚔ REVANCHA
                                                 </button>
                                                 <button
                                                     onClick={() => navigate("/")}
-                                                    className="px-6 py-2.5 rounded-xl border border-slate-700 text-slate-400 font-mono text-sm tracking-widest uppercase hover:border-slate-500 hover:text-white transition-all"
+                                                    style={{
+                                                        padding: "10px 24px", borderRadius: 12,
+                                                        background: "transparent",
+                                                        border: "1px solid rgba(100,116,139,0.5)",
+                                                        color: "#94a3b8", fontFamily: "monospace",
+                                                        fontWeight: 700, fontSize: "13px",
+                                                        letterSpacing: "0.12em", textTransform: "uppercase",
+                                                        cursor: "pointer", transition: "all 0.15s",
+                                                    }}
+                                                    onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(148,163,184,0.8)"; e.currentTarget.style.color = "#e2e8f0"; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(100,116,139,0.5)"; e.currentTarget.style.color = "#94a3b8"; }}
                                                 >
-                                                    🏡 Posada
+                                                    POSADA
                                                 </button>
                                             </div>
                                         </div>
@@ -3651,29 +3779,59 @@ export default function BattlePage() {
                                                 </span>
                                                 <div style={{ width: 22, height: 1, background: "linear-gradient(90deg, rgba(148,163,184,0.4), transparent)" }} />
                                             </div>
-                                            {/* Sub-línea — quién actúa */}
-                                            {!animating && (
-                                                <div className="flex items-center gap-2 px-4 py-1 rounded-full"
+                                            {/* Sub-línea — portraits atacante → objetivo */}
+                                            {!animating && currentActor && (
+                                                <div className="flex items-center gap-2"
                                                     style={{
-                                                        background: currentActorIsPlayer
-                                                            ? "rgba(234,179,8,0.12)"
-                                                            : "rgba(239,68,68,0.12)",
-                                                        border: currentActorIsPlayer
-                                                            ? "1px solid rgba(234,179,8,0.30)"
-                                                            : "1px solid rgba(239,68,68,0.25)",
+                                                        background: currentActorIsPlayer ? "rgba(59,130,246,0.12)" : "rgba(239,68,68,0.10)",
+                                                        border: currentActorIsPlayer ? "1px solid rgba(59,130,246,0.35)" : "1px solid rgba(239,68,68,0.25)",
+                                                        borderRadius: 12, padding: "5px 12px",
                                                     }}>
-                                                    <span style={{ fontSize: "11px" }}>{currentActorIsPlayer ? "⚔️" : "👾"}</span>
-                                                    <span className="font-mono font-black"
-                                                        style={{
-                                                            fontSize: "12px",
-                                                            color: currentActorIsPlayer ? "rgba(253,224,71,0.95)" : "rgba(248,113,113,0.9)",
-                                                            textShadow: currentActorIsPlayer ? "0 0 10px rgba(253,224,71,0.45)" : "0 0 10px rgba(248,113,113,0.35)",
-                                                            letterSpacing: "0.04em",
+                                                    {/* Atacante */}
+                                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                                                        <div style={{
+                                                            width: 36, height: 36, borderRadius: 6,
+                                                            background: "rgba(0,0,0,0.4)",
+                                                            border: `1.5px solid ${currentActorIsPlayer ? "rgba(59,130,246,0.7)" : "rgba(248,113,113,0.6)"}`,
+                                                            overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+                                                            boxShadow: currentActorIsPlayer ? "0 0 8px rgba(59,130,246,0.35)" : "0 0 8px rgba(248,113,113,0.3)",
                                                         }}>
-                                                        {currentActorIsPlayer
-                                                            ? (targetEnemy ? `${currentActor?.name ?? ""} → 🎯 ${targetEnemy.name}` : `${currentActor?.name ?? ""} — elige objetivo`)
-                                                            : `${currentActor?.name ?? "Rival"} atacando...`}
-                                                    </span>
+                                                            {currentActor.art?.portrait
+                                                                ? <img src={currentActor.art.portrait} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                                : <span style={{ fontSize: "18px" }}>🐉</span>}
+                                                        </div>
+                                                        <span style={{ fontSize: "9px", fontFamily: "monospace", fontWeight: 700, color: currentActorIsPlayer ? "rgba(96,165,250,0.95)" : "rgba(248,113,113,0.9)", maxWidth: 44, textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                            {currentActor.name}
+                                                        </span>
+                                                    </div>
+                                                    {/* Flecha */}
+                                                    <svg width="24" height="14" viewBox="0 0 24 14" fill="none" style={{ flexShrink: 0, marginBottom: 12 }}>
+                                                        <path d="M1 7H20" stroke={currentActorIsPlayer ? "#ef4444" : "#94a3b8"} strokeWidth="1.5" strokeLinecap="round"/>
+                                                        <path d="M15 2L21 7L15 12" stroke={currentActorIsPlayer ? "#ef4444" : "#94a3b8"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                    {/* Objetivo */}
+                                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                                                        <div style={{
+                                                            width: 36, height: 36, borderRadius: 6,
+                                                            background: "rgba(0,0,0,0.4)",
+                                                            border: currentActorIsPlayer
+                                                                ? (targetEnemy ? "1.5px solid rgba(239,68,68,0.7)" : "1.5px dashed rgba(100,116,139,0.4)")
+                                                                : "1.5px solid rgba(59,130,246,0.6)",
+                                                            overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+                                                            boxShadow: currentActorIsPlayer && targetEnemy ? "0 0 8px rgba(239,68,68,0.35)" : undefined,
+                                                            opacity: currentActorIsPlayer && !targetEnemy ? 0.4 : 1,
+                                                        }}>
+                                                            {(() => {
+                                                                const tgt = currentActorIsPlayer ? targetEnemy : session?.playerTeam.find(m => !m.defeated);
+                                                                return tgt?.art?.portrait
+                                                                    ? <img src={tgt.art.portrait} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                                    : <span style={{ fontSize: "18px" }}>🐲</span>;
+                                                            })()}
+                                                        </div>
+                                                        <span style={{ fontSize: "9px", fontFamily: "monospace", fontWeight: 700, color: currentActorIsPlayer ? "rgba(239,68,68,0.9)" : "rgba(96,165,250,0.9)", maxWidth: 44, textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                            {currentActorIsPlayer ? (targetEnemy?.name ?? "???") : (session?.playerTeam.find(m => !m.defeated)?.name ?? "???")}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -4060,7 +4218,7 @@ export default function BattlePage() {
                                                         <div className="h-px bg-slate-700/60 my-0.5" />
 
                                                         {/* Stats: ATK/DEF/SPD/ACC + CRIT%/CRIT.DMG */}
-                                                        <div className="flex flex-col gap-[3px] flex-1">
+                                                        <div className="flex flex-col gap-[5px] flex-1" style={{ padding: "4px 8px" }}>
                                                             {(() => {
                                                                 // Helper: calcula el valor real de un stat aplicando buffs con cap ±50%
                                                                 function calcStat(baseVal: number, buffKey: string) {
@@ -4582,7 +4740,7 @@ export default function BattlePage() {
                                                                     key={move.id}
                                                                     onClick={() => ok && handleMove(move.id)}
                                                                     disabled={!ok}
-                                                                    className={`flex items-start gap-1.5 px-2 py-1.5 rounded-xl border text-left transition-all
+                                                                    className={`flex items-start gap-2 px-3 py-2 rounded-xl border text-left transition-all
                                                                         ${ok
                                                                             ? `${cfg.bg} ${cfg.color} border-white/10 hover:border-white/30 hover:scale-[1.02] active:scale-[0.98]`
                                                                             : "bg-slate-900/40 border-slate-800 text-slate-600 cursor-not-allowed opacity-50"
@@ -4712,7 +4870,7 @@ export default function BattlePage() {
                                                                     })()}
                                                                 </div>
                                                                 <div className="h-px bg-slate-800/60 my-0.5" />
-                                                                <div className="flex flex-col gap-[3px] flex-1">
+                                                                <div className="flex flex-col gap-[5px] flex-1" style={{ padding: "4px 8px" }}>
                                                                     {(() => {
                                                                         function calcFrozenStat(baseVal: number, buffKey: string) {
                                                                             const raw = (frozenMyth.buffs ?? [])
@@ -4777,7 +4935,7 @@ export default function BattlePage() {
                                                                         return (
                                                                             <div key={move.id}
                                                                                 className="flex items-start gap-1.5 px-2 py-1.5 rounded-xl border bg-slate-900/30 border-slate-800/60 opacity-40">
-                                                                                <span className="text-lg mt-0.5">{cfg.emoji}</span>
+                                                                                <AffinityIcon affinity={move.affinity} size={18} />
                                                                                 <div className="min-w-0 flex-1">
                                                                                     <p className="font-mono text-xs font-bold text-slate-600">{move.name}</p>
                                                                                     <p className="text-[10px] text-slate-700 font-mono">{move.power > 0 ? `💥 ${move.power}` : "estado"} · 🎯 {move.accuracy}%</p>
@@ -4835,10 +4993,10 @@ export default function BattlePage() {
                                         if (!cfg) return <span className="font-black text-white/80 text-[11px]">{upper}</span>;
                                         return (
                                             <span style={{
-                                                display: "inline-flex", alignItems: "center",
-                                                background: cfg.color, border: `1px solid ${cfg.glow}`,
+                                                display: "inline-flex", alignItems: "center", gap: 3,
+                                                background: `${cfg.glow}22`, border: `1px solid ${cfg.glow}66`,
                                                 color: "#fff", fontSize: "11px", fontWeight: 900,
-                                                borderRadius: 4, padding: "1px 6px",
+                                                borderRadius: 4, padding: "1px 5px 1px 3px",
                                                 lineHeight: "16px", whiteSpace: "nowrap",
                                                 letterSpacing: "0.04em",
                                                 textShadow: "0 1px 2px rgba(0,0,0,0.9)",
@@ -4846,6 +5004,7 @@ export default function BattlePage() {
                                                 fontFamily: "monospace",
                                                 textTransform: "uppercase",
                                             }}>
+                                                <AffinityIcon affinity={affinity!} size={13} />
                                                 {upper}
                                             </span>
                                         );
@@ -5213,16 +5372,14 @@ function DistortionOverlay({
                     if (!c) return null;
                     return (
                         <div key={aff}
-                            className="flex items-center justify-center rounded-full font-black font-mono"
+                            className="flex items-center justify-center rounded-full"
                             style={{
-                                width: 24, height: 24,
+                                width: 26, height: 26,
                                 background: `${LILA}33`, border: `1.5px solid ${LILA}`,
                                 boxShadow: `0 0 10px ${LILA}88`,
-                                fontSize: "8px", color: WHITE,
-                                textShadow: "0 1px 2px rgba(0,0,0,0.9)",
                             }}
                         >
-                            {aff.slice(0, 2)}
+                            <AffinityIcon affinity={aff} size={18} />
                         </div>
                     );
                 })}
