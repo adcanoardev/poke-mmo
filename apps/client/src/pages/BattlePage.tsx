@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
 import { api } from "../lib/api";
 import { useTrainer } from "../context/TrainerContext";
 import { useToast } from "../components/Layout";
@@ -188,7 +187,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#f97316",
         glowRgb: "249,115,22",
         emoji: "🔥",
-        label: "Brasa",
+        label: "Ember",
         projEmoji: "🔥",
     },
     TIDE: {
@@ -197,7 +196,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#3b82f6",
         glowRgb: "59,130,246",
         emoji: "🌊",
-        label: "Marea",
+        label: "Tide",
         projEmoji: "💧",
     },
     GROVE: {
@@ -206,7 +205,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#22c55e",
         glowRgb: "34,197,94",
         emoji: "🌿",
-        label: "Bosque",
+        label: "Grove",
         projEmoji: "🍃",
     },
     VOLT: {
@@ -215,7 +214,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#fde047",
         glowRgb: "253,224,71",
         emoji: "⚡",
-        label: "Voltio",
+        label: "Volt",
         projEmoji: "⚡",
     },
     STONE: {
@@ -224,7 +223,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#a8a29e",
         glowRgb: "168,162,158",
         emoji: "🪨",
-        label: "Piedra",
+        label: "Stone",
         projEmoji: "🪨",
     },
     FROST: {
@@ -233,7 +232,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#67e8f9",
         glowRgb: "103,232,249",
         emoji: "❄️",
-        label: "Escarcha",
+        label: "Frost",
         projEmoji: "❄️",
     },
     VENOM: {
@@ -242,7 +241,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#a855f7",
         glowRgb: "168,85,247",
         emoji: "🧪",
-        label: "Veneno",
+        label: "Venom",
         projEmoji: "☠️",
     },
     ASTRAL: {
@@ -260,7 +259,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#94a3b8",
         glowRgb: "148,163,184",
         emoji: "⚙️",
-        label: "Hierro",
+        label: "Iron",
         projEmoji: "⚙️",
     },
     SHADE: {
@@ -269,7 +268,7 @@ const AFFINITY_CONFIG: Record<
         glow: "#7c3aed",
         glowRgb: "124,58,237",
         emoji: "🌑",
-        label: "Sombra",
+        label: "Shade",
         projEmoji: "🌑",
     },
 };
@@ -1029,7 +1028,7 @@ function ArenaMyth({
                         <div className="flex gap-0.5 justify-center flex-wrap">
                             {hasShield && (
                                 <div
-                                    title={`Escudo: ${myth.shield} pts · ${myth.shieldTurns}t`}
+                                    title={`Shield: ${myth.shield} pts · ${myth.shieldTurns}t`}
                                     style={{
                                         display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 2,
                                         width: 22, height: 22, borderRadius: 4,
@@ -1167,7 +1166,7 @@ function ArenaMyth({
                             className="absolute z-30 pointer-events-none font-black tracking-tighter animate-float-dmg text-white"
                             style={{ top: -24, left: "50%", transform: "translateX(-50%)", fontSize: "1.8rem", textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}
                         >
-                            ¡Fallo!
+                            Miss!
                         </div>
                     )}
                 </>
@@ -1197,7 +1196,7 @@ function ArenaMyth({
             {statusBlockedOverlays[myth.instanceId] && (() => {
                 const st = statusBlockedOverlays[myth.instanceId];
                 const sc = STATUS_LOG_COLORS[st] ?? "#94a3b8";
-                const blockText: Record<string, string> = { burn:"¡QUEMADO!", poison:"¡ENVENENADO!", paralyze:"¡PARALIZADO!", freeze:"¡CONGELADO!", fear:"¡ASUSTADO!", stun:"¡ATURDIDO!", curse:"¡MALDITO!" };
+                const blockText: Record<string, string> = { burn:"BURNED!", poison:"POISONED!", paralyze:"PARALYZED!", freeze:"FROZEN!", fear:"FEARED!", stun:"STUNNED!", curse:"CURSED!" };
                 return (
                     <div className="absolute z-50 pointer-events-none"
                         style={{ top: "50%", left: "50%", transform: "translateX(-50%) translateY(-50%)", animation: "statusBlockedOverlay 2s ease-out forwards" }}>
@@ -1994,12 +1993,12 @@ function PrepScreen({
                 <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4 min-h-20">
                     {bench.length === 0 && (
                         <p className="text-slate-600 text-xs text-center font-mono">
-                            Todos los Myths en posición de combate
+                            All Myths in battle position
                         </p>
                     )}
                     {partyMyths.length > 0 && (
                         <div className="mb-3">
-                            <p className="font-mono text-xs text-slate-500 uppercase tracking-widest mb-2">⚔️ Equipo</p>
+                            <p className="font-mono text-xs text-slate-500 uppercase tracking-widest mb-2">⚔️ Team</p>
                             <div className="flex flex-wrap gap-2">
                                 {partyMyths.map((m) => (
                                     <BenchCard key={mythId(m)} myth={m} onDragStart={handleDragStart} />
@@ -2093,7 +2092,7 @@ function BenchCard({ myth, onDragStart }: { myth: any; onDragStart: (m: any, fro
             <p className="font-mono text-xs text-white font-bold truncate w-full text-center">{myth.name}</p>
             <p className="text-slate-500 text-xs font-mono">Nv.{myth.level}</p>
             <span className={`text-xs font-mono ${myth.isInParty ? "text-blue-400" : "text-slate-500"}`}>
-                {myth.isInParty ? "equipo" : "almacén"}
+                {myth.isInParty ? "party" : "storage"}
             </span>
         </div>
     );
@@ -2137,7 +2136,7 @@ function ScreenWarning({ onDismiss }: { onDismiss: () => void }) {
                     </h2>
                     <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>
                         {isMobile
-                            ? "Mythara Online está diseñado para PC. En móvil la experiencia de combate no será la óptima."
+                            ? "Mythara Online is designed for landscape play."
                             : "Para jugar Mythara Online necesitas una ventana más ancha."}
                     </p>
                     {/* Instrucción concreta — solo escritorio */}
@@ -2201,9 +2200,6 @@ export default function BattlePage() {
 
     // Keyframes de combate → apps/client/src/style.css
 
-    // ── Aviso pantalla pequeña / móvil ──
-    const [showScreenWarning, setShowScreenWarning] = useState(false);
-    // Escape key closes any open modal
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
@@ -2214,18 +2210,6 @@ export default function BattlePage() {
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, []);
-
-    useEffect(() => {
-        const MIN_W = 1024;
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile || window.innerWidth < MIN_W) setShowScreenWarning(true);
-        const onResize = () => {
-            if (window.innerWidth < MIN_W) setShowScreenWarning(true);
-            else setShowScreenWarning(false);
-        };
-        window.addEventListener("resize", onResize);
-        return () => window.removeEventListener("resize", onResize);
     }, []);
     const searchParams = new URLSearchParams(location.search);
     const initialMode: BattleMode =
@@ -2370,8 +2354,8 @@ export default function BattlePage() {
 
     // Items usables en combate — solo SPARK y GRAND_SPARK
     const COMBAT_ITEMS = [
-        { type: "SPARK",       name: "Spark",       emoji: "✨", desc: "Cura el estado de 1 Myth" },
-        { type: "GRAND_SPARK", name: "Grand Spark", emoji: "💎", desc: "Cura todos los estados del equipo" },
+        { type: "SPARK",       name: "Spark",       emoji: "✨", desc: "Cures the status of 1 Myth" },
+        { type: "GRAND_SPARK", name: "Grand Spark", emoji: "💎", desc: "Cures all status effects in the team" },
     ];
 
     function getCombatItemCount(itemType: string): number {
@@ -2502,7 +2486,7 @@ export default function BattlePage() {
         function handleBeforeUnload(e: BeforeUnloadEvent) {
             if (!battleLockedRef.current) return;
             e.preventDefault();
-            e.returnValue = "Tienes un combate en curso. Si sales, el combate contará como derrota.";
+            e.returnValue = "You have an active battle. Leaving will count as a defeat.";
         }
         window.addEventListener("beforeunload", handleBeforeUnload);
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -2661,13 +2645,13 @@ export default function BattlePage() {
         const sessionForLookup = currentSession ?? sessionRef.current ?? session;
         const direction = action.isPlayerMyth ? "ltr" : "rtl";
 
-        // ── Detectar distorsión — el backend envía "🌀 ¡X ha distorsionado!" en effectMsgs ──
+        // ── Detectar distorsión — el backend envía "🌀 ¡X has distorted!" en effectMsgs ──
         const distortMsg = action.effectMsgs?.find((m: string) => m.startsWith("🌀"));
         if (distortMsg) {
             const allFlat = [...(sessionForLookup?.playerTeam ?? []), ...(sessionForLookup?.enemyTeam ?? [])];
             const actor = allFlat.find(m => m.instanceId === action.actorInstanceId);
             if (actor) {
-                addLog(`🌀 ¡${actor.name} ha distorsionado!`, "system");
+                addLog(`🌀 ¡${actor.name} has distorted!`, "system");
                 const newRarity = (actor as any).rarity ?? "RARE";
                 // Para el NPC: actualizar sesión ANTES del overlay para que el sprite/nombre ya estén actualizados
                 if (!action.isPlayerMyth && currentSession) {
@@ -2691,28 +2675,28 @@ export default function BattlePage() {
             boost_def:  { text: "🛡️ DEF ▲",    color: "#34d399", glow: "#10b981" },
             boost_spd:  { text: "💨 SPD ▲",    color: "#67e8f9", glow: "#06b6d4" },
             boost_acc:  { text: "🎯 ACC ▲",    color: "#a3e635", glow: "#84cc16" },
-            shield:     { text: "🛡️ BARRERA",  color: "#93c5fd", glow: "#3b82f6" },
+            shield:     { text: "🛡️ SHIELD",  color: "#93c5fd", glow: "#3b82f6" },
             regen:      { text: "💚 REGEN",    color: "#34d399", glow: "#10b981" },
-            heal:       { text: "💚 CURACIÓN", color: "#4ade80", glow: "#22c55e" },
-            counter:    { text: "🔄 REFLEJO",  color: "#fde68a", glow: "#f59e0b" },
-            cleanse:    { text: "✨ PUREZA",   color: "#e0e7ff", glow: "#a5b4fc" },
+            heal:       { text: "💚 HEAL", color: "#4ade80", glow: "#22c55e" },
+            counter:    { text: "🔄 REFLECT",  color: "#fde68a", glow: "#f59e0b" },
+            cleanse:    { text: "✨ CLEANSE",   color: "#e0e7ff", glow: "#a5b4fc" },
         };
         const DEBUFF_OVERLAYS: Record<string, { text: string; color: string; glow: string }> = {
             debuff_atk: { text: "⚔️ ATK ▼",   color: "#f87171", glow: "#ef4444" },
             debuff_def: { text: "🛡️ DEF ▼",   color: "#fb923c", glow: "#f97316" },
             debuff_spd: { text: "💨 SPD ▼",   color: "#fbbf24", glow: "#f59e0b" },
             debuff_acc: { text: "🎯 ACC ▼",   color: "#f472b6", glow: "#ec4899" },
-            silence:    { text: "🔇 SILENCIO", color: "#94a3b8", glow: "#64748b" },
+            silence:    { text: "🔇 SILENCE", color: "#94a3b8", glow: "#64748b" },
             dispel:     { text: "💨 DISPEL",   color: "#a78bfa", glow: "#7c3aed" },
         };
         const STATUS_OVERLAYS: Record<string, { text: string; color: string; glow: string }> = {
-            burn:     { text: "🔥 QUEMADO",   color: "#fb923c", glow: "#f97316" },
-            poison:   { text: "☠️ ENVENENADO",color: "#4ade80", glow: "#22c55e" },
-            freeze:   { text: "❄️ CONGELADO", color: "#7dd3fc", glow: "#38bdf8" },
-            fear:     { text: "😨 ASUSTADO",  color: "#c084fc", glow: "#a855f7" },
-            paralyze: { text: "⚡ PARALIZADO",color: "#fde047", glow: "#eab308" },
-            stun:     { text: "💫 ATURDIDO",  color: "#facc15", glow: "#ca8a04" },
-            curse:    { text: "💀 MALDITO",   color: "#a855f7", glow: "#7c3aed" },
+            burn:     { text: "🔥 BURNED",   color: "#fb923c", glow: "#f97316" },
+            poison:   { text: "☠️ POISONED",color: "#4ade80", glow: "#22c55e" },
+            freeze:   { text: "❄️ FROZEN", color: "#7dd3fc", glow: "#38bdf8" },
+            fear:     { text: "😨 FEARED",  color: "#c084fc", glow: "#a855f7" },
+            paralyze: { text: "⚡ PARALYZED",color: "#fde047", glow: "#eab308" },
+            stun:     { text: "💫 STUNNED",  color: "#facc15", glow: "#ca8a04" },
+            curse:    { text: "💀 CURSED",   color: "#a855f7", glow: "#7c3aed" },
         };
 
         if (action.blockedByStatus) {
@@ -2930,7 +2914,7 @@ export default function BattlePage() {
                             }
                         }
                     }
-                    if (action.missed) addLog("¡Falló!", "miss");
+                    if (action.missed) addLog("Miss!", "miss");
                     await sleep(projLevel === 1 ? 200 : projLevel === 2 ? 380 : 600);
                 } else {
                     // ── TARGET ÚNICO ──
@@ -2947,7 +2931,7 @@ export default function BattlePage() {
                         if (action.damage > 0) {
                             flashAndFloat(tid, action.moveAffinity, action.damage, action.crit, action.mult, false, action.shieldAbsorbed ?? 0);
                         } else if (action.missed) {
-                            addLog("¡Falló!", "miss");
+                            addLog("Miss!", "miss");
                         }
                         await sleep(projLevel === 1 ? 160 : projLevel === 2 ? 220 : 420);
                     } else {
@@ -2957,7 +2941,7 @@ export default function BattlePage() {
                         if (action.damage > 0) {
                             flashAndFloat(tid, action.moveAffinity, action.damage, action.crit, action.mult);
                         } else if (action.missed) {
-                            addLog("¡Falló!", "miss");
+                            addLog("Miss!", "miss");
                         }
                         await sleep(80);
                     }
@@ -3027,7 +3011,7 @@ export default function BattlePage() {
         const freshStart = buildDistortionStartMap(newSession);
         setDistortionStartMap(prev => ({ ...prev, ...freshStart }));
         if (newSession.status === "win" || newSession.status === "lose") {            addLog(
-                newSession.status === "win" ? "🏆 ¡Victoria!" : "💀 Derrota...",
+                newSession.status === "win" ? "🏆 Victory!" : "💀 Defeat...",
                 newSession.status === "win" ? "good" : "bad",
             );
             setResult({ status: newSession.status, xp: xpGained, coins: coinsGained });
@@ -3081,7 +3065,7 @@ export default function BattlePage() {
                         move: "", moveAffinity: "ASTRAL" as Affinity, moveType: "support" as MoveType,
                         targetName: "", targetInstanceId: "",
                         damage: 0, mult: 1, crit: false, stab: false, missed: false,
-                        effectMsgs: [res.distortionMsg ?? `🌀 ¡${res.actorName} ha distorsionado!`],
+                        effectMsgs: [res.distortionMsg ?? `🌀 ¡${res.actorName} has distorted!`],
                         distorted: true,
                     },
                     newSession
@@ -3185,7 +3169,7 @@ export default function BattlePage() {
             // Inicializar mapa de distorsión desde los triggerTurns de la sesión
             setDistortionTurnsMap(buildDistortionMap(cloned));
             setDistortionStartMap(buildDistortionStartMap(cloned));
-            addLog("⚔️ ¡Comienza el combate!", "system");
+            addLog("⚔️ Battle start!", "system");
             await reload();
             // Revelar enemigos uno a uno y luego fijar reveal permanente
             setEnemyRevealIndex(0);
@@ -3207,7 +3191,7 @@ export default function BattlePage() {
                 }
             }
         } catch (e: any) {
-            toast(e.message ?? "Error al iniciar combate", "error");
+            toast(e.message ?? "Error starting battle", "error");
         } finally {
             setLoadingStart(false);
         }
@@ -3218,60 +3202,55 @@ export default function BattlePage() {
         : null;
     const targetEnemy = session?.enemyTeam.find((m) => m.instanceId === targetEnemyMythId);
 
-    // Sprites fijos a 110px — caben las 2 filas + panel de moves sin scroll en pantallas ~728px de alto
-    // Escala de sprites por altura física del myth
+    // Sprite size — landscape-aware
+    // Mobile landscape (width < 900px): smaller sprites to fit 3v3 in arena
     function getMythSpriteSize(myth: BattleMyth): number {
         const h = (myth as any).height;
-        if (h === undefined || h === null) return 105;
-        if (h === 0) return 90; // etéreo
+        const isMobile = window.innerWidth < 900;
+        const minPx = isMobile ? 40 : 75;
+        const maxPx = isMobile ? 60 : 130;
+        if (h === undefined || h === null) return isMobile ? 52 : 105;
+        if (h === 0) return isMobile ? 42 : 90;
         const clamped = Math.max(0.35, Math.min(2.0, h));
-        return Math.round(75 + ((clamped - 0.35) / (2.0 - 0.35)) * 55);
+        return Math.round(minPx + ((clamped - 0.35) / (2.0 - 0.35)) * (maxPx - minPx));
     }
-    // spriteSize base (se override por myth en el render)
-    const spriteSize = 105;
+    // spriteSize base (overridden per myth in render)
+    const spriteSize = window.innerWidth < 900 ? 52 : 105;
 
-    // Calcula los turnos restantes hasta la próxima Distorsión — delegado a la función definida junto a buildDistortionMap
-
-    // ── Overlay de pantalla — fixed, siempre encima de todo ──
-    const screenWarningOverlay = showScreenWarning
-        ? <ScreenWarning onDismiss={() => setShowScreenWarning(false)} />
-        : null;
+    // Distortion turns remaining — calculated via distortionTurnsMap (defined near buildDistortionMap)
 
     if (mode === "pvp") {
         return (
-            <>
-                {screenWarningOverlay}
-                <Layout >
+            <div className="flex flex-col bg-[#070b14]" style={{ width: "100dvw", height: "100dvh", overflow: "hidden" }}>
+                <BattleTopBar phase="prep" session={null} currentActorName={undefined} onBack={() => navigate("/")} />
                 <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
-                    <TabBar mode={mode} onSwitch={setMode} battleActive={false} />
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center max-w-sm">
                             <div className="text-6xl mb-4">⚔️</div>
                             <h2 className="font-mono text-2xl font-black text-yellow-400 tracking-widest mb-3">
-                                PvP — Próximamente
+                                PvP — Coming Soon
                             </h2>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                El combate entre Binders está en construcción.
+                                Binder vs Binder battles are under construction.
                             </p>
                             <div className="mt-6 px-4 py-2 rounded-lg border border-slate-700 text-slate-500 text-xs font-mono tracking-wider">
-                                🔒 En desarrollo
+                                🔒 In development
                             </div>
                         </div>
                     </div>
                 </div>
-            </Layout>
-            </>
+            </div>
         );
     }
 
-    // ── Arena + Prep integrada ──
+    // ── Arena + Prep ──
     const battleLocked = phase === "battle";
+    const currentActorName = currentActor?.name ?? undefined;
 
     return (
-        <>
-            {screenWarningOverlay}
+        <div className="flex flex-col bg-[#070b14]" style={{ width: "100dvw", height: "100dvh", overflow: "hidden" }}>
 
-            {/* ── Modal confirmación salida del combate ── */}
+            {/* ── Exit battle confirmation modal ── */}
             {showExitConfirm && (
                 <div className="fixed inset-0 z-[9998] flex items-center justify-center"
                     style={{ background: "rgba(4,8,16,0.85)", backdropFilter: "blur(10px)" }}>
@@ -3287,10 +3266,10 @@ export default function BattlePage() {
                         </div>
                         <div className="flex flex-col gap-2">
                             <h2 className="font-mono font-black text-lg tracking-wider uppercase text-white">
-                                ¿Abandonar combate?
+                                Abandon battle?
                             </h2>
                             <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>
-                                Si sales ahora, el combate contará como <span style={{ color: "#f87171", fontWeight: 700 }}>derrota</span>.
+                                If you leave now, this battle will count as a <span style={{ color: "#f87171", fontWeight: 700 }}>defeat</span>.
                             </p>
                         </div>
                         <div className="flex flex-col gap-2.5">
@@ -3303,7 +3282,7 @@ export default function BattlePage() {
                                     color: "#f87171",
                                     boxShadow: "0 0 20px rgba(239,68,68,0.15)",
                                 }}>
-                                Salir y perder combate
+                                Leave and lose battle
                             </button>
                             <button
                                 onClick={() => handleForfeit(false)}
@@ -3314,16 +3293,25 @@ export default function BattlePage() {
                                     color: "#4ade80",
                                     boxShadow: "0 0 20px rgba(34,197,94,0.12)",
                                 }}>
-                                ⚔️ Seguir luchando
+                                ⚔️ Keep fighting
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <Layout battleLocked={battleLocked} onBattleLockedClick={() => setShowExitConfirm(true)}>
+            <BattleTopBar
+                phase={phase}
+                session={session}
+                currentActorName={currentActorName}
+                onBack={() => {
+                    if (battleLocked) setShowExitConfirm(true);
+                    else navigate("/");
+                }}
+            />
+
+            <div className="flex-1 overflow-hidden flex flex-col relative">
                 <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
-                    <TabBar mode={mode} onSwitch={setMode} battleActive={phase === "battle"} />
 
                     <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
                         {/* ── Arena principal ── */}
@@ -3424,10 +3412,10 @@ export default function BattlePage() {
                                     <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                                         <div className="text-center">
                                             <p className="font-mono text-2xl font-black text-white/10 tracking-[0.3em] uppercase">
-                                                ELIGE TU EQUIPO
+                                                SELECT YOUR TEAM
                                             </p>
                                             <p className="font-mono text-xs text-white/5 tracking-widest mt-1">
-                                                selecciona myths abajo · pulsa COMBAT para empezar
+                                                select myths below · press COMBAT to start
                                             </p>
                                         </div>
                                     </div>
@@ -3468,7 +3456,7 @@ export default function BattlePage() {
                                             </div>
                                             {/* Label */}
                                             <p style={{ fontFamily: "monospace", fontSize: "10px", color: `${glowColor}99`, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>
-                                                Tu turno
+                                                Your turn
                                             </p>
                                             {/* Icono + nombre */}
                                             <div className="flex items-center justify-center gap-3">
@@ -3571,13 +3559,13 @@ export default function BattlePage() {
                                                         : "defeatIn 0.8s ease-out forwards, defeatGlitch 3s ease-in-out 1.5s infinite",
                                                     opacity: 0,
                                                 }}>
-                                                {result.status === "win" ? "¡VICTORIA!" : "DERROTA..."}
+                                                {result.status === "win" ? "VICTORY!" : "DEFEAT..."}
                                             </h2>
 
                                             {/* Subtítulo */}
                                             <p className="font-mono text-sm mb-6"
                                                 style={{ color: result.status === "win" ? "#fbbf24" : "#f87171", opacity: 0.8, letterSpacing: "0.2em" }}>
-                                                {result.status === "win" ? "— COMBATE GANADO —" : "— COMBATE PERDIDO —"}
+                                                {result.status === "win" ? "— BATTLE WON —" : "— BATTLE LOST —"}
                                             </p>
 
                                             {/* Recompensas (victoria) */}
@@ -3637,7 +3625,7 @@ export default function BattlePage() {
                                                     onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.04)")}
                                                     onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
                                                 >
-                                                    ⚔ REVANCHA
+                                                    ⚔ REMATCH
                                                 </button>
                                                 <button
                                                     onClick={() => navigate("/")}
@@ -3725,7 +3713,7 @@ export default function BattlePage() {
                                 {(phase === "prep" ? [null, null, null] : (session?.enemyTeam ?? [null,null,null])).map((myth: any, idx: number) => {
                                     // left/top calibrados manualmente con el calibrador visual
                                     const leftPcts = ["78%", "69.4%", "83.6%"];
-                                    const topPcts  = ["37.2%", "55%", "73%"];
+                                    const topPcts  = ["34%", "52%", "63%"];
                                     const isPrepSlot = phase === "prep" || !myth;
                                     const revealed = myth && (idx < enemyRevealIndex);
                                     return (
@@ -3772,7 +3760,7 @@ export default function BattlePage() {
                                                     backdropFilter: "blur(12px)",
                                                 }}>
                                                 <div style={{ width: 22, height: 1, background: "linear-gradient(90deg, transparent, rgba(148,163,184,0.4))" }} />
-                                                <span className="font-mono text-slate-400 tracking-[0.22em] uppercase" style={{ fontSize: "11px" }}>Turno</span>
+                                                <span className="font-mono text-slate-400 tracking-[0.22em] uppercase" style={{ fontSize: "11px" }}>Turn</span>
                                                 <span className="font-mono font-black text-white tabular-nums"
                                                     style={{ fontSize: "1.25rem", textShadow: "0 0 14px rgba(255,255,255,0.35)", letterSpacing: "-0.01em" }}>
                                                     {session.turn}
@@ -3844,7 +3832,7 @@ export default function BattlePage() {
                                     // Posiciones alineadas con los círculos mágicos DOM:
                                     // left/top calibrados manualmente con el calibrador visual
                                     const leftPcts = ["21.9%", "29.9%", "16.3%"];
-                                    const topPcts  = ["33%", "55%", "72.5%"];
+                                    const topPcts  = ["30%", "52%", "63%"];
                                     const myth = phase === "prep" ? prepSlots[i] : session?.playerTeam[i];
 
                                     // Handler de drop para prep
@@ -3889,7 +3877,7 @@ export default function BattlePage() {
                                                             <MythArt art={myth.art} px={spriteSize} className="animate-myth-idle" />
                                                             <p className="font-mono text-xs text-white font-bold truncate text-center" style={{ maxWidth: spriteSize + 8 }}>{myth.name}</p>
                                                             <p className="font-mono text-[10px] text-slate-400">Nv.{myth.level}</p>
-                                                            <span className="text-[9px] text-red-400/50 font-mono">✕ quitar</span>
+                                                            <span className="text-[9px] text-red-400/50 font-mono">✕ remove</span>
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col items-center gap-1 opacity-40 pointer-events-none">
@@ -3939,7 +3927,7 @@ export default function BattlePage() {
                                                     type="text"
                                                     value={prepSearch}
                                                     onChange={(e) => setPrepSearch(e.target.value)}
-                                                    placeholder="Buscar myth..."
+                                                    placeholder="Search myth..."
                                                     className="flex-1 bg-transparent text-xs font-mono text-white placeholder-slate-600 outline-none"
                                                 />
                                                 <span className="text-slate-600 text-[10px] font-mono">
@@ -3982,7 +3970,7 @@ export default function BattlePage() {
                                                                     <MythArt art={myth.art} px={40} />
                                                                     <p className="font-mono text-[10px] text-white font-bold truncate w-full text-center">{myth.name}</p>
                                                                     <p className="text-slate-500 text-[10px] font-mono">Nv.{myth.level}</p>
-                                                                    {myth.isInParty && <span className="text-[9px] text-blue-400 font-mono">equipo</span>}
+                                                                    {myth.isInParty && <span className="text-[9px] text-blue-400 font-mono">party</span>}
                                                                 </div>
                                                             );
                                                         })}
@@ -3993,7 +3981,7 @@ export default function BattlePage() {
                                                         return !inSlot && (!prepSearch || m.name.toLowerCase().includes(prepSearch.toLowerCase()));
                                                     }).length === 0 && (
                                                         <p className="text-slate-600 text-xs font-mono italic px-4">
-                                                            {prepSearch ? "Sin resultados" : "Todos en posición"}
+                                                            {prepSearch ? "No results" : "All in position"}
                                                         </p>
                                                     )}
                                                 </div>
@@ -4330,14 +4318,14 @@ export default function BattlePage() {
                                                                             }} />
                                                                     ))}
                                                                 </div>
-                                                                <span className="font-mono text-[10px] text-slate-500 tracking-widest uppercase">Rival atacando</span>
+                                                                <span className="font-mono text-[10px] text-slate-500 tracking-widest uppercase">Opponent acting</span>
                                                             </div>
                                                         </div>
                                                     )}
                                                     {/* Header: título + botones OBJETOS + TABLA TIPOS */}
                                                     <div className="flex items-center justify-between mb-1.5 px-1 gap-1">
                                                         <p className="font-mono text-xs text-yellow-400 font-bold truncate flex-1">
-                                                            Movimientos de {actorForMoves.name}
+                                                            Moves of {actorForMoves.name}
                                                         </p>
                                                         <div className="flex items-center gap-1 flex-shrink-0">
                                                             {/* Botón OBJETOS */}
@@ -4350,7 +4338,7 @@ export default function BattlePage() {
                                                                     }`}
                                                                 style={{ fontSize: "10px", letterSpacing: "0.06em" }}
                                                             >
-                                                                🎒 <span>OBJETOS</span>
+                                                                🎒 <span>ITEMS</span>
                                                             </button>
                                                             {/* Botón TABLA DE AFINIDADES */}
                                                             <button
@@ -4362,7 +4350,7 @@ export default function BattlePage() {
                                                                     }`}
                                                                 style={{ fontSize: "10px", letterSpacing: "0.06em" }}
                                                             >
-                                                                📊 <span>AFINIDADES</span>
+                                                                📊 <span>AFFINITIES</span>
                                                             </button>
                                                             {/* Botón BUFOS */}
                                                             <button
@@ -4374,7 +4362,7 @@ export default function BattlePage() {
                                                                     }`}
                                                                 style={{ fontSize: "10px", letterSpacing: "0.06em" }}
                                                             >
-                                                                📈 <span>BUFOS</span>
+                                                                📈 <span>BUFFS</span>
                                                             </button>
                                                             {/* Botón DEBUFOS */}
                                                             <button
@@ -4386,7 +4374,7 @@ export default function BattlePage() {
                                                                     }`}
                                                                 style={{ fontSize: "10px", letterSpacing: "0.06em" }}
                                                             >
-                                                                📉 <span>DEBUFOS</span>
+                                                                📉 <span>DEBUFFS</span>
                                                             </button>
                                                         </div>
                                                     </div>
@@ -4404,7 +4392,7 @@ export default function BattlePage() {
                                                             {/* Header items */}
                                                             <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 flex-shrink-0">
                                                                 <p className="font-mono text-xs text-amber-400 font-bold uppercase tracking-widest">
-                                                                    🎒 Objetos de combate
+                                                                    🎒 Combat items
                                                                 </p>
                                                                 <button onClick={() => { setShowItemPanel(false); setSelectedItem(null); }}
                                                                     className="text-slate-500 hover:text-white text-sm font-mono transition-colors">✕</button>
@@ -4445,7 +4433,7 @@ export default function BattlePage() {
                                                                 })}
                                                                 {COMBAT_ITEMS.every((i) => getCombatItemCount(i.type) === 0) && (
                                                                     <p className="text-slate-600 text-xs font-mono text-center mt-4 italic">
-                                                                        No tienes objetos de combate
+                                                                        No combat items in inventory
                                                                     </p>
                                                                 )}
                                                             </div>
@@ -4455,8 +4443,8 @@ export default function BattlePage() {
                                                                 <div className="flex-shrink-0 px-3 py-2 border-t border-amber-900/40 bg-amber-900/10">
                                                                     <p className="font-mono text-[10px] text-amber-300 text-center leading-relaxed">
                                                                         {selectedItem.type === "GRAND_SPARK"
-                                                                            ? <>✨ Selecciona cualquier Myth tuyo para aplicar al equipo</>
-                                                                            : <>👆 Toca uno de tus Myths para curarle el estado</>
+                                                                            ? <>✨ Select any of your Myths to apply to the team</>
+                                                                            : <>👆 Tap one of your Myths to cure their status</>
                                                                         }
                                                                     </p>
                                                                     {/* Targets clickables — tu equipo */}
@@ -4631,23 +4619,23 @@ export default function BattlePage() {
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-xl">📈</span>
                                                                         <p className="font-black text-emerald-300 uppercase tracking-widest" style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.4rem" }}>
-                                                                            Efectos Beneficiosos
+                                                                            Beneficial Effects
                                                                         </p>
                                                                     </div>
                                                                     <button onClick={() => setShowBuffsModal(false)} className="text-slate-500 hover:text-white text-lg font-mono transition-colors w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-800">✕</button>
                                                                 </div>
                                                                 <div className="p-4 flex flex-col gap-2">
                                                                     {[
-                                                                        { emoji: "🛡️", name: "Escudo",        color: "#60a5fa", desc: "Absorbe daño antes de bajar HP. Dura 2 turnos del portador." },
-                                                                        { emoji: "♻️", name: "Regeneración",  color: "#4ade80", desc: "Recupera % de HP al inicio de cada turno. Acumula durante varios turnos." },
-                                                                        { emoji: "↩️", name: "Reflejar Daño",   color: "#f59e0b", desc: "Devuelve automáticamente un % del daño recibido al atacante." },
-                                                                        { emoji: "✨", name: "Revivir",        color: "#a78bfa", desc: "Resucita a un aliado derrotado con HP parcial." },
-                                                                        { emoji: "🌿", name: "Purificación",  color: "#86efac", desc: "Elimina estados negativos y debuffs activos." },
+                                                                        { emoji: "🛡️", name: "Shield",        color: "#60a5fa", desc: "Absorbe daño antes de bajar HP. Dura 2 turnos del portador." },
+                                                                        { emoji: "♻️", name: "Regeneration",  color: "#4ade80", desc: "Recupera % de HP al inicio de cada turno. Acumula durante varios turnos." },
+                                                                        { emoji: "↩️", name: "Reflect Damage",   color: "#f59e0b", desc: "Devuelve automáticamente un % del daño recibido al atacante." },
+                                                                        { emoji: "✨", name: "Revive",        color: "#a78bfa", desc: "Resucita a un aliado derrotado con HP parcial." },
+                                                                        { emoji: "🌿", name: "Cleanse",  color: "#86efac", desc: "Elimina estados negativos y debuffs activos." },
                                                                         { emoji: "⬆ATK", name: "Boost ATK",  color: "#f97316", desc: "Aumenta el ataque base. Máx +50%. Se reemplaza (no apila)." },
                                                                         { emoji: "⬆DEF", name: "Boost DEF",  color: "#38bdf8", desc: "Aumenta la defensa base. Máx +50%." },
                                                                         { emoji: "⬆SPD", name: "Boost SPD",  color: "#a3e635", desc: "Aumenta la velocidad, afecta el orden de turno." },
                                                                         { emoji: "⬆ACC", name: "Boost ACC",  color: "#fde68a", desc: "Aumenta la precisión de los ataques." },
-                                                                        { emoji: "💚",   name: "Curación",    color: "#4ade80", desc: "Restaura HP de forma inmediata. El debuff_heal reduce su efectividad." },
+                                                                        { emoji: "💚",   name: "Heal",    color: "#4ade80", desc: "Restaura HP de forma inmediata. El debuff_heal reduce su efectividad." },
                                                                     ].map(({ emoji, name, color, desc }) => (
                                                                         <div key={name} style={{
                                                                             display: "flex", alignItems: "flex-start", gap: 10,
@@ -4686,25 +4674,25 @@ export default function BattlePage() {
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-xl">📉</span>
                                                                         <p className="font-black text-red-300 uppercase tracking-widest" style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.4rem" }}>
-                                                                            Efectos Perjudiciales
+                                                                            Harmful Effects
                                                                         </p>
                                                                     </div>
                                                                     <button onClick={() => setShowDebuffsModal(false)} className="text-slate-500 hover:text-white text-lg font-mono transition-colors w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-800">✕</button>
                                                                 </div>
                                                                 <div className="p-4 flex flex-col gap-2">
                                                                     {[
-                                                                        { emoji: "🔥", name: "Quemadura",      color: "#f97316", desc: "Daño continuo cada turno. Dura 4 turnos. No apila." },
-                                                                        { emoji: "☠️", name: "Veneno",          color: "#a855f7", desc: "Daño continuo cada turno. Dura 5 turnos. Apila hasta 3 stacks." },
-                                                                        { emoji: "⚡", name: "Parálisis",       color: "#fde047", desc: "25% de probabilidad de no poder actuar. Reduce SPD a la mitad. Dura 3 turnos." },
-                                                                        { emoji: "❄️", name: "Congelación",     color: "#67e8f9", desc: "70% de probabilidad de no poder actuar. 30% de descongelarse. Dura 2 turnos." },
-                                                                        { emoji: "😨", name: "Miedo",           color: "#c084fc", desc: "20% de probabilidad de no poder actuar. Reduce ATK y ACC un 20%. Dura 3 turnos." },
-                                                                        { emoji: "💫", name: "Aturdimiento",    color: "#94a3b8", desc: "Pierde el turno garantizado. Solo dura 1 turno." },
-                                                                        { emoji: "💀", name: "Maldición",       color: "#f87171", desc: "Al morir el maldito, el lanzador recupera HP. Dura indefinidamente." },
-                                                                        { emoji: "🔇", name: "Silencio",        color: "#64748b", desc: "Solo puede usar ataques básicos (sin cooldown). Dura varios turnos." },
+                                                                        { emoji: "🔥", name: "Burn",      color: "#f97316", desc: "Daño continuo cada turno. Dura 4 turnos. No apila." },
+                                                                        { emoji: "☠️", name: "Poison",          color: "#a855f7", desc: "Daño continuo cada turno. Dura 5 turnos. Apila hasta 3 stacks." },
+                                                                        { emoji: "⚡", name: "Paralysis",       color: "#fde047", desc: "25% de probabilidad de no poder actuar. Reduce SPD a la mitad. Dura 3 turnos." },
+                                                                        { emoji: "❄️", name: "Freeze",     color: "#67e8f9", desc: "70% de probabilidad de no poder actuar. 30% de descongelarse. Dura 2 turnos." },
+                                                                        { emoji: "😨", name: "Fear",           color: "#c084fc", desc: "20% de probabilidad de no poder actuar. Reduce ATK y ACC un 20%. Dura 3 turnos." },
+                                                                        { emoji: "💫", name: "Stun",    color: "#94a3b8", desc: "Guaranteed turn skip. Lasts 1 turn." },
+                                                                        { emoji: "💀", name: "Curse",       color: "#f87171", desc: "Al morir el maldito, el lanzador recupera HP. Dura indefinidamente." },
+                                                                        { emoji: "🔇", name: "Silence",        color: "#64748b", desc: "Solo puede usar ataques básicos (sin cooldown). Dura varios turnos." },
                                                                         { emoji: "✂️", name: "Debuff Curación", color: "#fb923c", desc: "Reduce la efectividad de las curaciones recibidas." },
                                                                         { emoji: "⬇ATK", name: "Debuff ATK",   color: "#f97316", desc: "Reduce el ataque base. Máx -50%. Se reemplaza (no apila)." },
                                                                         { emoji: "⬇DEF", name: "Debuff DEF",   color: "#38bdf8", desc: "Reduce la defensa base. Máx -50%." },
-                                                                        { emoji: "⬇SPD", name: "Debuff SPD",   color: "#a3e635", desc: "Reduce la velocidad, puede alterar el orden de turno." },
+                                                                        { emoji: "⬇SPD", name: "Debuff SPD",   color: "#a3e635", desc: "Reduces speed, may alter turn order." },
                                                                         { emoji: "⬇ACC", name: "Debuff ACC",   color: "#fde68a", desc: "Reduce la precisión de los ataques." },
                                                                         { emoji: "✨",   name: "Dispel",        color: "#818cf8", desc: "Elimina todos los buffs positivos activos del objetivo." },
                                                                     ].map(({ emoji, name, color, desc }) => (
@@ -4926,7 +4914,7 @@ export default function BattlePage() {
                                                         <div className="flex-1 flex flex-col justify-between overflow-hidden"
                                                             style={{ background: "rgba(7,11,20,0.3)" }}>
                                                             <div className="px-3 pt-2 pb-1 border-b border-slate-800/60 flex-shrink-0">
-                                                                <span className="font-mono text-[10px] text-slate-600 uppercase tracking-widest">Movimientos de {frozenMyth.name}</span>
+                                                                <span className="font-mono text-[10px] text-slate-600 uppercase tracking-widest">Moves of {frozenMyth.name}</span>
                                                             </div>
                                                             <div className="flex-1 overflow-hidden p-2">
                                                                 <div className="grid grid-cols-2 gap-1.5">
@@ -4962,7 +4950,7 @@ export default function BattlePage() {
                         >
                             <div className="px-3 py-2.5 border-b border-slate-800 bg-slate-900/60 flex-shrink-0">
                                 <p className="font-mono text-xs text-yellow-400 uppercase tracking-widest font-bold">
-                                    📜 Registro
+                                    📜 Log
                                 </p>
                             </div>
                             <div
@@ -4973,7 +4961,7 @@ export default function BattlePage() {
                                 <div className="flex flex-col gap-px p-2">
                                 {log.length === 0 && (
                                     <p className="text-slate-700 text-xs font-mono italic text-center mt-6">
-                                        Esperando acción...
+                                        Waiting for action...
                                     </p>
                                 )}
                                 {log.map((entry, i) => {
@@ -5056,7 +5044,7 @@ export default function BattlePage() {
                                                             {isCrit ? "💥" : ""}{eff >= 2 ? "⚡" : eff > 0 && eff < 1 ? "💤" : ""}−{entry.damage}
                                                         </span>
                                                     )}
-                                                    {isMissed && <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>¡fallo!</span>}
+                                                    {isMissed && <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>miss!</span>}
                                                     {/* Estado aplicado */}
                                                     {status && (
                                                         <span style={{ fontSize: "11px", color: "#fb923c", fontFamily: "monospace" }}>
@@ -5107,7 +5095,7 @@ export default function BattlePage() {
                         </div>
                     </div>
                 </div>
-            </Layout>
+            </div>
 
             {explosion && (
                 <ImpactExplosion
@@ -5128,7 +5116,7 @@ export default function BattlePage() {
                     spriteRect={distortionOverlay.spriteRect}
                 />
             )}
-        </>
+        </div>
     );
 }
 
@@ -5393,6 +5381,110 @@ function DistortionOverlay({
 // TabBar
 // ─────────────────────────────────────────
 
+// ─────────────────────────────────────────
+// BattleTopBar — fullscreen landscape top bar
+// ─────────────────────────────────────────
+
+function BattleTopBar({
+    phase,
+    session,
+    currentActorName,
+    onBack,
+}: {
+    phase: string;
+    session: BattleSession | null;
+    currentActorName?: string;
+    onBack: () => void;
+}) {
+    const { tokens } = useTrainer();
+    const tok = tokens as any;
+    const pveCount = tok?.npcTokens ?? 0;
+    const pveMax   = tok?.npcMax    ?? 10;
+    const pvpCount = tok?.pvpTokens ?? 0;
+    const pvpMax   = tok?.pvpMax    ?? 5;
+
+    return (
+        <div
+            className="flex-shrink-0 flex items-center px-2 gap-2 z-30"
+            style={{
+                height: 28,
+                background: "rgba(4,8,15,0.96)",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}
+        >
+            {/* Back / exit */}
+            <button
+                onClick={onBack}
+                className="flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 active:scale-95"
+                style={{
+                    width: 22, height: 22, borderRadius: "50%",
+                    background: "rgba(239,68,68,0.15)",
+                    border: "1px solid rgba(239,68,68,0.4)",
+                    color: "#f87171", fontSize: 11, fontWeight: 900,
+                }}
+                title={phase === "battle" ? "Exit battle" : "Back"}
+            >✕</button>
+
+            {/* Tokens */}
+            <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded"
+                    style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)" }}>
+                    <span className="font-mono font-bold text-sky-300" style={{ fontSize: 9 }}>
+                        {pveCount}<span style={{ opacity: 0.4 }}>/{pveMax}</span>
+                    </span>
+                    <span style={{ fontSize: 10 }}>⚡</span>
+                </div>
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded"
+                    style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.2)" }}>
+                    <span className="font-mono font-bold text-orange-300" style={{ fontSize: 9 }}>
+                        {pvpCount}<span style={{ opacity: 0.4 }}>/{pvpMax}</span>
+                    </span>
+                    <span style={{ fontSize: 10 }}>⚔️</span>
+                </div>
+            </div>
+
+            {/* Turn / phase indicator */}
+            <div className="flex-1 flex items-center justify-center">
+                {phase === "battle" && session ? (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded"
+                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        <span className="font-mono text-slate-500 tracking-widest uppercase" style={{ fontSize: 8 }}>Turn</span>
+                        <span className="font-mono font-black text-white tabular-nums" style={{ fontSize: 13 }}>{session.turn}</span>
+                        {currentActorName && (
+                            <>
+                                <span className="text-slate-700" style={{ fontSize: 8 }}>·</span>
+                                <span className="font-mono font-bold truncate max-w-[80px]" style={{ fontSize: 9, color: "#fde047" }}>
+                                    {currentActorName}
+                                </span>
+                            </>
+                        )}
+                    </div>
+                ) : phase === "prep" ? (
+                    <span className="font-mono tracking-widest text-slate-600 uppercase" style={{ fontSize: 8 }}>
+                        PvE — Select your team
+                    </span>
+                ) : null}
+            </div>
+
+            {/* Chat placeholder */}
+            <button
+                className="flex items-center justify-center flex-shrink-0 opacity-40"
+                style={{
+                    width: 22, height: 22, borderRadius: "50%",
+                    background: "rgba(123,47,255,0.12)",
+                    border: "1px solid rgba(123,47,255,0.25)",
+                    fontSize: 11,
+                }}
+                title="Chat (coming soon)"
+            >💬</button>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────
+// TabBar
+// ─────────────────────────────────────────
+
 function TabBar({ mode, onSwitch, battleActive }: { mode: BattleMode; onSwitch: (m: BattleMode) => void; battleActive?: boolean }) {
     return (
         <div className="flex border-b border-slate-800 flex-shrink-0">
@@ -5404,7 +5496,7 @@ function TabBar({ mode, onSwitch, battleActive }: { mode: BattleMode; onSwitch: 
                     <button
                         key={m}
                         onClick={() => { if (!blocked) onSwitch(m); }}
-                        title={blocked ? "No puedes cambiar de pestaña durante un combate" : undefined}
+                        title={blocked ? "Cannot switch tabs during a battle" : undefined}
                         className={`px-6 py-3 font-mono text-sm tracking-widest uppercase transition-colors relative
                             ${isActive
                                 ? blocked ? "text-red-400/50 border-b-2 border-red-500/50" : "text-red-400 border-b-2 border-red-500"
