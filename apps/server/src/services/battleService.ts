@@ -106,6 +106,8 @@ export interface BattleMyth {
     nextFormRarity: string | null;
     // Rareza de la forma actual (se actualiza al distorsionar)
     rarity: string;
+    // Altura del Myth en metros (0 = etéreo) — usado por getMythSpriteSize() en cliente
+    height: number;
     defeated: boolean;
 }
 
@@ -872,6 +874,7 @@ async function buildPlayerMyth(instanceId: string, userId: string): Promise<Batt
         distortionFormStartTurn: 1,
         nextFormRarity: firstDistortion?.rarity ?? null,
         rarity: (species as any).rarity ?? "COMMON",
+        height: (species as any).height ?? 1.0,
         defeated: false,
     };
 }
@@ -920,6 +923,7 @@ function buildNpcMyth(speciesId: string, level: number): BattleMyth {
         distortionFormStartTurn: 1,
         nextFormRarity: firstDistortion?.rarity ?? null,
         rarity: (species as any).rarity ?? "COMMON",
+        height: (species as any).height ?? 1.0,
         defeated: false,
     };
 }
@@ -1057,6 +1061,7 @@ function applyDistortion(myth: BattleMyth, currentTurn: number): string | null {
     myth.speciesId = form.slug;
     myth.affinities = form.affinities as Affinity[];
     myth.rarity = form.rarity ?? myth.rarity;
+    myth.height = form.height ?? myth.height;
     myth.attack = scale(bs.atk);
     myth.defense = scale(bs.def);
     myth.speed = scale(bs.spd);

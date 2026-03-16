@@ -1,30 +1,45 @@
+// apps/server/src/routes/sanctums.ts
+
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { getSanctumsStatus, challengeSanctum } from "../services/gymService.js";
+import {
+    getSanctumList,
+    challengeSanctum,
+} from "../services/sanctumService.js";
 
 const router = Router();
 router.use(requireAuth);
 
-// GET /sanctums
-router.get("/sanctums", async (req, res) => {
+// GET /sanctum/list — devuelve los 8 sanctums con estado del jugador
+router.get("/sanctum/list", async (req, res) => {
     try {
-        const data = await getSanctumsStatus(req.user!.userId);
-        res.json(data);
+        const list = await getSanctumList(req.user!.userId);
+        res.json(list);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        res.status(400).json({ error: e.message });
     }
 });
 
-// POST /sanctums/:id/challenge
-router.post("/sanctums/:id/challenge", async (req, res) => {
+// POST /sanctum/challenge — retar un sanctum
+// Body: { sanctumId: number, mythIds: string[] }
+router.post("/sanctum/challenge", async (req, res) => {
     try {
-        const id = parseInt(req.params.id, 10);
-        if (isNaN(id)) return res.status(400).json({ error: "ID inválido" });
-        const result = await challengeSanctum(req.user!.userId, id);
-        if ("error" in result) return res.status(400).json(result);
+        const { sanctumId, mythIds } = req.body as {
+            sanctumId: number;
+            mythIds: string[];
+        };
+
+        if (typeof sanctumId !== "number") {
+            return res.status(400).json({ error: "sanctumId requerido" });
+        }
+        if (!Array.isArray(mythIds) || mythIds.length === 0) {
+            return res.status(400).json({ error: "mythIds debe ser un array con 1-5 IDs" });
+        }
+
+        const result = await challengeSanctum(req.user!.userId, sanctumId, mythIds);
         res.json(result);
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        res.status(400).json({ error: e.message });
     }
 });
 

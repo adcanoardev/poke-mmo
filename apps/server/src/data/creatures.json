@@ -7677,16 +7677,16 @@
         "id": "028",
         "slug": "embralith",
         "name": "Embralith",
-        "affinities": ["EMBER", "STONE"],
+        "affinities": ["EMBER"],
         "rarity": "ELITE",
-        "height": 1.5,
-        "weight": 380.0,
-        "description": "Coloso de roca ígnea que custodia las entrañas de los volcanes de Mythara. Ha absorbido siglos de calor geotérmico en su coraza.",
+        "height": 1.8,
+        "weight": 420.0,
+        "description": "Coloso de roca ígnea que custodia las entrañas de los volcanes de Mythara. Pocos saben que bajo su coraza duerme algo mucho más antiguo que el fuego mismo.",
         "baseStats": {
-            "hp": 155,
-            "atk": 105,
-            "def": 118,
-            "spd": 32,
+            "hp": 158,
+            "atk": 108,
+            "def": 122,
+            "spd": 30,
             "critChance": 12,
             "critDamage": 155
         },
@@ -7697,36 +7697,36 @@
         },
         "moves": [
             {
-                "id": "embralith_puño_ígneo",
+                "id": "embralith_puno_igneo",
                 "name": "Puño Ígneo",
                 "affinity": "EMBER",
                 "type": "physical",
-                "power": 60,
+                "power": 62,
                 "accuracy": 100,
                 "cooldown": 0,
                 "effect": null,
-                "description": "Golpea con su puño de roca incandescente dejando un cráter."
+                "description": "Golpea con su puño de roca incandescente. El impacto deja un cráter ardiente."
             },
             {
                 "id": "embralith_erupcion",
                 "name": "Erupción",
                 "affinity": "EMBER",
                 "type": "special",
-                "power": 112,
+                "power": 110,
                 "accuracy": 90,
                 "cooldown": 2,
                 "effect": {
                     "type": "apply_status",
                     "status": "burn",
                     "target": "all_enemies",
-                    "chance": 70
+                    "chance": 65
                 },
-                "description": "Erupciona lava líquida desde grietas en su cuerpo pudiendo quemar a todos los rivales."
+                "description": "Erupciona lava desde grietas en su coraza quemando a todos los rivales en el campo."
             },
             {
-                "id": "embralith_fortaleza_ígnea",
+                "id": "embralith_fortaleza_ignea",
                 "name": "Fortaleza Ígnea",
-                "affinity": "STONE",
+                "affinity": "EMBER",
                 "type": "support",
                 "power": 0,
                 "accuracy": 100,
@@ -7735,24 +7735,24 @@
                     {
                         "type": "shield",
                         "target": "all_allies",
-                        "value": 40,
+                        "value": 38,
                         "duration": 3
                     },
                     {
-                        "type": "apply_status",
-                        "status": "burn",
-                        "target": "all_enemies",
-                        "chance": 50
+                        "type": "boost_def",
+                        "target": "all_allies",
+                        "value": 30,
+                        "duration": 2
                     }
                 ],
-                "description": "Crea una fortaleza de roca volcánica que protege a los aliados mientras el calor abrasa a los rivales."
+                "description": "Levanta muros de roca volcánica que protegen a todos los aliados y refuerzan su defensa."
             },
             {
                 "id": "embralith_cataclismo",
                 "name": "Cataclismo",
-                "affinity": "STONE",
+                "affinity": "EMBER",
                 "type": "special",
-                "power": 152,
+                "power": 148,
                 "accuracy": 85,
                 "cooldown": 4,
                 "effect": [
@@ -7766,93 +7766,94 @@
                         "type": "apply_status",
                         "status": "stun",
                         "target": "all_enemies",
-                        "chance": 55
+                        "chance": 50
                     }
                 ],
-                "description": "Desata un cataclismo volcánico que quema y aturde a todos los rivales con la furia de la tierra."
+                "description": "Desata un cataclismo volcánico de escala sísmica. Quema y aturde a todos los rivales con la furia de la tierra."
             }
         ],
         "distortion": [
             {
                 "triggerTurn": 5,
                 "rarity": "LEGENDARY",
-                "slug": "ignaroth_prime",
-                "name": "Ignaroth Prime",
-                "affinities": ["EMBER", "STONE"],
-                "height": 1.9,
-                "weight": 1200.0,
-                "description": "El volcán supremo. Ignaroth Prime es la encarnación de todas las erupciones de Mythara. Su sola aparición reconfigura la geografía del campo de batalla.",
+                "slug": "seraphon",
+                "name": "Seraphon",
+                "affinities": ["EMBER", "ASTRAL"],
+                "height": 2.2,
+                "weight": 0,
+                "description": "La coraza volcánica se quiebra. De entre las llamas emerge Seraphon — el ángel caído que ardió durante eones atrapado en el núcleo del mundo. Sus alas de fuego astral rasgaron el cielo de Mythara antes de ser encadenado. Ahora recuerda.",
                 "baseStats": {
-                    "hp": 200,
-                    "atk": 148,
-                    "def": 155,
-                    "spd": 28,
-                    "critChance": 14,
-                    "critDamage": 165
+                    "hp": 205,
+                    "atk": 152,
+                    "def": 135,
+                    "spd": 52,
+                    "critChance": 18,
+                    "critDamage": 175
                 },
                 "art": {
-                    "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/ignaroth_prime_portrait.png",
-                    "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/ignaroth_prime_front.png",
-                    "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/ignaroth_prime_back.png"
+                    "portrait": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/seraphon_portrait.png",
+                    "front": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/seraphon_front.png",
+                    "back": "https://cdn.jsdelivr.net/gh/adcanoardev/mythara-assets@main/myths/028/seraphon_back.png"
                 },
                 "moves": [
                     {
-                        "id": "embralith_puño_ígneo",
+                        "id": "embralith_puno_igneo",
                         "name": "Puño Ígneo",
                         "affinity": "EMBER",
                         "type": "physical",
-                        "power": 60,
+                        "power": 62,
                         "accuracy": 100,
                         "cooldown": 0,
                         "effect": null,
-                        "description": "Golpea con su puño de roca incandescente dejando un cráter."
+                        "description": "Golpea con su puño de roca incandescente. El impacto deja un cráter ardiente."
                     },
                     {
                         "id": "embralith_erupcion",
                         "name": "Erupción",
                         "affinity": "EMBER",
                         "type": "special",
-                        "power": 112,
+                        "power": 110,
                         "accuracy": 90,
                         "cooldown": 2,
                         "effect": {
                             "type": "apply_status",
                             "status": "burn",
                             "target": "all_enemies",
-                            "chance": 70
+                            "chance": 65
                         },
-                        "description": "Erupciona lava líquida desde grietas en su cuerpo pudiendo quemar a todos los rivales."
+                        "description": "Erupciona lava desde grietas en su coraza quemando a todos los rivales en el campo."
                     },
                     {
-                        "id": "ignaroth_prime_tectonica",
-                        "name": "Tectónica",
-                        "affinity": "STONE",
-                        "type": "support",
-                        "power": 0,
-                        "accuracy": 100,
+                        "id": "seraphon_juicio_astral",
+                        "name": "Juicio Astral",
+                        "affinity": "ASTRAL",
+                        "type": "special",
+                        "power": 118,
+                        "accuracy": 95,
                         "cooldown": 3,
                         "effect": [
                             {
-                                "type": "shield",
-                                "target": "all_allies",
-                                "value": 50,
-                                "duration": 4
+                                "type": "apply_status",
+                                "status": "burn",
+                                "target": "all_enemies",
+                                "chance": 70
                             },
                             {
-                                "type": "regen",
-                                "target": "all_allies",
-                                "value": 18,
-                                "duration": 4
+                                "type": "debuff_spd",
+                                "target": "all_enemies",
+                                "value": 30,
+                                "duration": 2,
+                                "chance": 80
                             }
                         ],
-                        "description": "Reconfigura el campo de batalla a nivel tectónico creando una fortaleza natural que protege y regenera a todos los aliados."
+                        "description": "Desciende desde el plano astral envuelto en llamas sagradas. El impacto quema y ralentiza a todos los rivales con el peso del juicio divino."
                     },
                     {
-                        "id": "ignaroth_prime_fin_del_mundo",
-                        "name": "Fin del Mundo",
-                        "affinity": "EMBER",
+                        "id": "seraphon_apocalipsis_serafico",
+                        "name": "Apocalipsis Seráfico",
+                        "affinity": "ASTRAL",
                         "type": "special",
-                        "power": 195,
+                        "power": 200,
                         "accuracy": 80,
                         "cooldown": 4,
                         "effect": [
@@ -7860,13 +7861,13 @@
                                 "type": "apply_status",
                                 "status": "burn",
                                 "target": "all_enemies",
-                                "chance": 95
+                                "chance": 100
                             },
                             {
                                 "type": "apply_status",
-                                "status": "stun",
+                                "status": "fear",
                                 "target": "all_enemies",
-                                "chance": 70
+                                "chance": 75
                             },
                             {
                                 "type": "debuff_def",
@@ -7876,7 +7877,7 @@
                                 "chance": 100
                             }
                         ],
-                        "description": "Desata el apocalipsis volcánico: una erupción de escala planetaria que quema, aturde y destruye las defensas de todos los rivales."
+                        "description": "Seraphon despliega sus alas de fuego astral y desata el apocalipsis. Una tormenta de luz sagrada y llamas eternas quema, aterra y destruye las defensas de todos los rivales. El cielo llora."
                     }
                 ]
             }

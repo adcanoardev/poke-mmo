@@ -19,6 +19,7 @@ import {
 } from "../services/nurseryService.js";
 import { openFragment } from "../services/fragmentService.js";
 import { getCreature } from "../services/creatureService.js";
+import { calcBinderLevel } from "../services/sanctumService.js";
 
 const router = Router();
 
@@ -43,7 +44,23 @@ router.get("/trainer/me", requireAuth, async (req, res) => {
             where: { id: req.user!.userId },
             select: { username: true },
         });
-        res.json({ ...trainer, username: user?.username ?? null, rank: getRank(trainer.level) });
+
+        // binderLevel siempre recalculado desde XP — no confiar en el campo guardado
+        const binderLevel = calcBinderLevel(trainer.xp);
+
+        // sanctumClears — garantizar array de 8 elementos
+        const rawClears: number[] = (trainer as any).sanctumClears ?? [];
+        const sanctumClears = rawClears.length === 8
+            ? rawClears
+            : [...rawClears, ...new Array(8 - rawClears.length).fill(0)];
+
+        res.json({
+            ...trainer,
+            username: user?.username ?? null,
+            rank: getRank(trainer.level),
+            binderLevel,
+            sanctumClears,
+        });
     } catch { res.status(500).json({ error: "Internal error" }); }
 });
 

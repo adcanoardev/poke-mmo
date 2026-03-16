@@ -62,6 +62,10 @@ model TrainerProfile {
   avatarFrame        String   @default("none")
   unlockedFrames     String[] @default([])
 
+  // Progresión Sanctums
+  binderLevel        Int      @default(1)   // nivel del Binder (1-40), calculado desde xp
+  sanctumClears      Int[]    @default([])  // índice i = nº victorias en Sanctum i
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
