@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
+import { useTrainer } from "../context/TrainerContext";
+import PageTopbar from "../components/PageTopbar";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AFFINITY_COLORS: Record<string, string> = {
@@ -81,6 +83,7 @@ function StatRow({ label, value, color = "rgba(255,255,255,0.7)" }: {
 // ─── ProfilePage ─────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { guildTag } = useTrainer();
   const [trainer, setTrainer] = useState<any>(null);
   const [party, setParty] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -146,6 +149,12 @@ export default function ProfilePage() {
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ background:"#070b14", fontFamily:"'Exo 2',sans-serif" }}>
+      {/* Ambient BG */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div style={{ position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 50% at 50% -10%,rgba(123,47,255,0.06) 0%,transparent 60%)" }} />
+          <div style={{ position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)",backgroundSize:"40px 40px" }} />
+      </div>
+      <PageTopbar title="Profile" />
       {/* ── Username change modal ── */}
       {showUsernameModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -269,6 +278,11 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 mb-0.5">
               <span className="font-black text-xl md:text-2xl tracking-wide"
                 style={{ fontFamily: "'Rajdhani',sans-serif", color: "var(--text-primary)" }}>
+                {guildTag && (
+                  <span style={{ color: "#7b2fff", marginRight: 4, fontWeight: 900, letterSpacing: ".08em" }}>
+                    [{guildTag}]
+                  </span>
+                )}
                 {user?.username ?? "—"}
               </span>
               <button onClick={() => setShowUsernameModal(true)}

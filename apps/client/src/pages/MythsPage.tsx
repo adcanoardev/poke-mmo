@@ -1,7 +1,8 @@
-import { useNavigate } from "react-router-dom";
 // apps/client/src/pages/MythsPage.tsx
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../lib/api";
+import PageShell from "../components/PageShell";
+import PageTopbar from "../components/PageTopbar";
 
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -444,7 +445,6 @@ const ALL_AFFINITIES: Affinity[] = [
 // ─── MythsPage ────────────────────────────────────────────────────────────────
 
 export default function MythsPage() {
-    const navigate = useNavigate();
     const [creatures, setCreatures] = useState<Creature[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -477,28 +477,23 @@ export default function MythsPage() {
     );
 
     return (
-        <div className="fixed inset-0 flex flex-col" style={{ background:"#070b14" }}>
-            {/* ── Header ── */}
-            <div className="shrink-0 px-6 pt-5 pb-3 border-b border-[#1e2d45]">
-                <div className="flex items-center justify-between mb-3">
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight">Arcanum</h1>
-                        <p className="text-[#F7FFFB] text-xs mt-0.5">
-                            {loading ? "Loading…" : `${filtered.length} de ${creatures.length} Myths registrados`}
-                        </p>
-                    </div>
+        <PageShell>
+            <PageTopbar
+                title="Myths"
+                right={
                     <input
                         type="text"
                         placeholder="Name or #id…"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-48 bg-[#0f1923] border border-[#1e2d45] rounded-lg px-3 py-1.5 text-sm placeholder-[#F7FFFB] focus:outline-none focus:border-[#4cc9f0] transition-colors"
-                        style={{ color: "#fff" }}
+                        className="w-32 md:w-48 rounded-lg px-3 py-1.5 focus:outline-none transition-colors"
+                        style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"var(--text-primary)", fontSize:"var(--font-sm)" }}
                     />
-                </div>
+                }
+            />
 
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-2">
+            {/* Filters */}
+            <div className="relative flex-shrink-0 flex flex-wrap items-center gap-2 px-4 md:px-6 py-2 border-b" style={{ borderColor:"rgba(255,255,255,0.06)", background:"rgba(4,8,15,0.7)" }}>
                     {/* Rarity chips */}
                     <div className="flex flex-wrap gap-1.5">
                         <button
@@ -550,11 +545,10 @@ export default function MythsPage() {
                             );
                         })}
                     </div>
-                </div>
             </div>
 
             {/* ── Grid ── */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="relative flex-1 overflow-y-auto px-4 md:px-6 py-4" style={{ scrollbarWidth:"none" }}>
                 {loading && (
                     <div
                         className="grid gap-3"
@@ -592,6 +586,6 @@ export default function MythsPage() {
 
             {/* ── Modal ── */}
             {selected && <MythModal myth={selected} onClose={() => setSelected(null)} />}
-        </div>
+        </PageShell>
     );
 }

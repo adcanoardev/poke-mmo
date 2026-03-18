@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTrainer } from "../context/TrainerContext";
+import PageTopbar from "../components/PageTopbar";
 import { useMapDrag } from "../hooks/useMapDrag";
 import { api } from "../lib/api";
 
@@ -155,26 +156,32 @@ export default function SanctuariesPage() {
                 }
             `}</style>
 
-            {/* Header */}
-            <div className="flex-shrink-0 px-4 py-2.5 border-b border-border flex items-center justify-between">
-                <h1 className="font-display font-bold text-lg tracking-widest">
-                    🏛️ <span className="text-yellow">Sanctuaries</span>
-                </h1>
-                <div className="flex items-center gap-2">
-                    {result && (
-                        <span className={`px-2.5 py-1 rounded-xl border font-display font-bold text-xs
-                            ${result.result === "WIN" ? "border-green/30 text-green bg-green/10" : "border-red/30 text-red bg-red/10"}`}>
-                            {result.result === "WIN" ? "🏆 Victory" : "💀 Defeat"}
-                            {result.xpGained != null && (
-                                <span className="text-muted font-normal ml-1.5">+{result.xpGained} XP</span>
-                            )}
-                        </span>
-                    )}
-                    <span className="px-2.5 py-1 rounded-xl border border-border bg-card font-display text-xs text-muted">
-                        Lv <span className="text-yellow font-bold">{binderLevel}</span>
-                    </span>
-                </div>
+            {/* Ambient BG */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div style={{ position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 50% at 50% -10%,rgba(123,47,255,0.06) 0%,transparent 60%)" }} />
+                <div style={{ position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)",backgroundSize:"40px 40px" }} />
             </div>
+
+            {/* Header */}
+            <PageTopbar
+                title={<span className="font-display font-bold text-lg tracking-widest">🏛️ <span className="text-yellow">Sanctuaries</span></span>}
+                right={
+                    <div className="flex items-center gap-2">
+                        {result && (
+                            <span className={`px-2.5 py-1 rounded-xl border font-display font-bold text-xs
+                                ${result.result === "WIN" ? "border-green/30 text-green bg-green/10" : "border-red/30 text-red bg-red/10"}`}>
+                                {result.result === "WIN" ? "🏆 Victory" : "💀 Defeat"}
+                                {result.xpGained != null && (
+                                    <span className="text-muted font-normal ml-1.5">+{result.xpGained} XP</span>
+                                )}
+                            </span>
+                        )}
+                        <span className="px-2.5 py-1 rounded-xl border border-border bg-card font-display text-xs text-muted">
+                            Lv <span className="text-yellow font-bold">{binderLevel}</span>
+                        </span>
+                    </div>
+                }
+            />
 
             {/* Draggable map */}
             <div

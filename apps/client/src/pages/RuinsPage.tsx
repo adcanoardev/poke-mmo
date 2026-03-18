@@ -1,6 +1,6 @@
 // apps/client/src/pages/RuinsPage.tsx
-import { useNavigate } from "react-router-dom";
 import { useTrainer } from "../context/TrainerContext";
+import PageTopbar from "../components/PageTopbar";
 
 // ─── Zone config ──────────────────────────────────────────────────────────────
 interface Zone {
@@ -162,88 +162,45 @@ const ZONE_ART: Record<string, () => JSX.Element> = {
 
 // ─── RuinsPage ────────────────────────────────────────────────────────────────
 export default function RuinsPage() {
-  const navigate = useNavigate();
   const { tokens } = useTrainer();
   const tok = tokens as any;
   const pveCount = tok?.npcTokens ?? 0;
   const pveMax = tok?.npcMax ?? 10;
 
   return (
-    <div
-      className="fixed inset-0 flex flex-col"
-      style={{ background: "#070b14", fontFamily: "'Exo 2', sans-serif" }}
-    >
+    <div className="fixed inset-0 flex flex-col" style={{ background:"#070b14", fontFamily:"'Exo 2', sans-serif" }}>
       {/* ── Ambient background ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Deep purple glow top-left */}
-        <div className="absolute" style={{
-          width: "60%", height: "55%", top: "-10%", left: "-15%",
-          background: "radial-gradient(ellipse, rgba(88,28,135,0.12) 0%, transparent 70%)",
-        }} />
-        {/* Red glow bottom-right */}
-        <div className="absolute" style={{
-          width: "50%", height: "45%", bottom: "-5%", right: "-10%",
-          background: "radial-gradient(ellipse, rgba(127,29,29,0.1) 0%, transparent 70%)",
-        }} />
-        {/* Scan lines texture */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px)",
-        }} />
-        {/* Floating rune particles */}
+        <div className="absolute" style={{ width:"60%",height:"55%",top:"-10%",left:"-15%", background:"radial-gradient(ellipse, rgba(88,28,135,0.12) 0%, transparent 70%)" }} />
+        <div className="absolute" style={{ width:"50%",height:"45%",bottom:"-5%",right:"-10%", background:"radial-gradient(ellipse, rgba(127,29,29,0.1) 0%, transparent 70%)" }} />
+        <div className="absolute inset-0" style={{ backgroundImage:"repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px)" }} />
         {[...Array(8)].map((_, i) => (
           <div key={i} className="absolute rounded-full" style={{
-            width: i % 3 === 0 ? 3 : 2,
-            height: i % 3 === 0 ? 3 : 2,
+            width: i % 3 === 0 ? 3 : 2, height: i % 3 === 0 ? 3 : 2,
             background: i % 2 === 0 ? "#a78bfa" : "#f87171",
             boxShadow: `0 0 8px ${i % 2 === 0 ? "#a78bfa" : "#f87171"}`,
-            left: `${10 + i * 11}%`,
-            top: `${15 + (i % 4) * 18}%`,
-            animation: `nurseryXP ${2.8 + i * 0.35}s ease-in-out infinite ${i * 0.5}s`,
-            opacity: 0.5,
+            left: `${10 + i * 11}%`, top: `${15 + (i % 4) * 18}%`,
+            animation: `nurseryXP ${2.8 + i * 0.35}s ease-in-out infinite ${i * 0.5}s`, opacity: 0.5,
           }} />
         ))}
       </div>
 
-      {/* ── Top bar ── */}
-      <div
-        className="relative flex-shrink-0 flex items-center justify-between px-4 md:px-6"
-        style={{
-          height: 48,
-          background: "rgba(4,8,15,0.95)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95"
-          style={{ color: "var(--text-secondary)", fontSize: "var(--font-sm)", fontFamily: "monospace" }}
-        >
-          <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-          <span className="tracking-widest uppercase">City</span>
-        </button>
-
-        <div className="flex flex-col items-center">
-          <span className="tracking-[0.22em] uppercase font-black"
-            style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "var(--font-lg)", color: "var(--text-primary)" }}>
-            The Ruins
-          </span>
-          <span className="tracking-widest uppercase"
-            style={{ fontSize: "var(--font-2xs)", color: "var(--text-muted)", fontFamily: "monospace" }}>
-            PvE · Exploration
-          </span>
-        </div>
-
-        {/* Energy counter */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-          style={{ background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.2)" }}>
-          <span style={{ fontSize: "var(--font-base)" }}>⚡</span>
-          <span className="font-mono font-bold tabular-nums"
-            style={{ fontSize: "var(--font-sm)", color: "#7dd3fc" }}>
-            {pveCount}<span style={{ opacity: 0.35 }}>/{pveMax}</span>
-          </span>
-        </div>
-      </div>
+      <PageTopbar
+        title={
+          <div className="flex flex-col items-center">
+            <span className="tracking-[0.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:"var(--font-lg)", color:"var(--text-primary)" }}>The Ruins</span>
+            <span className="tracking-widest uppercase" style={{ fontSize:"var(--font-2xs)", color:"var(--text-muted)", fontFamily:"monospace" }}>PvE · Exploration</span>
+          </div>
+        }
+        right={
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background:"rgba(14,165,233,0.08)", border:"1px solid rgba(14,165,233,0.2)" }}>
+            <span style={{ fontSize:"var(--font-base)" }}>⚡</span>
+            <span className="font-mono font-bold tabular-nums" style={{ fontSize:"var(--font-sm)", color:"#7dd3fc" }}>
+              {pveCount}<span style={{ opacity:0.35 }}>/{pveMax}</span>
+            </span>
+          </div>
+        }
+      />
 
       {/* ── Zone cards ── */}
       <div className="relative flex-1 flex flex-col md:flex-row items-stretch gap-0 overflow-hidden">

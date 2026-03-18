@@ -1,9 +1,9 @@
 // apps/client/src/pages/GuildPage.tsx
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useTrainer } from "../context/TrainerContext";
 import ConfirmModal from "../components/ConfirmModal";
+import PageTopbar from "../components/PageTopbar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface GuildMember {
@@ -712,8 +712,6 @@ function HasGuildView({ guild, tab, setTab, actionLoading, onLeave, quests, ques
 
 // ─── GuildPage ────────────────────────────────────────────────────────────────
 export default function GuildPage() {
-  const navigate = useNavigate();
-
   const { reload: reloadTrainer } = useTrainer();
 
   const [myGuild, setMyGuild] = useState<GuildData | null>(null);
@@ -853,80 +851,40 @@ export default function GuildPage() {
   }
 
   return (
-    <div
-      className="fixed inset-0 flex flex-col"
-      style={{ background: "#070b14", fontFamily: "'Exo 2', sans-serif" }}
-    >
+    <div className="fixed inset-0 flex flex-col" style={{ background:"#070b14", fontFamily:"'Exo 2', sans-serif" }}>
       {/* ── Ambient background ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute" style={{
-          width: "55%", height: "50%", top: "-10%", right: "-10%",
-          background: "radial-gradient(ellipse, rgba(80,20,120,0.1) 0%, transparent 70%)",
-        }} />
-        <div className="absolute" style={{
-          width: "45%", height: "40%", bottom: "-5%", left: "-5%",
-          background: "radial-gradient(ellipse, rgba(20,60,100,0.09) 0%, transparent 70%)",
-        }} />
-        <div className="absolute inset-0" style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.007) 3px, rgba(255,255,255,0.007) 4px)",
-        }} />
+        <div className="absolute" style={{ width:"55%",height:"50%",top:"-10%",right:"-10%", background:"radial-gradient(ellipse, rgba(80,20,120,0.1) 0%, transparent 70%)" }} />
+        <div className="absolute" style={{ width:"45%",height:"40%",bottom:"-5%",left:"-5%", background:"radial-gradient(ellipse, rgba(20,60,100,0.09) 0%, transparent 70%)" }} />
+        <div className="absolute inset-0" style={{ backgroundImage:"repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.007) 3px, rgba(255,255,255,0.007) 4px)" }} />
         {[...Array(6)].map((_, i) => (
           <div key={i} className="absolute rounded-full" style={{
-            width: i % 3 === 0 ? 3 : 2,
-            height: i % 3 === 0 ? 3 : 2,
+            width: i % 3 === 0 ? 3 : 2, height: i % 3 === 0 ? 3 : 2,
             background: i % 2 === 0 ? "#7b2fff" : "#4cc9f0",
             boxShadow: `0 0 8px ${i % 2 === 0 ? "#7b2fff" : "#4cc9f0"}`,
-            left: `${10 + i * 15}%`,
-            top: `${15 + (i % 3) * 25}%`,
-            animation: `nurseryXP ${3.5 + i * 0.4}s ease-in-out infinite ${i * 0.6}s`,
-            opacity: 0.4,
+            left: `${10 + i * 15}%`, top: `${15 + (i % 3) * 25}%`,
+            animation: `nurseryXP ${3.5 + i * 0.4}s ease-in-out infinite ${i * 0.6}s`, opacity: 0.4,
           }} />
         ))}
       </div>
 
-      {/* ── Top bar ── */}
-      <div
-        className="relative flex-shrink-0 flex items-center justify-between px-4 md:px-6"
-        style={{
-          height: 48,
-          background: "rgba(4,8,15,0.95)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95"
-          style={{ color: "var(--text-secondary)", fontSize: "var(--font-sm)", fontFamily: "monospace" }}
-        >
-          <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-          <span className="tracking-widest uppercase hidden sm:inline">City</span>
-        </button>
-
-        <div className="flex flex-col items-center">
-          <span className="tracking-[0.22em] uppercase font-black"
-            style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "var(--font-lg)", color: "var(--text-primary)" }}>
-            Guild
-          </span>
-          <span className="tracking-widest uppercase"
-            style={{ fontSize: "var(--font-2xs)", color: "var(--text-muted)", fontFamily: "monospace" }}>
-            {myGuild ? myGuild.name : "No Guild"}
-          </span>
-        </div>
-
-        {/* Guild tag or status */}
-        {myGuild ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-            style={{ background: `${myGuild.banner}12`, border: `1px solid ${myGuild.banner}35` }}>
-            <span className="font-mono font-bold tabular-nums tracking-widest"
-              style={{ fontSize: "var(--font-sm)", color: myGuild.banner }}>
+      <PageTopbar
+        title={
+          <div className="flex flex-col items-center">
+            <span className="tracking-[0.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:"var(--font-lg)", color:"var(--text-primary)" }}>Guild</span>
+            <span className="tracking-widest uppercase" style={{ fontSize:"var(--font-2xs)", color:"var(--text-muted)", fontFamily:"monospace" }}>
+              {myGuild ? myGuild.name : "No Guild"}
+            </span>
+          </div>
+        }
+        right={myGuild ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background:`${myGuild.banner}12`, border:`1px solid ${myGuild.banner}35` }}>
+            <span className="font-mono font-bold tabular-nums tracking-widest" style={{ fontSize:"var(--font-sm)", color:myGuild.banner }}>
               [{myGuild.tag}]
             </span>
           </div>
-        ) : (
-          <div style={{ width: 60 }} />
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* ── Main content ── */}
       {myGuild

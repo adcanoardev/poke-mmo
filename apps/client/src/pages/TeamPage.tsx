@@ -1,7 +1,7 @@
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-
 import { api } from "../lib/api";
+import PageShell from "../components/PageShell";
+import PageTopbar from "../components/PageTopbar";
 
 interface MythInstance {
     id: string;
@@ -221,19 +221,10 @@ export default function TeamPage() {
         dragIdRef.current = null;
         saveParty(newParty);
     }
-    const navigate = useNavigate();
     return (
-        <div className="fixed inset-0 flex flex-col" style={{ background:"#070b14", fontFamily:"'Exo 2',sans-serif" }}>
-            {/* Topbar */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-6" style={{ height:48, background:"rgba(4,8,15,0.97)", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
-                <button onClick={() => navigate("/")} className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95" style={{ color:"var(--text-secondary)", fontSize: "var(--font-sm)", fontFamily:"monospace" }}>
-                    <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-                    <span className="tracking-widest uppercase hidden sm:inline">City</span>
-                </button>
-                <span className="tracking-[0.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize: "var(--font-lg)", color:"var(--text-primary)" }}>Team</span>
-                <div style={{ width:60 }} />
-            </div>
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b" style={{ borderColor:"rgba(255,255,255,0.06)" }}>
+        <PageShell>
+            <PageTopbar title="Team" />
+            <div className="relative flex-shrink-0 flex items-center justify-between px-4 py-2 border-b" style={{ borderColor:"rgba(255,255,255,0.06)" }}>
                 <span className="text-sm font-bold" style={{ color:"var(--text-primary)" }}>🐾 Active Team</span>
                 {msg && (
                     <span
@@ -245,7 +236,7 @@ export default function TeamPage() {
                 )}
             </div>
 
-            <div className="flex-1 flex overflow-hidden p-6 gap-6">
+            <div className="relative flex-1 flex overflow-hidden p-6 gap-6">
                 {/* Active Team */}
                 <div className="w-64 flex-shrink-0 flex flex-col gap-3">
                     <div className="font-display font-bold text-sm tracking-widest text-white uppercase mb-1">
@@ -336,6 +327,6 @@ export default function TeamPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </PageShell>
     );
 }

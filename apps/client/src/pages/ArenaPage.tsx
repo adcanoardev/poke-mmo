@@ -1,6 +1,6 @@
 // apps/client/src/pages/ArenaPage.tsx
-import { useNavigate } from "react-router-dom";
 import { useTrainer } from "../context/TrainerContext";
+import PageTopbar from "../components/PageTopbar";
 
 // ─── Mode config ──────────────────────────────────────────────────────────────
 interface ArenaMode {
@@ -171,7 +171,6 @@ const MODE_ART: Record<string, () => JSX.Element> = {
 
 // ─── ArenaPage ────────────────────────────────────────────────────────────────
 export default function ArenaPage() {
-  const navigate = useNavigate();
   const { tokens } = useTrainer();
   const tok = tokens as any;
   const pvpCount = tok?.pvpTokens ?? 0;
@@ -184,75 +183,36 @@ export default function ArenaPage() {
     >
       {/* ── Ambient background ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Gold glow top-right */}
-        <div className="absolute" style={{
-          width: "55%", height: "50%", top: "-10%", right: "-10%",
-          background: "radial-gradient(ellipse, rgba(120,80,10,0.12) 0%, transparent 70%)",
-        }} />
-        {/* Blue glow bottom-left */}
-        <div className="absolute" style={{
-          width: "45%", height: "40%", bottom: "-5%", left: "-5%",
-          background: "radial-gradient(ellipse, rgba(14,100,160,0.1) 0%, transparent 70%)",
-        }} />
-        {/* Scan lines */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.007) 3px, rgba(255,255,255,0.007) 4px)",
-        }} />
-        {/* Particles */}
+        <div className="absolute" style={{ width:"55%",height:"50%",top:"-10%",right:"-10%", background:"radial-gradient(ellipse, rgba(120,80,10,0.12) 0%, transparent 70%)" }} />
+        <div className="absolute" style={{ width:"45%",height:"40%",bottom:"-5%",left:"-5%", background:"radial-gradient(ellipse, rgba(14,100,160,0.1) 0%, transparent 70%)" }} />
+        <div className="absolute inset-0" style={{ backgroundImage:"repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.007) 3px, rgba(255,255,255,0.007) 4px)" }} />
         {[...Array(8)].map((_, i) => (
           <div key={i} className="absolute rounded-full" style={{
-            width: i % 3 === 0 ? 3 : 2,
-            height: i % 3 === 0 ? 3 : 2,
+            width: i % 3 === 0 ? 3 : 2, height: i % 3 === 0 ? 3 : 2,
             background: i % 2 === 0 ? "#f59e0b" : "#38bdf8",
             boxShadow: `0 0 8px ${i % 2 === 0 ? "#f59e0b" : "#38bdf8"}`,
-            left: `${8 + i * 12}%`,
-            top: `${12 + (i % 4) * 20}%`,
-            animation: `nurseryXP ${3 + i * 0.3}s ease-in-out infinite ${i * 0.45}s`,
-            opacity: 0.45,
+            left: `${8 + i * 12}%`, top: `${12 + (i % 4) * 20}%`,
+            animation: `nurseryXP ${3 + i * 0.3}s ease-in-out infinite ${i * 0.45}s`, opacity: 0.45,
           }} />
         ))}
       </div>
 
-      {/* ── Top bar ── */}
-      <div
-        className="relative flex-shrink-0 flex items-center justify-between px-4 md:px-6"
-        style={{
-          height: 48,
-          background: "rgba(4,8,15,0.95)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95"
-          style={{ color: "var(--text-secondary)", fontSize: "var(--font-sm)", fontFamily: "monospace" }}
-        >
-          <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-          <span className="tracking-widest uppercase">City</span>
-        </button>
-
-        <div className="flex flex-col items-center">
-          <span className="tracking-[0.22em] uppercase font-black"
-            style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "var(--font-lg)", color: "var(--text-primary)" }}>
-            The Arena
-          </span>
-          <span className="tracking-widest uppercase"
-            style={{ fontSize: "var(--font-2xs)", color: "var(--text-muted)", fontFamily: "monospace" }}>
-            PvP · Combat
-          </span>
-        </div>
-
-        {/* PvP energy counter */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
-          <span style={{ fontSize: "var(--font-base)" }}>⚔️</span>
-          <span className="font-mono font-bold tabular-nums"
-            style={{ fontSize: "var(--font-sm)", color: "#fcd34d" }}>
-            {pvpCount}<span style={{ opacity: 0.35 }}>/{pvpMax}</span>
-          </span>
-        </div>
-      </div>
+      <PageTopbar
+        title={
+          <div className="flex flex-col items-center">
+            <span className="tracking-[0.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:"var(--font-lg)", color:"var(--text-primary)" }}>The Arena</span>
+            <span className="tracking-widest uppercase" style={{ fontSize:"var(--font-2xs)", color:"var(--text-muted)", fontFamily:"monospace" }}>PvP · Combat</span>
+          </div>
+        }
+        right={
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background:"rgba(245,158,11,0.08)", border:"1px solid rgba(245,158,11,0.2)" }}>
+            <span style={{ fontSize:"var(--font-base)" }}>⚔️</span>
+            <span className="font-mono font-bold tabular-nums" style={{ fontSize:"var(--font-sm)", color:"#fcd34d" }}>
+              {pvpCount}<span style={{ opacity:0.35 }}>/{pvpMax}</span>
+            </span>
+          </div>
+        }
+      />
 
       {/* ── Mode cards ── */}
       <div className="relative flex-1 flex flex-col md:flex-row items-stretch gap-0 overflow-hidden">

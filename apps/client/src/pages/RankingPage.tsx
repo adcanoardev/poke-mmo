@@ -1,8 +1,10 @@
 // apps/client/src/pages/RankingPage.tsx
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
+import { useTrainer } from "../context/TrainerContext";
+import PageShell from "../components/PageShell";
+import PageTopbar from "../components/PageTopbar";
 
 const RANK_COLORS: Record<string, string> = {
     Champion:  "#ffd60a",
@@ -14,7 +16,7 @@ const RANK_COLORS: Record<string, string> = {
 
 export default function RankingPage() {
     const { user }  = useAuth();
-    const navigate  = useNavigate();
+    const { guildTag: myGuildTag } = useTrainer();
     const [data, setData] = useState<any>(null);
 
     useEffect(() => { api.ranking().then(setData); }, []);
@@ -24,25 +26,17 @@ export default function RankingPage() {
     const myPos = data?.myPosition;
 
     return (
-        <div className="fixed inset-0 flex flex-col" style={{ background:"#070b14", fontFamily:"'Exo 2',sans-serif" }}>
-            {/* Topbar */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-6" style={{ height:48, background:"rgba(4,8,15,0.97)", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
-                <button onClick={() => navigate("/")} className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95" style={{ color:"var(--text-secondary)", fontSize: "var(--font-sm)", fontFamily:"monospace" }}>
-                    <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-                    <span className="tracking-widest uppercase hidden sm:inline">City</span>
-                </button>
-                <div className="flex items-center gap-3">
-                    <span className="tracking-[0.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize: "var(--font-lg)", color:"var(--text-primary)" }}>Ranking</span>
-                    {myPos && (
-                        <span className="font-mono text-xs px-2 py-0.5 rounded-lg" style={{ background:"rgba(255,214,10,0.08)", border:"1px solid rgba(255,214,10,0.2)", color:"var(--accent-gold)" }}>
-                            #{myPos}
-                        </span>
-                    )}
-                </div>
-                <div style={{ width:60 }} />
-            </div>
+        <PageShell ambientColor="rgba(255,214,10,0.05)">
+            <PageTopbar
+                title="Ranking"
+                right={myPos ? (
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-lg" style={{ background:"rgba(255,214,10,0.08)", border:"1px solid rgba(255,214,10,0.2)", color:"var(--accent-gold)" }}>
+                        #{myPos}
+                    </span>
+                ) : undefined}
+            />
 
-            <div className="flex-1 flex gap-4 p-4 md:p-6 overflow-hidden min-h-0">
+            <div className="relative flex-1 flex gap-4 p-4 md:p-6 overflow-hidden min-h-0">
                 {/* Podium */}
                 <div className="w-48 md:w-56 flex-shrink-0 flex flex-col gap-3 overflow-y-auto" style={{ scrollbarWidth:"none" }}>
                     {[top3[0], top3[1], top3[2]].map((trainer: any, i: number) => {
@@ -53,7 +47,14 @@ export default function RankingPage() {
                             <div key={trainer.userId} className="rounded-2xl p-4 text-center"
                                 style={{ background:"rgba(255,255,255,0.03)", border:`1px solid ${i===0?"rgba(255,214,10,0.3)":"rgba(255,255,255,0.07)"}`, boxShadow:i===0?"0 0 16px rgba(255,214,10,0.08)":"none" }}>
                                 <div style={{ fontSize:28, marginBottom:4 }}>{medals[i]}</div>
-                                <div className="font-bold text-sm" style={{ color:"var(--text-primary)" }}>{trainer.username}</div>
+                                <div className="font-bold text-sm" style={{ color:"var(--text-primary)" }}>
+                                    {trainer.guildTag && (
+                                        <span style={{ color:"#7b2fff",marginRight:3,fontWeight:900,fontSize:"var(--font-xs)",letterSpacing:".08em" }}>
+                                            [{trainer.guildTag}]
+                                        </span>
+                                    )}
+                                    {trainer.username}
+                                </div>
                                 <div className="font-black text-xl mt-1" style={{ color:rColor, fontFamily:"'Rajdhani',sans-serif" }}>{trainer.prestige}</div>
                                 <div className="text-xs" style={{ color:rColor }}>{trainer.rank}</div>
                             </div>
@@ -74,6 +75,11 @@ export default function RankingPage() {
                                 <div key={trainer.userId} className="grid px-4 py-3 border-b" style={{ gridTemplateColumns:"40px 1fr 60px 80px", gap:12, borderColor:"rgba(255,255,255,0.04)", background:isMe?"rgba(255,214,10,0.04)":"transparent" }}>
                                     <span className="font-mono text-sm" style={{ color:isMe?"#ffd60a":"rgba(255,255,255,0.35)" }}>{trainer.position}</span>
                                     <div className="flex items-center gap-2 min-w-0">
+                                        {trainer.guildTag && (
+                                            <span className="font-mono flex-shrink-0" style={{ fontSize:"var(--font-xs)",color:"#7b2fff",fontWeight:900,letterSpacing:".08em" }}>
+                                                [{trainer.guildTag}]
+                                            </span>
+                                        )}
                                         <span className="font-semibold text-sm truncate" style={{ color:"var(--text-primary)" }}>{trainer.username}</span>
                                         {isMe && <span className="text-xs flex-shrink-0" style={{ color:"var(--accent-gold)" }}>(you)</span>}
                                     </div>
@@ -88,6 +94,6 @@ export default function RankingPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </PageShell>
     );
 }

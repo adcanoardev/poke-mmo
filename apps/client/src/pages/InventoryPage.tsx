@@ -1,7 +1,8 @@
 // apps/client/src/pages/InventoryPage.tsx
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import PageShell from "../components/PageShell";
+import PageTopbar from "../components/PageTopbar";
 
 const ITEM_ICONS: Record<string, string> = {
     FRAGMENT:"🔴", SHARD:"🔵", CRYSTAL:"⚫", RUNE:"🟣",
@@ -39,7 +40,6 @@ const CATEGORIES: Record<string, string[]> = {
 };
 
 export default function InventoryPage() {
-    const navigate = useNavigate();
     const [inventory, setInventory] = useState<any[]>([]);
     const [filter, setFilter] = useState("All");
 
@@ -48,19 +48,11 @@ export default function InventoryPage() {
     const filtered = filter === "All" ? inventory : inventory.filter(i => CATEGORIES[filter]?.includes(i.item));
 
     return (
-        <div className="fixed inset-0 flex flex-col" style={{ background:"#070b14", fontFamily:"'Exo 2',sans-serif" }}>
-            {/* Topbar */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-6" style={{ height:48, background:"rgba(4,8,15,0.97)", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
-                <button onClick={() => navigate("/")} className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95" style={{ color:"var(--text-secondary)", fontSize: "var(--font-sm)", fontFamily:"monospace" }}>
-                    <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-                    <span className="tracking-widest uppercase hidden sm:inline">City</span>
-                </button>
-                <span className="tracking-[0.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize: "var(--font-lg)", color:"var(--text-primary)" }}>Inventory</span>
-                <div style={{ width:60 }} />
-            </div>
+        <PageShell>
+            <PageTopbar title="Inventory" />
 
             {/* Filter bar */}
-            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor:"rgba(255,255,255,0.06)" }}>
+            <div className="relative flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor:"rgba(255,255,255,0.06)" }}>
                 {["All", ...Object.keys(CATEGORIES)].map(cat => (
                     <button key={cat} onClick={() => setFilter(cat)}
                         className="px-3 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-all"
@@ -76,7 +68,7 @@ export default function InventoryPage() {
             </div>
 
             {/* Grid */}
-            <div className="flex-1 p-4 overflow-y-auto" style={{ scrollbarWidth:"none" }}>
+            <div className="relative flex-1 p-4 overflow-y-auto" style={{ scrollbarWidth:"none" }}>
                 {filtered.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center gap-3">
                         <div style={{ fontSize:48 }}>📦</div>
@@ -109,6 +101,6 @@ export default function InventoryPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </PageShell>
     );
 }

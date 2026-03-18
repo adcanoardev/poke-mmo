@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import PageTopbar from "../components/PageTopbar";
 
 const IMAGES = {
     mine:    "https://raw.githubusercontent.com/adcanoardev/mythara-assets/refs/heads/main/tavern/mina.avif",
@@ -677,42 +678,26 @@ function NurseryCard() {
 
 // ─── OutpostPage ──────────────────────────────────────────────────────────────
 export default function OutpostPage() {
-    const navigate = useNavigate();
     return (
-        <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ background: "#060b14", fontFamily: "'Exo 2',sans-serif" }}>
+        <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ background: "#070b14", fontFamily: "'Exo 2',sans-serif" }}>
             <style>{`
                 @keyframes collectFlash { 0%{opacity:1} 100%{opacity:0} }
             `}</style>
 
-            {/* Ambient particles */}
+            {/* Ambient BG */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-                {[...Array(10)].map((_,i) => (
-                    <div key={i} className="absolute rounded-full"
-                        style={{ width: 3, height: 3, background: "rgba(255,255,255,0.07)", left: `${8+i*9}%`, top: `${10+(i%5)*18}%`, animation: `nurseryXP ${3+i*0.4}s ease-in-out infinite ${i*0.5}s`, opacity: 0.3 }}/>
-                ))}
+                <div style={{ position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 50% at 50% -10%,rgba(123,47,255,0.06) 0%,transparent 60%)" }} />
+                <div style={{ position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)",backgroundSize:"40px 40px" }} />
             </div>
 
-            {/* Top bar */}
-            <div className="relative flex-shrink-0 flex items-center justify-between px-5 md:px-7"
-                style={{ height: 52, background: "rgba(4,8,15,0.97)", borderBottom: "1px solid rgba(255,255,255,0.06)", zIndex: 10 }}>
-                <button onClick={() => navigate("/")}
-                    className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95"
-                    style={{ color: "var(--text-secondary)", fontSize: "var(--font-base)", fontFamily: "monospace" }}>
-                    <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-                    <span className="tracking-widest uppercase">City</span>
-                </button>
-                <div className="flex flex-col items-center">
-                    <span className="tracking-[0.22em] uppercase font-black"
-                        style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: 16, color: "var(--text-primary)" }}>
-                        Outpost
-                    </span>
-                    <span className="tracking-widest uppercase"
-                        style={{ fontSize: "var(--font-xs)", color: "var(--text-muted)", fontFamily: "monospace" }}>
-                        Mine · Lab · Nursery
-                    </span>
-                </div>
-                <div style={{ width: 72 }}/>
-            </div>
+            <PageTopbar
+                title={
+                    <div className="flex flex-col items-center">
+                        <span className="tracking-[0.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:"var(--font-lg)", color:"var(--text-primary)" }}>Outpost</span>
+                        <span className="tracking-widest uppercase" style={{ fontSize:"var(--font-2xs)", color:"var(--text-muted)", fontFamily:"monospace" }}>Mine · Lab · Nursery</span>
+                    </div>
+                }
+            />
 
             {/* 3-column grid */}
             <div className="relative flex-1 grid grid-cols-1 md:grid-cols-3 overflow-hidden p-3 md:p-4 gap-3 md:gap-4" style={{ zIndex: 1 }}>

@@ -1,7 +1,7 @@
 // apps/client/src/pages/TavernPage.tsx
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import PageTopbar from "../components/PageTopbar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface DistortionEntry {
@@ -442,7 +442,6 @@ const INV_ITEMS = [
 ];
 
 export default function TavernPage() {
-    const navigate = useNavigate();
     const [myths, setMyths] = useState<Myth[]>([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<Myth | null>(null);
@@ -497,7 +496,7 @@ export default function TavernPage() {
 
     return (
         <div className="fixed inset-0 flex flex-col overflow-hidden"
-            style={{ background: "#060b14", fontFamily: "'Exo 2',sans-serif" }}>
+            style={{ background: "#070b14", fontFamily: "'Exo 2',sans-serif" }}>
             <style>{`
                 @media (min-width: 768px) {
                     .tvn-card-name  { font-size: 13px !important; }
@@ -553,26 +552,23 @@ export default function TavernPage() {
                 }
             `}</style>
 
-            {/* Top bar */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4"
-                style={{ height: 48, background: "rgba(4,8,15,.97)", borderBottom: "1px solid rgba(255,255,255,.06)", zIndex: 10 }}>
-                <button onClick={() => navigate("/")}
-                    className="flex items-center gap-2 transition-opacity hover:opacity-70 active:scale-95"
-                    style={{ color: "rgba(255,255,255,.45)", fontSize: "var(--font-sm)", fontFamily: "monospace" }}>
-                    <span style={{ fontSize: "var(--font-xs)" }}>◀</span>
-                    <span className="tracking-widest uppercase">City</span>
-                </button>
-                <div className="flex flex-col items-center">
-                    <span className="tracking-[.22em] uppercase font-black"
-                        style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "var(--font-lg)", color: "var(--text-primary)" }}>Tavern</span>
-                    <span className="tracking-widest uppercase"
-                        style={{ fontSize: "var(--font-2xs)", color: "rgba(255,255,255,.22)", fontFamily: "monospace" }}>My Myths · Inventory</span>
-                </div>
-                <div style={{ width: 72 }} />
+            {/* Ambient BG */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div style={{ position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 50% at 50% -10%,rgba(123,47,255,0.06) 0%,transparent 60%)" }} />
+                <div style={{ position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)",backgroundSize:"40px 40px" }} />
             </div>
 
+            <PageTopbar
+                title={
+                    <div className="flex flex-col items-center">
+                        <span className="tracking-[.22em] uppercase font-black" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:"var(--font-lg)", color:"var(--text-primary)" }}>Tavern</span>
+                        <span className="tracking-widest uppercase" style={{ fontSize:"var(--font-2xs)", color:"var(--text-muted)", fontFamily:"monospace" }}>My Myths · Inventory</span>
+                    </div>
+                }
+            />
+
             {/* Main: 3 columns */}
-            <div className="flex-1 flex overflow-hidden min-h-0">
+            <div className="relative flex-1 flex overflow-hidden min-h-0">
 
                 {/* ── LEFT: myth card grid / inventory ── */}
                 <div className="flex flex-col overflow-hidden flex-shrink-0"

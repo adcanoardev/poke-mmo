@@ -18,13 +18,14 @@ router.get("/ranking", requireAuth, async (req, res) => {
         const top = await prisma.trainerProfile.findMany({
             orderBy: { prestige: "desc" },
             take: 50,
-            include: { user: { select: { username: true } } },
+            include: { user: { select: { username: true } }, guild: { select: { tag: true } } },
         });
 
         const ranking = top.map((t, i) => ({
             position: i + 1,
             userId: t.userId,
             username: t.user.username,
+            guildTag: t.guild?.tag ?? null,
             prestige: t.prestige,
             rank: getPrestigeRank(t.prestige),
             level: t.level,

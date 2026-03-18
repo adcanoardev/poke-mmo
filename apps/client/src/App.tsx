@@ -43,6 +43,7 @@ import RankingPage      from "./pages/RankingPage";
 import RuinsPage        from "./pages/RuinsPage";
 import ArenaPage        from "./pages/ArenaPage";
 import GuildPage        from "./pages/GuildPage";
+import MarketPage       from "./pages/MarketPage";
 import ChatPanel        from "./components/ChatPanel";
 
 // Placeholder for pages not yet implemented
@@ -56,13 +57,13 @@ function ComingSoon({ name }: { name: string }) {
   );
 }
 
-// Rutas que usan Layout (ya tienen el botón chat en el topbar)
-const LAYOUT_ROUTES = ["/profile", "/team", "/inventory", "/myths", "/ranking", "/sanctuaries"];
-
+// Todas las páginas son fullscreen landscape con topbar propio — no hay Layout wrapper
 function ChatButtonFloating({ user, onOpen }: { user: any; onOpen: () => void }) {
   const location = useLocation();
-  const hasLayout = LAYOUT_ROUTES.some(r => location.pathname.startsWith(r));
-  if (!user || hasLayout) return null;
+  // No mostrar en páginas que ya tienen el botón integrado en su topbar
+  const pagesWithOwnChat = ["/tavern", "/outpost", "/guild", "/arena", "/ruins", "/market", "/battle"];
+  const hasOwnChat = pagesWithOwnChat.some(r => location.pathname.startsWith(r));
+  if (!user || hasOwnChat) return null;
   return (
     <button
       onClick={onOpen}
@@ -123,11 +124,11 @@ export default function App() {
       <Route path="/ruins"   element={guard(<RuinsPage />)} />
       <Route path="/tavern"  element={guard(<TavernPage />)} />
       <Route path="/nexus"   element={guard(<ComingSoon name="NEXUS" />)} />
-      <Route path="/market"  element={guard(<ComingSoon name="MARKET" />)} />
+      <Route path="/market"  element={guard(<MarketPage />)} />
       <Route path="/guild"   element={guard(<GuildPage />)} />
       <Route path="/arcanum" element={guard(<ComingSoon name="ARCANUM" />)} />
 
-      {/* ── Game pages — with Layout ──────────────────────────── */}
+      {/* ── Game pages — fullscreen, no Layout ──────────────── */}
       <Route path="/battle"      element={user ? <BattlePage /> : <Navigate to="/login" />} />
       <Route path="/outpost"     element={guard(<OutpostPage />)} />
       <Route path="/inn"         element={<Navigate to="/outpost" />} />

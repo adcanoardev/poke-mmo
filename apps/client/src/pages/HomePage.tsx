@@ -176,7 +176,7 @@ export default function HomePage() {
                     {/* Name + rank + power + XP */}
                     <div style={{ minWidth:0,pointerEvents:"none" }}>
                         <div style={{ fontFamily:"Rajdhani,sans-serif",fontWeight:700,fontSize:22,color:"#fff",lineHeight:1.1,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textShadow:"0 1px 6px rgba(0,0,0,.9)" }}>
-                            {guildTag && <span style={{ color:"rgba(255,255,255,.45)",marginRight:3 }}>[{guildTag}]</span>}
+                            {guildTag && <span style={{ color:"#7b2fff",marginRight:3,fontWeight:900,letterSpacing:".08em" }}>[{guildTag}]</span>}
                             {username}
                         </div>
                         <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:3 }}>
@@ -303,7 +303,7 @@ export default function HomePage() {
                                 </div>
                                 <div style={{ flex:1,minWidth:0 }}>
                                     <div style={{ fontFamily:"Rajdhani,sans-serif",fontWeight:900,fontSize:20,color:"var(--text-primary)",letterSpacing:".04em" }}>
-                                        {guildTag && <span style={{ color:"rgba(255,255,255,.38)",marginRight:4 }}>[{guildTag}]</span>}
+                                        {guildTag && <span style={{ color:"#7b2fff",marginRight:4,fontWeight:900,letterSpacing:".08em" }}>[{guildTag}]</span>}
                                         {username}
                                     </div>
                                     <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:3 }}>
