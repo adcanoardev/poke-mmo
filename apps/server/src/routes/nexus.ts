@@ -1,6 +1,6 @@
 // apps/server/src/routes/nexus.ts
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 import { getActiveBanner, getTrainerPity, pullEssences } from "../services/nexusService.js";
 
 const router = Router();

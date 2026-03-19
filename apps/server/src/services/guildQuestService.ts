@@ -5,11 +5,11 @@ import { prisma } from "./prisma.js";
 // ─── Quest templates ──────────────────────────────────────────────────────────
 
 const QUEST_TEMPLATES = [
-  { type: "WIN_BATTLES"     as const, description: "Win battles (NPC or PvP)",    target: 30  },
-  { type: "OPEN_FRAGMENTS"  as const, description: "Open fragment capsules",       target: 15  },
-  { type: "COLLECT_MINE"    as const, description: "Collect from the Mine",        target: 20  },
-  { type: "COMPLETE_SANCTUM"as const, description: "Complete Sanctum runs",        target: 10  },
-  { type: "WIN_PVP"         as const, description: "Win PvP ranked matches",       target: 10  },
+  { type: "WIN_BATTLES"      as const, description: "Win battles (NPC or PvP)",  target: 30 },
+  { type: "OPEN_ESSENCES"    as const, description: "Open Essences at the Nexus", target: 15 },
+  { type: "COLLECT_MINE"     as const, description: "Collect from the Mine",      target: 20 },
+  { type: "COMPLETE_SANCTUM" as const, description: "Complete Sanctum runs",      target: 10 },
+  { type: "WIN_PVP"          as const, description: "Win PvP ranked matches",     target: 10 },
 ];
 
 // Guild XP per quest completion
@@ -42,7 +42,6 @@ export async function getOrCreateDailyQuests(guildId: string) {
 
   if (existing.length >= 3) return existing;
 
-  // Elegir 3 quests aleatoriamente sin repetir
   const shuffled = [...QUEST_TEMPLATES].sort(() => Math.random() - 0.5).slice(0, 3);
 
   await prisma.guildQuest.createMany({
@@ -63,7 +62,6 @@ export async function getOrCreateDailyQuests(guildId: string) {
 }
 
 // ─── contributeToQuest ────────────────────────────────────────────────────────
-// Llamado desde battleService, mineService, etc. cuando ocurre el evento
 
 export async function contributeToQuest(
   userId: string,
@@ -91,13 +89,11 @@ export async function contributeToQuest(
     }),
   ]);
 
-  // Si se completa la quest, dar XP a la guild
   if (quest.progress < quest.target && newProgress >= quest.target) {
     await prisma.guild.update({
       where: { id: guildId },
       data: { xp: { increment: QUEST_XP } },
     });
-    // Recalcular nivel
     const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { xp: true } });
     if (guild) {
       const newLevel = calcGuildLevel(guild.xp);
@@ -124,22 +120,18 @@ export async function claimReward(
   const alreadyClaimed: string[] = (quest as any)[claimedField] ?? [];
   if (alreadyClaimed.includes(userId)) throw new Error("Already claimed");
 
-  // Dar recompensa
   const tokens = threshold === 50 ? 3 : 5;
   const gems   = threshold === 100 ? 5 : 0;
 
   await prisma.$transaction(async tx => {
-    // Marcar como reclamado
     await tx.guildQuest.update({
       where: { id: questId },
       data: { [claimedField]: { push: userId } },
     });
-    // Dar tokens NPC
     await tx.combatToken.update({
       where: { userId },
       data: { npcTokens: { increment: tokens } },
     });
-    // Dar gemas si 100%
     if (gems > 0) {
       await tx.trainerProfile.update({
         where: { userId },
@@ -152,7 +144,6 @@ export async function claimReward(
 }
 
 // ─── getDailyQuestsForUser ────────────────────────────────────────────────────
-// Devuelve las quests del día con contribución del usuario y si ya reclamó
 
 export async function getDailyQuestsForUser(userId: string, guildId: string) {
   const quests = await getOrCreateDailyQuests(guildId);
@@ -165,17 +156,17 @@ export async function getDailyQuestsForUser(userId: string, guildId: string) {
     const pct = Math.floor((q.progress / q.target) * 100);
 
     return {
-      id:           q.id,
-      type:         q.type,
-      description:  q.description,
-      target:       q.target,
-      progress:     q.progress,
+      id:          q.id,
+      type:        q.type,
+      description: q.description,
+      target:      q.target,
+      progress:    q.progress,
       pct,
       myContrib,
-      claimed50:    q.claimed50.includes(userId),
-      claimed100:   q.claimed100.includes(userId),
-      reward50:     q.reward50,
-      reward100:    q.reward100,
+      claimed50:   q.claimed50.includes(userId),
+      claimed100:  q.claimed100.includes(userId),
+      reward50:    q.reward50,
+      reward100:   q.reward100,
     };
   });
 }
