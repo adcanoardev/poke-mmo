@@ -14,6 +14,7 @@ import rankingRouter from "./routes/ranking.js";
 import onboardingRouter from "./routes/onboarding.js";
 import sanctumsRouter from "./routes/sanctums.js";
 import guildRouter from "./routes/guild.js";
+import nexusRouter from "./routes/nexus.js";
 
 export function createApp() {
     const app = express();
@@ -36,6 +37,7 @@ export function createApp() {
     app.use(sanctumsRouter);
     app.use("/onboarding", onboardingRouter);
     app.use(guildRouter);
+    app.use(nexusRouter);
 
     // 404 catch-all
     app.use((_req, res) => {

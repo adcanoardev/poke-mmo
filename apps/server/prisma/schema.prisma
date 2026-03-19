@@ -58,13 +58,21 @@ model TrainerProfile {
   gold               Int      @default(0)
   diamonds           Int      @default(0)
 
-  // Cosmetico - validado siempre en servidor
+  // Cosmético — validado siempre en servidor
   avatarFrame        String?
   unlockedFrames     String[] @default([])
 
   // Progresión Sanctums
   binderLevel        Int      @default(1)   // nivel del Binder (1-40), calculado desde xp
   sanctumClears      Int[]    @default([])  // índice i = nº victorias en Sanctum i
+
+  // Nexus — Essences e invocación
+  essences           Int      @default(0)
+  corruptedEssences  Int      @default(0)   // reservado para MYTHIC — desactivado en UI
+  pityRare           Int      @default(0)   // aperturas consecutivas sin RARE+
+  pityEpic           Int      @default(0)   // aperturas consecutivas sin EPIC+
+  pityElite          Int      @default(0)   // aperturas consecutivas sin ELITE+
+  pityLegendary      Int      @default(0)   // aperturas consecutivas sin LEGENDARY
 
   // Actividad
   lastSeen  DateTime @default(now())
@@ -76,6 +84,18 @@ model TrainerProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Nexus — Banner semanal ────────────────────────────────────
+
+model NexusBanner {
+  id             Int      @id @default(autoincrement())
+  startsAt       DateTime
+  endsAt         DateTime
+  boostedMythIds String[] // speciesIds de myths con tasa aumentada
+  isActive       Boolean  @default(true)
+
+  createdAt DateTime @default(now())
 }
 
 // ─── Guild ─────────────────────────────────────────────────────
@@ -101,7 +121,7 @@ model Guild {
 
 enum QuestType {
   WIN_BATTLES
-  OPEN_FRAGMENTS
+  OPEN_ESSENCES
   COLLECT_MINE
   COMPLETE_SANCTUM
   WIN_PVP
@@ -187,11 +207,11 @@ model Structure {
   lastCollected DateTime      @default(now())
 
   // Progresión de nivel
-  structureXp   Int      @default(0)  // XP acumulada hacia el siguiente nivel
-  
+  structureXp   Int      @default(0)
+
   // Mina: cap de diamantes azules por día
-  dailyDiamonds     Int      @default(0)  // cuántos diamantes se han recogido hoy
-  lastDiamondReset  DateTime @default(now()) // cuando se reinicia el contador diario
+  dailyDiamonds     Int      @default(0)
+  lastDiamondReset  DateTime @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -201,7 +221,7 @@ model Structure {
 
 enum StructureType {
   MINE
-  FRAGMENT_FORGE
+  FORGE
   LAB
   NURSERY
 }
@@ -220,7 +240,6 @@ model Inventory {
 }
 
 enum ItemType {
-  FRAGMENT
   SHARD
   CRYSTAL
   RUNE
@@ -239,11 +258,10 @@ enum ItemType {
   IRON_COAT
   SOVEREIGN_STONE
   CIPHER_CORE
-  // ─── Nuevos materiales de progresión ───
   BLUE_DIAMOND    // Mina → moneda futura de tienda (máx 15/día)
   ROCK_FRAGMENT   // Mina → material para subir nivel de Mina
-  ARCANE_GEAR     // Lab  → material para subir nivel de Forja
-  FLAME_CORE      // Forja → material para subir nivel de Guardería
+  ARCANE_GEAR     // Lab  → material para subir nivel de Forge
+  FLAME_CORE      // Forge → material para subir nivel de Nursery
 }
 
 // ─── Myths del jugador ────────────────────────────────────────
@@ -262,9 +280,9 @@ model CreatureInstance {
   attack    Int
   defense   Int
   speed     Int
-  accuracy  Int @default(100)  // Precisión base (0-100). 100 = nunca falla.
-  critChance Int @default(15)  // % probabilidad de golpe crítico (0-100)
-  critDamage Int @default(150) // Multiplicador crítico base. 150 = ×1.5. Fórmula escalable.
+  accuracy  Int @default(100)
+  critChance Int @default(15)
+  critDamage Int @default(150)
 
   isInParty Boolean @default(false)
   slot      Int?
