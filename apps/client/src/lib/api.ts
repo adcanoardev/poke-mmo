@@ -81,10 +81,10 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ avatar: avatarId, gender, starterId }),
         }),
+
     // Forge
     forgeStatus: () => request<any>("/forge/me"),
     forgeCollect: () => request<any>("/forge/collect", { method: "POST" }),
-    forgeOpen: () => request<any>("/forge/open", { method: "POST" }),
 
     // Lab
     labStatus: () => request<any>("/lab/me"),
@@ -126,4 +126,10 @@ export const api = {
     guildQuests: () => request<any[]>("/guild/quests"),
     guildClaimReward: (questId: string, threshold: 50 | 100) =>
         request<any>(`/guild/quests/${questId}/claim`, { method: "POST", body: JSON.stringify({ threshold }) }),
+
+    // Nexus
+    nexusBanner: () => request<any>("/nexus/banner"),
+    nexusPity: () => request<any>("/nexus/pity"),
+    nexusPull: (amount: 1 | 5) =>
+        request<any>("/nexus/pull", { method: "POST", body: JSON.stringify({ amount }) }),
 };

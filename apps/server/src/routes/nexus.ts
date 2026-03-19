@@ -19,7 +19,7 @@ router.get("/nexus/banner", requireAuth, async (req, res) => {
 // GET /nexus/pity — contadores pity del trainer autenticado
 router.get("/nexus/pity", requireAuth, async (req, res) => {
     try {
-        const userId = (req as any).userId as string;
+        const userId = req.user!.userId;
         const pity = await getTrainerPity(userId);
         res.json(pity);
     } catch (err) {
@@ -31,7 +31,7 @@ router.get("/nexus/pity", requireAuth, async (req, res) => {
 // POST /nexus/pull — body: { amount: 1 | 5 }
 router.post("/nexus/pull", requireAuth, async (req, res) => {
     try {
-        const userId = (req as any).userId as string;
+        const userId = req.user!.userId;
         const { amount } = req.body;
 
         if (amount !== 1 && amount !== 5) {

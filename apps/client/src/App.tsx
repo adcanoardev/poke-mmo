@@ -4,7 +4,7 @@ import { useAuth } from "./hooks/useAuth";
 import { api } from "./lib/api";
 
 // Guard: if there's an active battle, redirect to /battle.
-// Wraps all routes except /battle, /login, /onboarding, /fragment.
+// Wraps all routes except /battle, /login, /onboarding.
 function BattleGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,28 +28,28 @@ function BattleGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-import LoginPage        from "./pages/LoginPage";
-import OnboardingPage   from "./pages/OnboardingPage";
-import HomePage         from "./pages/HomePage";
-import BattlePage       from "./pages/BattlePage";
-import OutpostPage      from "./pages/OutpostPage";
-import TavernPage       from "./pages/TavernPage";
-import SanctuariesPage  from "./pages/SanctuariesPage";
-import ProfilePage      from "./pages/ProfilePage";
-import TeamPage         from "./pages/TeamPage";
-import InventoryPage    from "./pages/InventoryPage";
-import MythsPage        from "./pages/MythsPage";
-import RankingPage      from "./pages/RankingPage";
-import RuinsPage        from "./pages/RuinsPage";
-import ArenaPage        from "./pages/ArenaPage";
-import GuildPage        from "./pages/GuildPage";
-import MarketPage       from "./pages/MarketPage";
+import LoginPage           from "./pages/LoginPage";
+import OnboardingPage      from "./pages/OnboardingPage";
+import HomePage            from "./pages/HomePage";
+import BattlePage          from "./pages/BattlePage";
+import OutpostPage         from "./pages/OutpostPage";
+import TavernPage          from "./pages/TavernPage";
+import SanctuariesPage     from "./pages/SanctuariesPage";
+import ProfilePage         from "./pages/ProfilePage";
+import TeamPage            from "./pages/TeamPage";
+import InventoryPage       from "./pages/InventoryPage";
+import MythsPage           from "./pages/MythsPage";
+import RankingPage         from "./pages/RankingPage";
+import RuinsPage           from "./pages/RuinsPage";
+import ArenaPage           from "./pages/ArenaPage";
+import GuildPage           from "./pages/GuildPage";
+import MarketPage          from "./pages/MarketPage";
+import NexusPage           from "./pages/NexusPage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
-import ChatPanel        from "./components/ChatPanel";
-import LoadingScreen    from "./components/LoadingScreen";
-import { useTrainer }   from "./context/TrainerContext";
+import ChatPanel           from "./components/ChatPanel";
+import LoadingScreen       from "./components/LoadingScreen";
+import { useTrainer }      from "./context/TrainerContext";
 
-// Placeholder for pages not yet implemented
 function ComingSoon({ name }: { name: string }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-bg">
@@ -60,11 +60,9 @@ function ComingSoon({ name }: { name: string }) {
   );
 }
 
-// Todas las páginas son fullscreen landscape con topbar propio — no hay Layout wrapper
 function ChatButtonFloating({ user, onOpen }: { user: any; onOpen: () => void }) {
   const location = useLocation();
-  // No mostrar en páginas que ya tienen el botón integrado en su topbar
-  const pagesWithOwnChat = ["/", "/tavern", "/outpost", "/guild", "/arena", "/ruins", "/market", "/battle", "/login", "/onboarding"];
+  const pagesWithOwnChat = ["/", "/tavern", "/outpost", "/guild", "/arena", "/ruins", "/market", "/battle", "/login", "/onboarding", "/nexus"];
   const hasOwnChat = pagesWithOwnChat.some(r => location.pathname === r || (r !== "/" && location.pathname.startsWith(r)));
   if (!user || hasOwnChat) return null;
   return (
@@ -97,13 +95,8 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  // Mostrar pantalla de carga mientras:
-  // - auth carga, O
-  // - el usuario existe pero el trainer aún no tiene datos, O
-  // - no han pasado 800ms mínimos
   if (loading || (user && !trainerReady) || !minTimePassed) return <LoadingScreen />;
 
-  // Helper: require auth + wrap with BattleGuard
   const guard = (el: React.ReactNode) =>
     user ? <BattleGuard>{el}</BattleGuard> : <Navigate to="/login" />;
 
@@ -111,51 +104,48 @@ export default function App() {
     <>
       <Routes>
         {/* ── Auth ─────────────────────────────────────────────── */}
-      <Route path="/login"      element={!user ? <LoginPage /> : <Navigate to="/" />} />
-      <Route path="/onboarding" element={user ? <OnboardingPage /> : <Navigate to="/login" />} />
+        <Route path="/login"      element={!user ? <LoginPage /> : <Navigate to="/" />} />
+        <Route path="/onboarding" element={user ? <OnboardingPage /> : <Navigate to="/login" />} />
 
-      {/* ── Home — fullscreen, no Layout ─────────────────────── */}
-      <Route
-        path="/"
-        element={
-          user
-            ? user.onboardingComplete
-              ? <BattleGuard><HomePage /></BattleGuard>
-              : <Navigate to="/onboarding" />
-            : <Navigate to="/login" />
-        }
-      />
+        {/* ── Home — fullscreen, no Layout ─────────────────────── */}
+        <Route
+          path="/"
+          element={
+            user
+              ? user.onboardingComplete
+                ? <BattleGuard><HomePage /></BattleGuard>
+                : <Navigate to="/onboarding" />
+              : <Navigate to="/login" />
+          }
+        />
 
-      {/* ── City districts — fullscreen, no Layout ───────────── */}
-      <Route path="/arena"   element={guard(<ArenaPage />)} />
-      <Route path="/ruins"   element={guard(<RuinsPage />)} />
-      <Route path="/tavern"  element={guard(<TavernPage />)} />
-      <Route path="/nexus"   element={guard(<ComingSoon name="NEXUS" />)} />
-      <Route path="/market"  element={guard(<MarketPage />)} />
-      <Route path="/guild"   element={guard(<GuildPage />)} />
-      <Route path="/arcanum" element={guard(<ComingSoon name="ARCANUM" />)} />
+        {/* ── City districts — fullscreen, no Layout ───────────── */}
+        <Route path="/arena"   element={guard(<ArenaPage />)} />
+        <Route path="/ruins"   element={guard(<RuinsPage />)} />
+        <Route path="/tavern"  element={guard(<TavernPage />)} />
+        <Route path="/nexus"   element={guard(<NexusPage />)} />
+        <Route path="/market"  element={guard(<MarketPage />)} />
+        <Route path="/guild"   element={guard(<GuildPage />)} />
+        <Route path="/arcanum" element={guard(<ComingSoon name="ARCANUM" />)} />
 
-      {/* ── Game pages — fullscreen, no Layout ──────────────── */}
-      <Route path="/battle"      element={user ? <BattlePage /> : <Navigate to="/login" />} />
-      <Route path="/outpost"     element={guard(<OutpostPage />)} />
-      <Route path="/inn"         element={<Navigate to="/outpost" />} />
-      <Route path="/sanctuaries" element={guard(<SanctuariesPage />)} />
-      <Route path="/profile"     element={guard(<ProfilePage />)} />
-      <Route path="/account"     element={guard(<AccountSettingsPage />)} />
-      <Route path="/team"        element={guard(<TeamPage />)} />
-      <Route path="/inventory"   element={guard(<InventoryPage />)} />
-      <Route path="/myths"       element={guard(<MythsPage />)} />
-      <Route path="/ranking"     element={guard(<RankingPage />)} />
+        {/* ── Game pages — fullscreen, no Layout ──────────────── */}
+        <Route path="/battle"      element={user ? <BattlePage /> : <Navigate to="/login" />} />
+        <Route path="/outpost"     element={guard(<OutpostPage />)} />
+        <Route path="/inn"         element={<Navigate to="/outpost" />} />
+        <Route path="/sanctuaries" element={guard(<SanctuariesPage />)} />
+        <Route path="/profile"     element={guard(<ProfilePage />)} />
+        <Route path="/account"     element={guard(<AccountSettingsPage />)} />
+        <Route path="/team"        element={guard(<TeamPage />)} />
+        <Route path="/inventory"   element={guard(<InventoryPage />)} />
+        <Route path="/myths"       element={guard(<MythsPage />)} />
+        <Route path="/ranking"     element={guard(<RankingPage />)} />
 
-      {/* ── Fallback ──────────────────────────────────────────── */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+        {/* ── Fallback ──────────────────────────────────────────── */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
 
-    {/* ── Global chat button — solo en páginas fullscreen (sin Layout) ── */}
-    <ChatButtonFloating user={user} onOpen={() => setChatOpen(true)} />
-
-    {/* ── Chat panel ── */}
-    {chatOpen && <ChatPanel onClose={() => setChatOpen(false)} />}
+      <ChatButtonFloating user={user} onOpen={() => setChatOpen(true)} />
+      {chatOpen && <ChatPanel onClose={() => setChatOpen(false)} />}
     </>
   );
 }

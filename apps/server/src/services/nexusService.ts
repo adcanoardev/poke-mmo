@@ -212,11 +212,13 @@ function resolvePityAndRoll(
         rarity = rollRarity();
     }
 
-    // Actualizar contadores — resetear el que se activó, incrementar el resto
-    const newPityRare      = rarity === "RARE" || isRarityAbove(rarity, "RARE")      ? 0 : nextRare;
-    const newPityEpic      = rarity === "EPIC" || isRarityAbove(rarity, "EPIC")      ? 0 : nextEpic;
-    const newPityElite     = rarity === "ELITE" || isRarityAbove(rarity, "ELITE")    ? 0 : nextElite;
-    const newPityLegendary = rarity === "LEGENDARY"                                   ? 0 : nextLegendary;
+    // Actualizar contadores:
+    // - Si la rareza obtenida ES la del contador o está por encima → resetear a 0
+    // - Si está por debajo → incrementar
+    const newPityRare      = RARITY_RANK[rarity] >= RARITY_RANK["RARE"]      ? 0 : nextRare;
+    const newPityEpic      = RARITY_RANK[rarity] >= RARITY_RANK["EPIC"]      ? 0 : nextEpic;
+    const newPityElite     = RARITY_RANK[rarity] >= RARITY_RANK["ELITE"]     ? 0 : nextElite;
+    const newPityLegendary = RARITY_RANK[rarity] >= RARITY_RANK["LEGENDARY"] ? 0 : nextLegendary;
 
     return { rarity, isPityGuarantee, newPityRare, newPityEpic, newPityElite, newPityLegendary };
 }
