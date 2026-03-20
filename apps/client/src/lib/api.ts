@@ -138,4 +138,11 @@ export const api = {
         request<any>("/auth/change-username", { method: "POST", body: JSON.stringify({ username }) }),
     changePassword: (currentPassword: string, newPassword: string) =>
         request<any>("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
+
+    // Mail
+    mail: () => request<{ messages: any[]; unreadCount: number }>("/mail"),
+    mailRead: (id: string) => request<any>(`/mail/${id}/read`, { method: "POST" }),
+    mailClaim: (id: string) => request<any>(`/mail/${id}/claim`, { method: "POST" }),
+    mailDelete: (id: string) => request<any>(`/mail/${id}`, { method: "DELETE" }),
+    mailReadAll: () => request<any>("/mail/read-all", { method: "POST" }),
 };

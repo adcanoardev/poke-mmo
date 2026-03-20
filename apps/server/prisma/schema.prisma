@@ -25,6 +25,9 @@ model User {
   structures     Structure[]
   creatures      CreatureInstance[]
   battleLogs     BattleLog[]
+  mailMessages   MailMessage[]
+  trainerItems   TrainerInventory[]
+  equipment      EquipmentInstance[]
 }
 
 model Game {
@@ -68,6 +71,8 @@ model TrainerProfile {
 
   // Nexus — Essences e invocación
   essences           Int      @default(0)
+  goldEssences       Int      @default(0)   // Gold Essence — pool EPIC+ garantizado
+  mythicEssences     Int      @default(0)   // reservado para futuro — desactivado en UI
   corruptedEssences  Int      @default(0)   // reservado para MYTHIC — desactivado en UI
   pityRare           Int      @default(0)   // aperturas consecutivas sin RARE+
   pityEpic           Int      @default(0)   // aperturas consecutivas sin EPIC+
@@ -323,4 +328,97 @@ enum BattleResult {
   WIN
   LOSE
   DRAW
+}
+
+// ─── MailBox ───────────────────────────────────────────────────
+
+enum MailType {
+  SYSTEM   // recompensas automáticas, resultados PvP, reset semanal
+  GUILD    // invitaciones, solicitudes de unión (para GM/Officers)
+  PROMO    // códigos promocionales, noticias
+}
+
+model MailMessage {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        MailType  @default(SYSTEM)
+  title       String
+  body        String
+  isRead      Boolean   @default(false)
+  claimedAt   DateTime?
+  expiresAt   DateTime  // 7 días por defecto al crear
+  createdAt   DateTime  @default(now())
+
+  // Adjuntos reclamables: { gold, diamonds, essences, goldEssences, items: [{itemSlug, qty}] }
+  attachments Json?
+  // Datos para botones de acción especiales (accept guild request, etc.)
+  actionData  Json?
+}
+
+// ─── Sistema de Ítems ──────────────────────────────────────────
+
+enum ItemCategory {
+  EQUIPMENT    // Weapon, Armor, Accessory
+  CONSUMABLE   // HP Potion, Revive, Boost Scroll, Shield Orb
+  ESSENCE      // Purple Essence, Gold Essence
+  MATERIAL     // Forge Stone, Crystal Shard, Ancient Rune
+  KEY          // Ruins Key, Tower Key
+  BOOSTER      // XP Booster, Gold Booster
+}
+
+model Item {
+  id          Int          @id @default(autoincrement())
+  slug        String       @unique  // "hp_potion", "forge_stone", etc.
+  name        String
+  description String       @default("")
+  category    ItemCategory
+  rarity      String       @default("COMMON")  // COMMON|RARE|EPIC|LEGENDARY
+  iconUrl     String       @default("")
+  isActive    Boolean      @default(true)
+
+  createdAt   DateTime     @default(now())
+
+  trainerItems TrainerInventory[]
+}
+
+// Inventario de ítems no-equipamiento (consumibles, materiales, keys, boosters, essences)
+model TrainerInventory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    Int
+  item      Item     @relation(fields: [itemId], references: [id])
+  quantity  Int      @default(1)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, itemId])
+}
+
+// Instancias de equipamiento (cada pieza tiene sus propios stats)
+model EquipmentInstance {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  itemId    Int      // referencia al template del ítem (Item.id)
+  level     Int      @default(1)   // 1–12
+  rarity    String   @default("COMMON")
+
+  // Stat principal (fijo, nunca cambia al subir nivel)
+  mainStat  String   // "ATK_PCT" | "DEF_PCT" | "HP_PCT" | "SPD" | "CRIT_RATE" | "CRIT_DMG"
+  mainValue Float
+
+  // Stats secundarios (se desbloquean/mejoran en niveles 4, 8, 12)
+  subStat1  String?  subValue1 Float?
+  subStat2  String?  subValue2 Float?
+  subStat3  String?  subValue3 Float?
+
+  // null = en inventario, cuid = myth que lo lleva equipado
+  equippedOn String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -9312,7 +9312,7 @@
                 "affinities": ["VENOM"],
                 "height": 1.2,
                 "weight": 32.0,
-                "description": "Venokrel evolves into a three-headed hydra, each head with a different type of venom: paralyzing, necrotic and corrosive.",
+                "description": git,
                 "baseStats": {
                     "hp": 108,
                     "atk": 88,

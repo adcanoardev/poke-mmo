@@ -47,6 +47,7 @@ import MarketPage          from "./pages/MarketPage";
 import NexusPage           from "./pages/NexusPage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import ChatPanel           from "./components/ChatPanel";
+import MailPanel           from "./components/MailPanel";
 import LoadingScreen       from "./components/LoadingScreen";
 import { useTrainer }      from "./context/TrainerContext";
 
@@ -60,27 +61,69 @@ function ComingSoon({ name }: { name: string }) {
   );
 }
 
-function ChatButtonFloating({ user, onOpen }: { user: any; onOpen: () => void }) {
+function ChatButtonFloating({ user, onOpenChat, onOpenMail, unreadMail }: {
+  user: any;
+  onOpenChat: () => void;
+  onOpenMail: () => void;
+  unreadMail: number;
+}) {
   const location = useLocation();
   const pagesWithOwnChat = ["/", "/tavern", "/outpost", "/guild", "/arena", "/ruins", "/market", "/battle", "/login", "/onboarding", "/nexus"];
   const hasOwnChat = pagesWithOwnChat.some(r => location.pathname === r || (r !== "/" && location.pathname.startsWith(r)));
   if (!user || hasOwnChat) return null;
   return (
-    <button
-      onClick={onOpen}
-      style={{
-        position: "fixed", top: 4, right: 12, zIndex: 500,
-        width: 40, height: 38, borderRadius: "30%",
-        background: "rgba(7,11,20,0.92)",
-        border: "2px solid rgba(123,47,255,0.35)",
-        color: "rgba(255,255,255,0.65)", fontSize: 16,
-        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 0 12px rgba(123,47,255,0.2)",
-      }}
-      title="Chat"
-    >
-      💬
-    </button>
+    <div style={{
+      position: "fixed", top: 4, right: 12, zIndex: 500,
+      display: "flex", gap: 6,
+    }}>
+      {/* Mail button */}
+      <button
+        onClick={onOpenMail}
+        style={{
+          position: "relative",
+          width: 40, height: 38, borderRadius: "30%",
+          background: "rgba(7,11,20,0.92)",
+          border: "2px solid rgba(103,232,249,0.35)",
+          color: "rgba(255,255,255,0.65)", fontSize: 16,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 0 12px rgba(103,232,249,0.15)",
+        }}
+        title="Mailbox"
+      >
+        ✉️
+        {unreadMail > 0 && (
+          <span style={{
+            position: "absolute", top: -5, right: -5,
+            minWidth: 16, height: 16, borderRadius: 8,
+            background: "#f87171",
+            color: "#fff",
+            fontSize: 9,
+            fontFamily: "monospace",
+            fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "0 3px",
+            border: "1.5px solid #070b14",
+          }}>
+            {unreadMail > 99 ? "99+" : unreadMail}
+          </span>
+        )}
+      </button>
+      {/* Chat button */}
+      <button
+        onClick={onOpenChat}
+        style={{
+          width: 40, height: 38, borderRadius: "30%",
+          background: "rgba(7,11,20,0.92)",
+          border: "2px solid rgba(123,47,255,0.35)",
+          color: "rgba(255,255,255,0.65)", fontSize: 16,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 0 12px rgba(123,47,255,0.2)",
+        }}
+        title="Chat"
+      >
+        💬
+      </button>
+    </div>
   );
 }
 
@@ -88,6 +131,8 @@ export default function App() {
   const { user, loading } = useAuth();
   const { trainerReady } = useTrainer();
   const [chatOpen, setChatOpen] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false);
+  const [unreadMail, setUnreadMail] = useState(0);
   const [minTimePassed, setMinTimePassed] = useState(false);
 
   useEffect(() => {
@@ -144,8 +189,9 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
 
-      <ChatButtonFloating user={user} onOpen={() => setChatOpen(true)} />
+      <ChatButtonFloating user={user} onOpenChat={() => setChatOpen(true)} onOpenMail={() => setMailOpen(true)} unreadMail={unreadMail} />
       {chatOpen && <ChatPanel onClose={() => setChatOpen(false)} />}
+      {mailOpen && <MailPanel onClose={() => setMailOpen(false)} onUnreadChange={setUnreadMail} />}
     </>
   );
 }
