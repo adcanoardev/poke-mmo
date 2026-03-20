@@ -1311,3 +1311,12 @@ html, body, #root {
 
 /* ── Divider ─────────────────────────────────────────────────── */
 .divider { height: 1px; background: var(--border); }
+
+/* ── Input focus highlight — LoginPage + AccountSettingsPage ── */
+/* Apply to any input in Mythara auth/settings forms            */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+    border-color: rgba(123, 47, 255, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(123, 47, 255, 0.15), 0 0 12px rgba(123, 47, 255, 0.1) !important;
+}

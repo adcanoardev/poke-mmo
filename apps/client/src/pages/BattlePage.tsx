@@ -1031,14 +1031,23 @@ function DistortionBar({
     myth: BattleMyth;
     info: { isFinal: true } | { isFinal: false; elapsed: number; interval: number; distortsThisTurn: boolean };
 }) {
-    const rarityColors: Record<string, { fill: string; dim: string; glow: string }> = {
-        COMMON:    { fill: "#a78bfa", dim: "#2e1065", glow: "#7c3aed"  },
-        RARE:      { fill: "#818cf8", dim: "#1e1b4b", glow: "#4f46e5"  },
-        EPIC:      { fill: "#c084fc", dim: "#3b0764", glow: "#9333ea"  },
-        ELITE:     { fill: "#e2e8f0", dim: "#1e293b", glow: "#94a3b8"  },
-        LEGENDARY: { fill: "#fbbf24", dim: "#451a03", glow: "#d97706"  },
-        MYTHIC:    { fill: "#f87171", dim: "#450a0a", glow: "#dc2626"  },
+    // Rarity colors — sourced from CSS variables (style.css :root --rarity-*)
+    const rarityKeys = ["COMMON","RARE","EPIC","ELITE","LEGENDARY","MYTHIC"] as const;
+    type RarityKey = typeof rarityKeys[number];
+    const raritySlug: Record<RarityKey, string> = {
+        COMMON: "common", RARE: "rare", EPIC: "epic",
+        ELITE: "elite", LEGENDARY: "legendary", MYTHIC: "mythic",
     };
+    const rarityColors: Record<string, { fill: string; dim: string; glow: string }> = Object.fromEntries(
+        rarityKeys.map(r => {
+            const s = raritySlug[r];
+            return [r, {
+                fill: `var(--rarity-${s}-color)`,
+                dim:  `var(--rarity-${s}-bg)`,
+                glow: `var(--rarity-${s}-glow)`,
+            }];
+        })
+    );
 
     // DIST MAX: usa rareza de la forma ACTUAL (ya es la última)
     if (info.isFinal) {
@@ -1746,14 +1755,21 @@ function ArenaMyth({
                             const af = myth.affinities?.[0];
                             const afCfg2 = af ? AFFINITY_CONFIG[af] : null;
                             const rar = myth.rarity ?? "COMMON";
-                            const rarColors2: Record<string, { color: string; border: string; bg: string }> = {
-                                COMMON:    { color: "#cbd5e1", border: "#475569",  bg: "rgba(71,85,105,0.2)"   },
-                                RARE:      { color: "#a5b4fc", border: "#6366f1",  bg: "rgba(99,102,241,0.2)"  },
-                                EPIC:      { color: "#d8b4fe", border: "#a855f7",  bg: "rgba(168,85,247,0.2)"  },
-                                ELITE:     { color: "var(--text-primary)", border: "#94a3b8",  bg: "rgba(148,163,184,0.2)" },
-                                LEGENDARY: { color: "#fde68a", border: "#fbbf24",  bg: "rgba(251,191,36,0.2)"  },
-                                MYTHIC:    { color: "#fca5a5", border: "#f87171",  bg: "rgba(248,113,113,0.2)" },
+                            // Rarity stats panel colors — CSS variables (style.css :root --rarity-*)
+                            const RARITY_SLUGS2: Record<string, string> = {
+                                COMMON: "common", RARE: "rare", EPIC: "epic",
+                                ELITE: "elite", LEGENDARY: "legendary", MYTHIC: "mythic",
                             };
+                            const rarColors2: Record<string, { color: string; border: string; bg: string }> = Object.fromEntries(
+                                Object.keys(RARITY_SLUGS2).map(r => {
+                                    const s = RARITY_SLUGS2[r];
+                                    return [r, {
+                                        color:  `var(--rarity-${s}-color)`,
+                                        border: `var(--rarity-${s}-border)`,
+                                        bg:     `var(--rarity-${s}-bgR)`,
+                                    }];
+                                })
+                            );
                             const rc2 = rarColors2[rar] ?? rarColors2.COMMON;
                             const pctPop = myth.maxHp > 0 ? Math.max(0, myth.hp / myth.maxHp) : 0;
                             const hpClrPop = pctPop > 0.5 ? "#4ade80" : pctPop > 0.25 ? "#fbbf24" : "#f87171";

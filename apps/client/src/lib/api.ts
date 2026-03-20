@@ -130,6 +130,12 @@ export const api = {
     // Nexus
     nexusBanner: () => request<any>("/nexus/banner"),
     nexusPity: () => request<any>("/nexus/pity"),
-    nexusPull: (amount: 1 | 5) =>
-        request<any>("/nexus/pull", { method: "POST", body: JSON.stringify({ amount }) }),
+    nexusPull: (amount: 1 | 5, essenceType: "purple" | "gold" = "purple") =>
+        request<any>("/nexus/pull", { method: "POST", body: JSON.stringify({ amount, essenceType }) }),
+
+    // Account
+    changeUsername: (username: string) =>
+        request<any>("/auth/change-username", { method: "POST", body: JSON.stringify({ username }) }),
+    changePassword: (currentPassword: string, newPassword: string) =>
+        request<any>("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
 };

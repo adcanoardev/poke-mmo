@@ -43,9 +43,11 @@ export default function AccountSettingsPage() {
     setChangingUsername(true);
     setUsernameMsg("");
     try {
-      await (api as any).changeUsername?.({ username: newUsername.trim() });
+      await api.changeUsername(newUsername.trim());
       setUsernameMsg("Username updated successfully!");
       setNewUsername("");
+      // Dispatch so TrainerContext/AuthProvider pick up the new username
+      window.dispatchEvent(new CustomEvent("auth:changed"));
     } catch (e: any) {
       setUsernameMsg(e.message ?? "Error updating username.");
     } finally {
@@ -69,7 +71,7 @@ export default function AccountSettingsPage() {
     setChangingPwd(true);
     setPwdMsg("");
     try {
-      await (api as any).changePassword?.({ currentPassword: currentPwd, newPassword: newPwd });
+      await api.changePassword(currentPwd, newPwd);
       setPwdMsg("Password changed successfully!");
       setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
     } catch (e: any) {

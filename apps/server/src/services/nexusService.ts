@@ -31,6 +31,7 @@ export interface PullResult {
     name:       string;
     rarity:     Rarity;
     affinities: string[];
+    moves:      any[];
     level:      number;
     maxHp:      number;
     attack:     number;
@@ -52,7 +53,19 @@ export async function getActiveBanner() {
         },
         orderBy: { startsAt: "desc" },
     });
-    return banner; // null si no hay ninguno activo
+    if (!banner) return null;
+
+    // Compute boostedRarity: highest rarity among the boosted myths
+    const allCreatures = getAllCreatures();
+    const boostedCreatures = allCreatures.filter(c => banner.boostedMythIds.includes(c.id));
+    let boostedRarity: Rarity = "COMMON";
+    for (const c of boostedCreatures) {
+        if (RARITY_RANK[c.rarity] > RARITY_RANK[boostedRarity]) {
+            boostedRarity = c.rarity;
+        }
+    }
+
+    return { ...banner, boostedRarity };
 }
 
 // ─── Pity del trainer ────────────────────────────────────────
@@ -147,6 +160,7 @@ export async function pullEssences(userId: string, amount: 1 | 5): Promise<PullR
             name:            species.name,
             rarity,
             affinities:      species.affinities,
+            moves:           (species as any).moves ?? [],
             level,
             maxHp,
             attack,

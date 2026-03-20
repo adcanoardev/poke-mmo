@@ -337,5 +337,5 @@ const inputStyle: React.CSSProperties = {
   color: "var(--text-primary, #e2e8f0)",
   outline: "none",
   fontFamily: "'Exo 2', sans-serif",
-  transition: "border-color 0.2s",
+  transition: "border-color 0.2s, box-shadow 0.2s",
 };
