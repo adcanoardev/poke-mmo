@@ -154,125 +154,133 @@ function cssParticles(c: HTMLElement, color: string, n = 22) {
     }
 }
 
-// ─── Essence: partículas flotando que forman un fragmento ─────
+// ─── Essence: fragmento 3D blanco/lila con partículas orbitales ──
 
 function EssenceFragment({ size }: { size: number }) {
     const h = size / 2;
-    // 28 partículas distribuidas en la silueta de un fragmento/cristal
-    const particles = Array.from({ length: 28 }, (_, i) => {
-        // Posiciones que forman la silueta de un fragmento
-        const t = (i / 28) * Math.PI * 2;
-        // Forma de fragmento irregular: radio variable
-        const r = h * (0.38 + 0.22 * Math.abs(Math.sin(t * 2.5)) + 0.08 * Math.sin(t * 4));
-        return {
-            x: h + Math.cos(t) * r * (0.75 + 0.25 * Math.random()),
-            y: h + Math.sin(t) * r * (0.85 + 0.15 * Math.random()) - h * 0.05,
-            size: 2 + Math.random() * 4,
-            color: i % 5 === 0 ? "#ffffff" : i % 5 === 1 ? "#c4b5fd" : i % 5 === 2 ? "#67e8f9" : i % 5 === 3 ? "#a78bfa" : "#7b2fff",
-            dur: `${1.8 + Math.random() * 2.4}s`,
-            delay: `${-i * 0.22}s`,
-            amp: 3 + Math.random() * 5, // amplitud del float
-        };
-    });
+    const s = size;
 
-    // Partículas internas más pequeñas que flotan libremente
-    const innerParticles = Array.from({ length: 16 }, (_, i) => {
-        const angle = (i / 16) * Math.PI * 2;
-        const r = h * (0.1 + Math.random() * 0.28);
-        return {
-            x: h + Math.cos(angle) * r,
-            y: h + Math.sin(angle) * r,
-            size: 1 + Math.random() * 2.5,
-            color: i % 3 === 0 ? "#e0d4ff" : i % 3 === 1 ? "#67e8f9" : "#c4b5fd",
-            dur: `${1.2 + Math.random() * 1.8}s`,
-            delay: `${-Math.random() * 3}s`,
-            amp: 6 + Math.random() * 8,
-        };
-    });
+    // Partículas que orbitan en distintos planos (efecto 3D CSS)
+    const orbits = [
+        { count: 8,  rx: h * 0.72, ry: h * 0.22, dur: "3.2s",  color: "#ffffff",  sz: 3.5, plane: "rotateX(70deg)" },
+        { count: 6,  rx: h * 0.58, ry: h * 0.38, dur: "4.8s",  color: "#c4b5fd",  sz: 3,   plane: "rotateX(30deg) rotateY(45deg)" },
+        { count: 5,  rx: h * 0.45, ry: h * 0.45, dur: "6.1s",  color: "#a78bfa",  sz: 2.5, plane: "rotateX(55deg) rotateZ(20deg)" },
+        { count: 10, rx: h * 0.82, ry: h * 0.16, dur: "2.6s",  color: "#e8d5ff",  sz: 2,   plane: "rotateX(82deg) rotateZ(40deg)" },
+        { count: 4,  rx: h * 0.35, ry: h * 0.28, dur: "7.4s",  color: "#67e8f9",  sz: 2,   plane: "rotateX(15deg) rotateY(70deg)" },
+    ];
 
     return (
-        <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-            {/* Glow radial de fondo — perfectamente redondo, sin bordes */}
-            <div style={{
-                position: "absolute",
-                inset: -size * 0.22,
-                borderRadius: "50%",
-                background: `radial-gradient(circle, rgba(123,47,255,0.22) 0%, rgba(76,201,240,0.08) 40%, transparent 68%)`,
-                animation: "nxGlow 3.5s ease-in-out infinite",
-                pointerEvents: "none",
-            }} />
+        <div style={{ position: "relative", width: s, height: s, flexShrink: 0 }}>
+            {/* Glow radial sin bordes */}
+            <div style={{ position: "absolute", inset: -s * 0.25, borderRadius: "50%", background: "radial-gradient(circle, rgba(200,180,255,0.18) 0%, rgba(123,47,255,0.12) 35%, rgba(76,201,240,0.05) 60%, transparent 72%)", animation: "nxGlow 3.5s ease-in-out infinite", pointerEvents: "none" }} />
 
-            {/* SVG: silueta central del fragmento (wireframe translúcido) */}
-            <svg viewBox={`0 0 ${size} ${size}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
+            {/* SVG del fragmento — forma de cristal irregular blanco/lila con efecto 3D */}
+            <svg viewBox={`0 0 ${s} ${s}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
                 <defs>
-                    <radialGradient id="fragCore" cx="40%" cy="35%" r="65%">
-                        <stop offset="0%"   stopColor="rgba(220,200,255,0.85)" />
-                        <stop offset="35%"  stopColor="rgba(123,47,255,0.55)" />
-                        <stop offset="75%"  stopColor="rgba(76,201,240,0.2)" />
-                        <stop offset="100%" stopColor="rgba(7,11,20,0)" />
-                    </radialGradient>
-                    <filter id="fragBlur"><feGaussianBlur stdDeviation="2.5" /></filter>
-                    <filter id="fragBlur2"><feGaussianBlur stdDeviation="1" /></filter>
+                    {/* Cara principal — blanco lila con gradiente */}
+                    <linearGradient id="fMain" x1="20%" y1="0%" x2="80%" y2="100%">
+                        <stop offset="0%"   stopColor="#f8f4ff" stopOpacity="0.97" />
+                        <stop offset="28%"  stopColor="#ddd0ff" stopOpacity="0.92" />
+                        <stop offset="58%"  stopColor="#a78bfa" stopOpacity="0.82" />
+                        <stop offset="88%"  stopColor="#7b2fff" stopOpacity="0.65" />
+                        <stop offset="100%" stopColor="#3b0080" stopOpacity="0.5" />
+                        <animateTransform attributeName="gradientTransform" type="rotate" from="0 0.5 0.5" to="360 0.5 0.5" dur="6s" repeatCount="indefinite" />
+                    </linearGradient>
+                    {/* Cara lateral izquierda — más oscura */}
+                    <linearGradient id="fLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%"   stopColor="#c4b5fd" stopOpacity="0.7" />
+                        <stop offset="100%" stopColor="#4c1d95" stopOpacity="0.85" />
+                    </linearGradient>
+                    {/* Cara lateral derecha */}
+                    <linearGradient id="fRight" x1="100%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%"   stopColor="#e9d5ff" stopOpacity="0.55" />
+                        <stop offset="100%" stopColor="#6d28d9" stopOpacity="0.75" />
+                    </linearGradient>
+                    {/* Cara inferior */}
+                    <linearGradient id="fBot" x1="50%" y1="0%" x2="50%" y2="100%">
+                        <stop offset="0%"   stopColor="#7b2fff" stopOpacity="0.5" />
+                        <stop offset="100%" stopColor="#1e0050" stopOpacity="0.8" />
+                    </linearGradient>
+                    <filter id="fBlur"><feGaussianBlur stdDeviation="2.5" /></filter>
+                    <filter id="fBlur2"><feGaussianBlur stdDeviation="1" /></filter>
+                    <filter id="fGlow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                 </defs>
-                {/* Glow suave detrás */}
-                <polygon
-                    points={`${h},${h*0.12} ${h*1.55},${h*0.72} ${h*1.38},${h*1.82} ${h*0.62},${h*1.82} ${h*0.45},${h*0.72}`}
-                    fill="rgba(123,47,255,0.18)"
-                    filter="url(#fragBlur)"
-                />
-                {/* Fragmento principal */}
-                <polygon
-                    points={`${h},${h*0.14} ${h*1.52},${h*0.74} ${h*1.35},${h*1.78} ${h*0.65},${h*1.78} ${h*0.48},${h*0.74}`}
-                    fill="url(#fragCore)"
-                    stroke="rgba(167,139,250,0.4)"
-                    strokeWidth="0.8"
-                >
-                    <animateTransform attributeName="transform" type="rotate" from={`0 ${h} ${h}`} to={`360 ${h} ${h}`} dur="18s" repeatCount="indefinite" />
+
+                {/* Sombra/glow detrás */}
+                <polygon points={`${h},${h*0.06} ${h*1.62},${h*0.66} ${h*1.44},${h*1.9} ${h*0.56},${h*1.9} ${h*0.38},${h*0.66}`}
+                    fill="rgba(123,47,255,0.25)" filter="url(#fBlur)" />
+
+                {/* Cara lateral izquierda (lado oscuro) */}
+                <polygon points={`${h},${h*0.08} ${h*0.4},${h*0.68} ${h*0.58},${h*1.88} ${h},${h*1.3}`}
+                    fill="url(#fLeft)" />
+
+                {/* Cara lateral derecha */}
+                <polygon points={`${h},${h*0.08} ${h*1.6},${h*0.68} ${h*1.42},${h*1.88} ${h},${h*1.3}`}
+                    fill="url(#fRight)" />
+
+                {/* Cara inferior */}
+                <polygon points={`${h},${h*1.3} ${h*0.58},${h*1.88} ${h*1.42},${h*1.88}`}
+                    fill="url(#fBot)" />
+
+                {/* Cara principal (frente) — la más brillante */}
+                <polygon points={`${h},${h*0.08} ${h*1.6},${h*0.68} ${h},${h*1.3} ${h*0.4},${h*0.68}`}
+                    fill="url(#fMain)" filter="url(#fGlow)">
+                    <animateTransform attributeName="transform" type="rotate" from={`0 ${h} ${h}`} to={`360 ${h} ${h}`} dur="14s" repeatCount="indefinite" />
                 </polygon>
-                {/* Líneas internas de faceta */}
-                <line x1={h} y1={h*0.14} x2={h} y2={h*1.78} stroke="rgba(167,139,250,0.15)" strokeWidth="0.6" />
-                <line x1={h*0.48} y1={h*0.74} x2={h*1.52} y2={h*0.74} stroke="rgba(76,201,240,0.12)" strokeWidth="0.5" />
-                {/* Shine */}
-                <ellipse cx={h*0.78} cy={h*0.48} rx={h*0.1} ry={h*0.06} fill="rgba(255,255,255,0.55)" filter="url(#fragBlur2)" />
-                {/* Pulsos */}
-                <circle cx={h} cy={h} r={h*0.22} fill="none" stroke="rgba(123,47,255,0.4)" strokeWidth="0.8">
-                    <animate attributeName="r" values={`${h*0.22};${h*0.75};${h*0.22}`} dur="2.6s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.5;0;0.5" dur="2.6s" repeatCount="indefinite" />
+
+                {/* Arista central brillante */}
+                <line x1={h} y1={h*0.08} x2={h} y2={h*1.3} stroke="rgba(255,255,255,0.7)" strokeWidth="1.2">
+                    <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
+                </line>
+                <line x1={h*0.4} y1={h*0.68} x2={h*1.6} y2={h*0.68} stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" />
+                <line x1={h} y1={h*1.3} x2={h*0.58} y2={h*1.88} stroke="rgba(200,180,255,0.4)" strokeWidth="0.6" />
+                <line x1={h} y1={h*1.3} x2={h*1.42} y2={h*1.88} stroke="rgba(200,180,255,0.4)" strokeWidth="0.6" />
+
+                {/* Shine highlights */}
+                <ellipse cx={h*0.72} cy={h*0.32} rx={h*0.12} ry={h*0.07} fill="rgba(255,255,255,0.75)" filter="url(#fBlur2)" />
+                <ellipse cx={h*0.62} cy={h*0.55} rx={h*0.06} ry={h*0.04} fill="rgba(255,255,255,0.5)" />
+
+                {/* Pulsos expansivos */}
+                <circle cx={h} cy={h} r={h*0.25} fill="none" stroke="rgba(167,139,250,0.45)" strokeWidth="0.8">
+                    <animate attributeName="r" values={`${h*0.25};${h*0.88};${h*0.25}`} dur="3.2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="3.2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx={h} cy={h} r={h*0.22} fill="none" stroke="rgba(76,201,240,0.3)" strokeWidth="0.6">
-                    <animate attributeName="r" values={`${h*0.22};${h*0.75};${h*0.22}`} dur="2.6s" begin="0.85s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2.6s" begin="0.85s" repeatCount="indefinite" />
+                <circle cx={h} cy={h} r={h*0.25} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5">
+                    <animate attributeName="r" values={`${h*0.25};${h*0.88};${h*0.25}`} dur="3.2s" begin="1.0s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0;0.35" dur="3.2s" begin="1.0s" repeatCount="indefinite" />
                 </circle>
             </svg>
 
-            {/* Partículas flotantes del contorno */}
-            {particles.map((p, i) => (
-                <div key={`o${i}`} style={{
-                    position: "absolute",
-                    width: p.size, height: p.size,
+            {/* Anillos orbitales CSS en distintos planos — efecto 3D */}
+            {orbits.map((orbit, oi) => (
+                <div key={oi} style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    width: orbit.rx * 2, height: orbit.ry * 2,
+                    marginLeft: -orbit.rx, marginTop: -orbit.ry,
                     borderRadius: "50%",
-                    background: p.color,
-                    left: p.x - p.size / 2,
-                    top: p.y - p.size / 2,
+                    border: `1px solid ${orbit.color}22`,
+                    transform: orbit.plane,
                     pointerEvents: "none",
-                    boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-                    animation: `nxFragFloat${i % 4} ${p.dur} ease-in-out ${p.delay} infinite`,
-                }} />
-            ))}
-
-            {/* Partículas internas */}
-            {innerParticles.map((p, i) => (
-                <div key={`in${i}`} style={{
-                    position: "absolute",
-                    width: p.size, height: p.size,
-                    borderRadius: "50%",
-                    background: p.color,
-                    left: p.x - p.size / 2,
-                    top: p.y - p.size / 2,
-                    pointerEvents: "none",
-                    opacity: 0.7,
-                    animation: `nxFragFloat${(i + 2) % 4} ${p.dur} ease-in-out ${p.delay} infinite`,
-                }} />
+                }}>
+                    {/* Partículas en esta órbita */}
+                    {Array.from({ length: orbit.count }, (_, pi) => {
+                        const startDeg = (pi / orbit.count) * 360;
+                        const delayS = -((pi / orbit.count) * parseFloat(orbit.dur)).toFixed(2);
+                        return (
+                            <div key={pi} style={{
+                                position: "absolute",
+                                width: orbit.sz, height: orbit.sz,
+                                borderRadius: "50%",
+                                background: orbit.color,
+                                boxShadow: `0 0 ${orbit.sz * 2.5}px ${orbit.color}`,
+                                top: "50%", left: "50%",
+                                marginLeft: -orbit.sz / 2, marginTop: -orbit.sz / 2,
+                                animation: `nxOrb${oi} ${orbit.dur} linear ${delayS}s infinite`,
+                                transformOrigin: `${-orbit.rx + orbit.sz / 2}px 0`,
+                            }} />
+                        );
+                    })}
+                </div>
             ))}
         </div>
     );
@@ -282,25 +290,36 @@ function EssenceFragment({ size }: { size: number }) {
 
 function MiniFragment({ dim }: { dim: boolean }) {
     return (
-        <svg viewBox="0 0 72 72" width={72} height={72} style={{ display: "block", overflow: "visible", opacity: dim ? 0.28 : 1, transition: "opacity 0.4s", filter: dim ? "none" : "drop-shadow(0 0 8px rgba(123,47,255,0.9)) drop-shadow(0 0 18px rgba(76,201,240,0.35))" }}>
+        <svg viewBox="0 0 72 72" width={72} height={72} style={{ display: "block", overflow: "visible", opacity: dim ? 0.28 : 1, transition: "opacity 0.4s", filter: dim ? "none" : "drop-shadow(0 0 8px rgba(200,180,255,0.9)) drop-shadow(0 0 18px rgba(123,47,255,0.5))" }}>
             <defs>
-                <radialGradient id="mfg" cx="38%" cy="30%" r="70%">
-                    <stop offset="0%"   stopColor="rgba(220,200,255,0.95)" stopOpacity={dim ? "0.18" : "1"} />
-                    <stop offset="40%"  stopColor="rgba(123,47,255,0.8)"   stopOpacity={dim ? "0.14" : "1"} />
-                    <stop offset="80%"  stopColor="rgba(76,201,240,0.4)"   stopOpacity={dim ? "0.1"  : "1"} />
-                    <stop offset="100%" stopColor="rgba(7,11,20,0)"        stopOpacity="1" />
-                </radialGradient>
-                <filter id="mfbl"><feGaussianBlur stdDeviation="1" /></filter>
+                <linearGradient id="mfMain" x1="20%" y1="0%" x2="80%" y2="100%">
+                    <stop offset="0%"   stopColor="#f8f4ff" stopOpacity={dim ? "0.2"  : "0.97"} />
+                    <stop offset="35%"  stopColor="#ddd0ff" stopOpacity={dim ? "0.15" : "0.9"} />
+                    <stop offset="75%"  stopColor="#a78bfa" stopOpacity={dim ? "0.1"  : "0.8"} />
+                    <stop offset="100%" stopColor="#3b0080" stopOpacity={dim ? "0.08" : "0.65"} />
+                    <animateTransform attributeName="gradientTransform" type="rotate" from="0 0.5 0.5" to="360 0.5 0.5" dur="5s" repeatCount="indefinite" />
+                </linearGradient>
+                <linearGradient id="mfLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%"   stopColor="#c4b5fd" stopOpacity={dim ? "0.1"  : "0.65"} />
+                    <stop offset="100%" stopColor="#4c1d95" stopOpacity={dim ? "0.08" : "0.8"} />
+                </linearGradient>
+                <filter id="mfGl"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <filter id="mfBl"><feGaussianBlur stdDeviation="1" /></filter>
             </defs>
-            {/* Glow */}
-            <polygon points="36,4 58,28 50,68 22,68 14,28" fill="rgba(123,47,255,0.2)" filter="url(#mfbl)" />
-            {/* Fragmento */}
-            <polygon points="36,5 57,27 49,67 23,67 15,27" fill="url(#mfg)" stroke="rgba(167,139,250,0.45)" strokeWidth="0.8">
-                <animateTransform attributeName="transform" type="rotate" from="0 36 36" to="360 36 36" dur="16s" repeatCount="indefinite" />
-            </polygon>
-            <line x1="36" y1="5"  x2="36" y2="67" stroke="rgba(167,139,250,0.15)" strokeWidth="0.6" />
-            <line x1="15" y1="27" x2="57" y2="27" stroke="rgba(76,201,240,0.12)"  strokeWidth="0.5" />
-            <ellipse cx="28" cy="17" rx="6" ry="3.5" fill="rgba(255,255,255,0.5)" filter="url(#mfbl)" />
+            {/* Cara lateral */}
+            <polygon points="36,3 14,27 22,69 36,52" fill="url(#mfLeft)" />
+            {/* Cara principal */}
+            <polygon points="36,3 58,27 50,69 36,52" fill="url(#mfLeft)" />
+            <polygon points="36,3 58,27 36,52 14,27" fill="url(#mfMain)" filter="url(#mfGl)" />
+            {/* Cara inferior */}
+            <polygon points="36,52 22,69 50,69" fill="rgba(60,0,128,0.7)" />
+            {/* Aristas */}
+            <line x1="36" y1="3" x2="36" y2="52" stroke="rgba(255,255,255,0.65)" strokeWidth="1">
+                <animate attributeName="opacity" values="0.65;1;0.65" dur="2s" repeatCount="indefinite" />
+            </line>
+            <line x1="14" y1="27" x2="58" y2="27" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" />
+            {/* Shine */}
+            <ellipse cx="26" cy="15" rx="5" ry="3" fill="rgba(255,255,255,0.7)" filter="url(#mfBl)" />
         </svg>
     );
 }
@@ -403,7 +422,7 @@ function RevealMulti({ results, onBack }: { results: PullResult[]; onBack: () =>
             await loadThree();
             for (let i = 0; i < 5; i++) {
                 if (cancelled) return;
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 1400)); // pausa más larga entre cristales
                 if (cancelled) return;
                 setStates(p => { const n = [...p]; n[i] = "cracking"; return n; });
 
@@ -418,10 +437,10 @@ function RevealMulti({ results, onBack }: { results: PullResult[]; onBack: () =>
                 }
                 setBurstInfo({ color: RS[results[i].rarity].hex, x: bx, y: by, key: i });
 
-                await new Promise(r => setTimeout(r, 700));
+                await new Promise(r => setTimeout(r, 900)); // burst más largo
                 if (cancelled) return;
                 setStates(p => { const n = [...p]; n[i] = "revealed"; return n; });
-                await new Promise(r => setTimeout(r, 380));
+                await new Promise(r => setTimeout(r, 500)); // pausa post-reveal
             }
             await new Promise(r => setTimeout(r, 1100));
             if (!cancelled) setDone(true);
@@ -458,10 +477,10 @@ function RevealMulti({ results, onBack }: { results: PullResult[]; onBack: () =>
     }
 
     return (
-        <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "clamp(24px,5vh,48px)", overflow: "hidden", fontFamily: "'Exo 2',sans-serif" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "clamp(24px,5vh,48px)", overflow: "hidden", fontFamily: "'Exo 2',sans-serif", background: "#070b14" }}>
             {/* Fondo bonito opening */}
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 50%, rgba(123,47,255,0.1) 0%, rgba(7,11,20,0.98) 65%)", zIndex: 0 }} />
-            <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(123,47,255,0.04) 1px, transparent 1px), radial-gradient(rgba(76,201,240,0.03) 1px, transparent 1px)", backgroundSize: "40px 40px, 20px 20px", zIndex: 0 }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 50%, rgba(123,47,255,0.12) 0%, transparent 65%)", zIndex: 0 }} />
+            <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(123,47,255,0.04) 1px, transparent 1px)", backgroundSize: "36px 36px", zIndex: 0 }} />
 
             {/* Burst posicionado en el cristal */}
             {burstInfo && <FullScreenBurst key={burstInfo.key} color={burstInfo.color} x={burstInfo.x} y={burstInfo.y} onDone={() => setBurstInfo(null)} />}
@@ -565,11 +584,12 @@ export default function NexusPage() {
                 @keyframes nxPulse    { 0%,100%{opacity:0.55} 50%{opacity:1} }
                 @keyframes nxPart     { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0} }
                 @keyframes nxBinder   { from{transform:scale(0.08) translateY(70px);opacity:0;filter:blur(10px)} 60%{filter:blur(0)} to{transform:scale(1) translateY(0);opacity:1} }
-                /* 4 variantes de float para las partículas del fragmento */
-                @keyframes nxFragFloat0 { 0%,100%{transform:translateY(0px) translateX(0px);opacity:0.9} 50%{transform:translateY(-4px) translateX(1px);opacity:1} }
-                @keyframes nxFragFloat1 { 0%,100%{transform:translateY(0px) translateX(0px);opacity:0.8} 50%{transform:translateY(3px) translateX(-2px);opacity:1} }
-                @keyframes nxFragFloat2 { 0%,100%{transform:translateY(0px) translateX(0px);opacity:0.85} 33%{transform:translateY(-3px) translateX(2px);opacity:1} 66%{transform:translateY(2px) translateX(-1px);opacity:0.9} }
-                @keyframes nxFragFloat3 { 0%,100%{transform:translateY(0px);opacity:0.7} 50%{transform:translateY(-5px);opacity:1} }
+                /* Órbitas del fragmento 3D — cada una en su plano */
+                @keyframes nxOrb0 { from{transform:rotate(0deg) translateX(var(--rx,60px)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--rx,60px)) rotate(-360deg)} }
+                @keyframes nxOrb1 { from{transform:rotate(0deg) translateX(var(--rx,50px)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--rx,50px)) rotate(-360deg)} }
+                @keyframes nxOrb2 { from{transform:rotate(0deg) translateX(var(--rx,40px)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--rx,40px)) rotate(-360deg)} }
+                @keyframes nxOrb3 { from{transform:rotate(0deg) translateX(var(--rx,68px)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--rx,68px)) rotate(-360deg)} }
+                @keyframes nxOrb4 { from{transform:rotate(0deg) translateX(var(--rx,30px)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--rx,30px)) rotate(-360deg)} }
             `}</style>
 
             <PageTopbar title="Nexus" onBack={() => navigate(-1)} />
